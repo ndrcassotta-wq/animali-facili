@@ -20,10 +20,10 @@ export default async function ModificaScadenzaPage({
     .select('*')
     .eq('id', id)
     .single()
+  
+  const scadenza = rawS as Scadenza | null
 
-  if (!rawS || rawS.stato !== 'attiva') notFound()
-
-  const scadenza = rawS as Scadenza
+  if (!scadenza || scadenza.stato !== 'attiva') notFound()
 
   return (
     <div>
