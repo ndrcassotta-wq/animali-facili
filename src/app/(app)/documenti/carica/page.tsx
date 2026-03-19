@@ -8,6 +8,7 @@ import { documentoSchema } from '@/lib/utils/validation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { InputFile } from '@/components/ui/InputFile'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -71,7 +72,7 @@ export default function CaricaDocumentoPage() {
     e.preventDefault()
     setErroreSrv(null)
     if (!animaleId) { setErroreSrv('Seleziona un animale.'); return }
-    if (!file)      { setErroreSrv('Seleziona un file da caricare.'); return }
+    if (!file) { setErroreSrv('Seleziona un file da caricare.'); return }
     const data = validate()
     if (!data) return
 
@@ -81,7 +82,6 @@ export default function CaricaDocumentoPage() {
     if (!user) { router.push('/login'); return }
 
     // Path: {user_id}/{animale_id}/{timestamp}_{nome_file_sanitizzato}
-    const ext = file.name.split('.').pop() ?? 'bin'
     const nomeSanitizzato = file.name.replace(/[^a-z0-9.\-_]/gi, '_')
     const filePath = `${user.id}/${animaleId}/${Date.now()}_${nomeSanitizzato}`
 
@@ -181,24 +181,16 @@ export default function CaricaDocumentoPage() {
           />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="file">
-            File <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="file"
-            type="file"
-            accept=".pdf,image/jpeg,image/png,image/webp"
-            onChange={e => setFile(e.target.files?.[0] ?? null)}
-            disabled={isSubmitting}
-            className="cursor-pointer"
-          />
-          {file && (
-            <p className="text-xs text-muted-foreground">
-              {file.name} ({(file.size / 1024).toFixed(0)} KB)
-            </p>
-          )}
-        </div>
+        <InputFile
+          id="file"
+          accept=".pdf,image/jpeg,image/png,image/webp"
+          capture={false}
+          label="File"
+          descrizione="Carica un documento o una foto del documento"
+          onChange={setFile}
+          fileSelezionato={file}
+          disabled={isSubmitting}
+        />
 
         <div className="space-y-1">
           <Label htmlFor="note">
