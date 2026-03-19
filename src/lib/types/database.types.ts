@@ -248,6 +248,54 @@ export type Database = {
           }
         ]
       }
+      notifiche: {
+        Row: {
+          id: string
+          user_id: string
+          scadenza_id: string
+          rule_key: string
+          titolo: string
+          corpo: string | null
+          letta: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          scadenza_id: string
+          rule_key: string
+          titolo: string
+          corpo?: string | null
+          letta?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          scadenza_id?: string
+          rule_key?: string
+          titolo?: string
+          corpo?: string | null
+          letta?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifiche_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notifiche_scadenza_id_fkey'
+            columns: ['scadenza_id']
+            isOneToOne: false
+            referencedRelation: 'scadenze'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

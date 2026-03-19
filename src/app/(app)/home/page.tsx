@@ -13,7 +13,7 @@ import {
   type DocumentoConAnimale,
 } from '@/lib/types/query.types'
 import type { Animale } from '@/lib/types/query.types'
-import { User } from 'lucide-react'
+import { User, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default async function HomePage() {
@@ -26,6 +26,7 @@ export default async function HomePage() {
     { data: scadenzeRaw },
     { data: eventiRaw },
     { data: documentiRaw },
+    { count: notificheNonLette },
   ] = await Promise.all([
     supabase
       .from('animali')
@@ -48,17 +49,22 @@ export default async function HomePage() {
       .select('id, titolo, categoria, created_at, animali(nome)')
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase
+      .from('notifiche')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('letta', false),
   ])
 
-  const animaliList   = (animaliRaw ?? []) as Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
-  const scadenzeList  = asScadenzeConAnimale(scadenzeRaw)
-  const eventiList    = asEventiConAnimale(eventiRaw)
+  const animaliList = (animaliRaw ?? []) as Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
+  const scadenzeList = asScadenzeConAnimale(scadenzeRaw)
+  const eventiList = asEventiConAnimale(eventiRaw)
   const documentiList = asDocumentiConAnimale(documentiRaw)
   const nessunAnimale = animaliList.length === 0
+  const badge = notificheNonLette ?? 0
 
   return (
     <div>
-      {/* Header personalizzato con logo */}
       <header className="flex items-center justify-between px-4 py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Image
@@ -70,9 +76,21 @@ export default async function HomePage() {
           />
           <span className="text-base font-semibold">Animali Facili</span>
         </div>
-        <Link href="/profilo" aria-label="Profilo utente">
-          <User className="w-5 h-5 text-muted-foreground" />
-        </Link>
+
+        <div className="flex items-center gap-3">
+          <Link href="/notifiche" className="relative" aria-label="Notifiche">
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            {badge > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium flex items-center justify-center leading-none">
+                {badge > 9 ? '9+' : badge}
+              </span>
+            )}
+          </Link>
+
+          <Link href="/profilo" aria-label="Profilo utente">
+            <User className="w-5 h-5 text-muted-foreground" />
+          </Link>
+        </div>
       </header>
 
       <div className="px-4 py-4 space-y-6">
@@ -116,7 +134,7 @@ export default async function HomePage() {
             <SectionHeader titolo="Prossime scadenze" linkHref="/scadenze" linkLabel="Vedi tutte" />
             <div className="space-y-2">
               {scadenzeList.map((s: ScadenzaConAnimale) => {
-                const scaduta   = isScaduta(s.data)
+                const scaduta = isScaduta(s.data)
                 const imminente = isImminente(s.data)
                 return (
                   <Link
@@ -130,9 +148,9 @@ export default async function HomePage() {
                     </div>
                     <span className={cn(
                       'text-xs font-medium shrink-0 ml-3',
-                      scaduta   ? 'text-destructive' :
+                      scaduta ? 'text-destructive' :
                       imminente ? 'text-amber-600 dark:text-amber-400' :
-                                  'text-muted-foreground'
+                      'text-muted-foreground'
                     )}>
                       {formatData(s.data)}
                     </span>
