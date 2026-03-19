@@ -32,6 +32,7 @@ export async function updateSession(request: NextRequest) {
     '/registrazione',
     '/recupero-password',
     '/aggiorna-password',
+    '/auth/callback',
   ]
 
   const isPublic = PUBLIC_ROUTES.some(
