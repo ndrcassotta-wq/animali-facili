@@ -1,8 +1,8 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { formatData, isImminente, isScaduta } from '@/lib/utils/date'
 import {
   asScadenzeConAnimale,
@@ -58,14 +58,22 @@ export default async function HomePage() {
 
   return (
     <div>
-      <PageHeader
-        titolo="Animali Facili"
-        azione={
-          <Link href="/profilo" aria-label="Profilo utente">
-            <User className="w-5 h-5 text-muted-foreground" />
-          </Link>
-        }
-      />
+      {/* Header personalizzato con logo */}
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/logo-animali-facili.png"
+            alt="Animali Facili"
+            width={40}
+            height={40}
+            className="rounded-lg"
+          />
+          <span className="text-base font-semibold">Animali Facili</span>
+        </div>
+        <Link href="/profilo" aria-label="Profilo utente">
+          <User className="w-5 h-5 text-muted-foreground" />
+        </Link>
+      </header>
 
       <div className="px-4 py-4 space-y-6">
 
