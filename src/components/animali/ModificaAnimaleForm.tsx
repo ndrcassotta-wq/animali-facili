@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import type { Animale } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
@@ -18,93 +22,202 @@ import type { Database } from '@/lib/types/database.types'
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleUpdate = Database['public']['Tables']['animali']['Update']
 
+const BUCKET_FOTO_ANIMALI = 'foto-animali'
+
 const metaCampi: Partial<Record<string, { label: string; chiave: string }>> = {
-  cani:              { label: 'Taglia',        chiave: 'taglia' },
-  pesci:             { label: 'Tipo acqua',    chiave: 'tipo_acqua' },
-  rettili:           { label: 'Tipo terrario', chiave: 'tipo_terrario' },
-  uccelli:           { label: 'Tipo gabbia',   chiave: 'tipo_gabbia' },
-  piccoli_mammiferi: { label: 'Tipo habitat',  chiave: 'tipo_habitat' },
+  cani: { label: 'Taglia', chiave: 'taglia' },
+  pesci: { label: 'Tipo acqua', chiave: 'tipo_acqua' },
+  rettili: { label: 'Tipo terrario', chiave: 'tipo_terrario' },
+  uccelli: { label: 'Tipo gabbia', chiave: 'tipo_gabbia' },
+  piccoli_mammiferi: { label: 'Tipo habitat', chiave: 'tipo_habitat' },
+}
+
+function getEstensioneFile(file: File) {
+  const nome = file.name.split('.')
+  const estensione = nome[nome.length - 1]?.toLowerCase()
+
+  if (estensione) return estensione
+  return 'jpg'
 }
 
 export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   const router = useRouter()
+
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
 
   const metaEsistente = animale.meta_categoria as Record<string, string> | null
-  const metaCampo     = metaCampi[animale.categoria]
+  const metaCampo = metaCampi[animale.categoria]
+
   const [metaValore, setMetaValore] = useState(
     metaCampo ? (metaEsistente?.[metaCampo.chiave] ?? '') : ''
   )
 
   const [valori, setValori] = useState<FormValori>({
-    nome:         animale.nome,
-    categoria:    animale.categoria,
-    specie:       animale.specie,
-    razza:        animale.razza ?? '',
-    sesso:        animale.sesso ?? 'non_specificato',
+    nome: animale.nome,
+    categoria: animale.categoria,
+    specie: animale.specie,
+    razza: animale.razza ?? '',
+    sesso: animale.sesso ?? 'non_specificato',
     data_nascita: animale.data_nascita ?? '',
-    peso:         animale.peso ?? undefined,
-    note:         animale.note ?? '',
+    peso: animale.peso ?? undefined,
+    note: animale.note ?? '',
   })
-  const [erroriForm, setErroriForm] = useState<Partial<Record<keyof FormValori, string>>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [erroriForm, setErroriForm] = useState<
+    Partial<Record<keyof FormValori, string>>
+  >({})
+
+  const previewFoto = useMemo(() => {
+    if (fotoFile) {
+      return URL.createObjectURL(fotoFile)
+    }
+
+    return animale.foto_url ?? null
+  }, [fotoFile, animale.foto_url])
 
   function setValue(field: keyof FormValori, value: unknown) {
-    setValori(prev => ({ ...prev, [field]: value }))
-    setErroriForm(prev => ({ ...prev, [field]: undefined }))
+    setValori((prev) => ({ ...prev, [field]: value }))
+    setErroriForm((prev) => ({ ...prev, [field]: undefined }))
   }
 
   function validate(): FormValori | null {
     const result = animaleSchema.safeParse(valori)
+
     if (!result.success) {
       const fe: Partial<Record<keyof FormValori, string>> = {}
-      result.error.issues.forEach(issue => {
+
+      result.error.issues.forEach((issue) => {
         const field = issue.path[0] as keyof FormValori
         if (field && !fe[field]) fe[field] = issue.message
       })
+
       setErroriForm(fe)
       return null
     }
+
     return result.data
+  }
+
+  async function uploadFotoSePresente() {
+    if (!fotoFile) {
+      return animale.foto_url ?? null
+    }
+
+    const supabase = createClient()
+    const estensione = getEstensioneFile(fotoFile)
+    const filePath = `animali/${animale.id}/foto-${Date.now()}.${estensione}`
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_FOTO_ANIMALI)
+      .upload(filePath, fotoFile, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: fotoFile.type || undefined,
+      })
+
+    if (uploadError) {
+      throw new Error('Upload foto non riuscito.')
+    }
+
+    const { data } = supabase.storage
+      .from(BUCKET_FOTO_ANIMALI)
+      .getPublicUrl(filePath)
+
+    return data.publicUrl
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErroreSrv(null)
+
     const data = validate()
     if (!data) return
 
-    const meta = metaCampo && metaValore
-      ? { [metaCampo.chiave]: metaValore }
-      : null
-
-    const payload: AnimaleUpdate = {
-      nome:           data.nome,
-      specie:         data.specie ?? '',
-      razza:          data.razza || null,
-      sesso:          data.sesso ?? 'non_specificato',
-      data_nascita:   data.data_nascita || null,
-      peso:           data.peso ?? null,
-      note:           data.note || null,
-      meta_categoria: meta,
-    }
-
     setIsSubmitting(true)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('animali')
-      .update(payload)
-      .eq('id', animale.id)
-    setIsSubmitting(false)
 
-    if (error) { setErroreSrv('Errore durante il salvataggio. Riprova.'); return }
+    try {
+      const fotoUrl = await uploadFotoSePresente()
 
-    router.push(`/animali/${animale.id}`)
-    router.refresh()
+      const meta =
+        metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
+
+      const payload: AnimaleUpdate = {
+        nome: data.nome,
+        specie: data.specie ?? '',
+        razza: data.razza || null,
+        sesso: data.sesso ?? 'non_specificato',
+        data_nascita: data.data_nascita || null,
+        peso: data.peso ?? null,
+        note: data.note || null,
+        meta_categoria: meta,
+        foto_url: fotoUrl,
+      }
+
+      const supabase = createClient()
+
+      const { error } = await supabase
+        .from('animali')
+        .update(payload)
+        .eq('id', animale.id)
+
+      if (error) {
+        throw new Error('Errore durante il salvataggio.')
+      }
+
+      router.push(`/animali/${animale.id}`)
+      router.refresh()
+    } catch (error) {
+      setErroreSrv(
+        error instanceof Error
+          ? error.message
+          : 'Errore durante il salvataggio. Riprova.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
+      <div className="space-y-2">
+        <Label>Foto animale</Label>
+
+        <div className="flex items-center gap-4 rounded-xl border border-border p-3">
+          <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-muted">
+            {previewFoto ? (
+              <img
+                src={previewFoto}
+                alt={animale.nome}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                Nessuna foto
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <Input
+              id="foto"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={isSubmitting}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setFotoFile(file)
+              }}
+            />
+
+            <p className="text-xs text-muted-foreground">
+              Puoi scegliere una foto dalla galleria o scattarla dal telefono.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-1">
         <Label htmlFor="nome">
@@ -113,18 +226,22 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <Input
           id="nome"
           value={valori.nome}
-          onChange={e => setValue('nome', e.target.value)}
+          onChange={(e) => setValue('nome', e.target.value)}
           disabled={isSubmitting}
         />
-        {erroriForm.nome && <p className="text-xs text-destructive">{erroriForm.nome}</p>}
+        {erroriForm.nome && (
+          <p className="text-xs text-destructive">{erroriForm.nome}</p>
+        )}
       </div>
 
       <div className="space-y-1">
         <Label>Categoria</Label>
-        <p className="text-sm text-muted-foreground px-3 py-2 bg-muted rounded-md capitalize">
+        <p className="rounded-md bg-muted px-3 py-2 text-sm capitalize text-muted-foreground">
           {animale.categoria.replace(/_/g, ' ')}
         </p>
-        <p className="text-xs text-muted-foreground">La categoria non può essere modificata.</p>
+        <p className="text-xs text-muted-foreground">
+          La categoria non può essere modificata.
+        </p>
       </div>
 
       <div className="space-y-1">
@@ -134,10 +251,12 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <Input
           id="specie"
           value={valori.specie}
-          onChange={e => setValue('specie', e.target.value)}
+          onChange={(e) => setValue('specie', e.target.value)}
           disabled={isSubmitting}
         />
-        {erroriForm.specie && <p className="text-xs text-destructive">{erroriForm.specie}</p>}
+        {erroriForm.specie && (
+          <p className="text-xs text-destructive">{erroriForm.specie}</p>
+        )}
       </div>
 
       <div className="space-y-1">
@@ -147,7 +266,7 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <Input
           id="razza"
           value={valori.razza ?? ''}
-          onChange={e => setValue('razza', e.target.value)}
+          onChange={(e) => setValue('razza', e.target.value)}
           disabled={isSubmitting}
         />
       </div>
@@ -156,10 +275,12 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <Label>Sesso</Label>
         <Select
           value={valori.sesso ?? 'non_specificato'}
-          onValueChange={v => setValue('sesso', v)}
+          onValueChange={(v) => setValue('sesso', v)}
           disabled={isSubmitting}
         >
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="maschio">Maschio</SelectItem>
             <SelectItem value="femmina">Femmina</SelectItem>
@@ -170,20 +291,22 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
 
       <div className="space-y-1">
         <Label htmlFor="data_nascita">
-          Data di nascita <span className="text-xs text-muted-foreground">(opzionale)</span>
+          Data di nascita{' '}
+          <span className="text-xs text-muted-foreground">(opzionale)</span>
         </Label>
         <Input
           id="data_nascita"
           type="date"
           value={valori.data_nascita ?? ''}
-          onChange={e => setValue('data_nascita', e.target.value)}
+          onChange={(e) => setValue('data_nascita', e.target.value)}
           disabled={isSubmitting}
         />
       </div>
 
       <div className="space-y-1">
         <Label htmlFor="peso">
-          Peso in kg <span className="text-xs text-muted-foreground">(opzionale)</span>
+          Peso in kg{' '}
+          <span className="text-xs text-muted-foreground">(opzionale)</span>
         </Label>
         <Input
           id="peso"
@@ -191,7 +314,12 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
           step="0.001"
           min="0"
           value={valori.peso ?? ''}
-          onChange={e => setValue('peso', e.target.value)}
+          onChange={(e) =>
+            setValue(
+              'peso',
+              e.target.value === '' ? undefined : Number(e.target.value)
+            )
+          }
           disabled={isSubmitting}
         />
       </div>
@@ -199,12 +327,13 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
       {metaCampo && (
         <div className="space-y-1">
           <Label htmlFor="meta">
-            {metaCampo.label} <span className="text-xs text-muted-foreground">(opzionale)</span>
+            {metaCampo.label}{' '}
+            <span className="text-xs text-muted-foreground">(opzionale)</span>
           </Label>
           <Input
             id="meta"
             value={metaValore}
-            onChange={e => setMetaValore(e.target.value)}
+            onChange={(e) => setMetaValore(e.target.value)}
             disabled={isSubmitting}
           />
         </div>
@@ -217,18 +346,19 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <Textarea
           id="note"
           value={valori.note ?? ''}
-          onChange={e => setValue('note', e.target.value)}
+          onChange={(e) => setValue('note', e.target.value)}
           disabled={isSubmitting}
           rows={3}
         />
       </div>
 
-      {erroreSrv && <p className="text-sm text-destructive text-center">{erroreSrv}</p>}
+      {erroreSrv && (
+        <p className="text-center text-sm text-destructive">{erroreSrv}</p>
+      )}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Salvataggio...' : 'Salva modifiche'}
       </Button>
-
     </form>
   )
 }
