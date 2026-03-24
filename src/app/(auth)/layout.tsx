@@ -6,8 +6,7 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="auth-page h-screen overflow-hidden flex flex-col items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+      <div className="auth-page h-screen overflow-hidden flex flex-col items-center justify-start bg-background px-4 pt-16">      <div className="w-full max-w-sm">
         <div className="mb-6 space-y-1.5 text-center">
           <div className="flex justify-center">
             <Image
