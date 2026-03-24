@@ -58,8 +58,11 @@ export function LoginForm() {
     setErroreSrv(null)
     setLoadingGoogle(true)
 
+    const supabase = createClient()
+
     try {
-      const supabase = createClient()
+      // Prova prima con Capacitor Browser (app nativa)
+      const { Browser } = await import('@capacitor/browser')
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -75,14 +78,11 @@ export function LoginForm() {
         return
       }
 
-      // Apri il browser di Capacitor invece del browser di sistema
-      const { Browser } = await import('@capacitor/browser')
       await Browser.open({
         url: data.url,
         windowName: '_self',
       })
 
-      // Ascolta quando il browser si chiude e ricarica la sessione
       Browser.addListener('browserFinished', async () => {
         await supabase.auth.getSession()
         router.push('/home')
@@ -91,8 +91,19 @@ export function LoginForm() {
       })
 
     } catch {
-      setErroreSrv('Errore durante il login con Google. Riprova.')
-      setLoadingGoogle(false)
+      // Fallback per browser web normale (Vercel)
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      callbackUrl.searchParams.set('next', safeNext)
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: callbackUrl.toString() },
+      })
+
+      if (error) {
+        setErroreSrv('Errore durante il login con Google. Riprova.')
+        setLoadingGoogle(false)
+      }
     }
   }
 

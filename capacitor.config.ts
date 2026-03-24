@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Animali Facili',
   webDir: 'out',
   server: {
-    url: 'http://10.0.2.2:3000',
-    cleartext: true,
+    url: 'https://animali-facili.vercel.app',
+    cleartext: false,
   },
   plugins: {
     StatusBar: {
