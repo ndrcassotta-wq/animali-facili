@@ -13,27 +13,54 @@ export function CapacitorAuthRedirectHandler() {
       if (!url.startsWith('com.animalifacili.app://')) return
 
       try {
-        const hashIndex = url.indexOf('#')
-        if (hashIndex === -1) return
+        const parsedUrl = new URL(url)
 
-        const hash = url.slice(hashIndex + 1)
-        const params = new URLSearchParams(hash)
+        // Caso PKCE: ritorna con ?code=...
+        const code = parsedUrl.searchParams.get('code')
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-        const access_token = params.get('access_token')
-        const refresh_token = params.get('refresh_token')
+          if (error) {
+            console.error('Errore exchangeCodeForSession:', error)
+            return
+          }
 
-        if (!access_token || !refresh_token) return
+          try {
+            await Browser.close()
+          } catch {}
 
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        })
+          window.location.href = '/home'
+          return
+        }
 
-        try {
-          await Browser.close()
-        } catch {}
+        // Fallback: caso implicit flow con #access_token=...
+        const hash = parsedUrl.hash?.startsWith('#')
+          ? parsedUrl.hash.substring(1)
+          : parsedUrl.hash
 
-        window.location.href = '/home'
+        if (hash) {
+          const params = new URLSearchParams(hash)
+          const access_token = params.get('access_token')
+          const refresh_token = params.get('refresh_token')
+
+          if (access_token && refresh_token) {
+            const { error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            })
+
+            if (error) {
+              console.error('Errore setSession:', error)
+              return
+            }
+
+            try {
+              await Browser.close()
+            } catch {}
+
+            window.location.href = '/home'
+          }
+        }
       } catch (e) {
         console.error('Errore gestione deep link auth:', e)
       }
