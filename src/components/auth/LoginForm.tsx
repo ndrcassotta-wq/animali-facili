@@ -61,7 +61,6 @@ export function LoginForm() {
     const supabase = createClient()
 
     try {
-      // Prova prima con Capacitor Browser (app nativa)
       const { Browser } = await import('@capacitor/browser')
 
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -84,14 +83,26 @@ export function LoginForm() {
       })
 
       Browser.addListener('browserFinished', async () => {
-        await supabase.auth.getSession()
-        router.push('/home')
-        router.refresh()
-        setLoadingGoogle(false)
+        // Polling sessione — aspetta fino a 10 secondi
+        let tentativi = 0
+        const intervallo = setInterval(async () => {
+          tentativi++
+          const { data: sessionData } = await supabase.auth.getSession()
+          if (sessionData.session) {
+            clearInterval(intervallo)
+            router.push('/home')
+            router.refresh()
+            setLoadingGoogle(false)
+          } else if (tentativi >= 10) {
+            clearInterval(intervallo)
+            setErroreSrv('Login non completato. Riprova.')
+            setLoadingGoogle(false)
+          }
+        }, 1000)
       })
 
     } catch {
-      // Fallback per browser web normale (Vercel)
+      // Fallback web
       const callbackUrl = new URL('/auth/callback', window.location.origin)
       callbackUrl.searchParams.set('next', safeNext)
 
