@@ -27,7 +27,6 @@ export function AzioniImpegno({
       .update({ stato: nuovoStato })
       .eq('id', impegnoId)
 
-    // Cancella notifica se completato o annullato
     if (nuovoStato === 'completato' || nuovoStato === 'annullato') {
       try {
         await cancellaNotificaImpegno(impegnoId)
@@ -40,35 +39,80 @@ export function AzioniImpegno({
     router.refresh()
   }
 
+  async function eliminaImpegno() {
+    const conferma = window.confirm('Vuoi davvero eliminare questo impegno?')
+    if (!conferma) return
+
+    setCaricamento(true)
+    const supabase = createClient()
+
+    try {
+      await cancellaNotificaImpegno(impegnoId)
+    } catch {
+      // Non blocchiamo se la cancellazione notifica fallisce
+    }
+
+    await supabase
+      .from('impegni')
+      .delete()
+      .eq('id', impegnoId)
+
+    setCaricamento(false)
+    router.push('/impegni')
+    router.refresh()
+  }
+
   if (statoAttuale === 'completato' || statoAttuale === 'annullato') {
     return (
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => aggiornaStato('programmato')}
-        disabled={caricamento}
-      >
-        Riporta a programmato
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => aggiornaStato('programmato')}
+          disabled={caricamento}
+        >
+          Riporta a programmato
+        </Button>
+
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={eliminaImpegno}
+          disabled={caricamento}
+        >
+          Elimina impegno
+        </Button>
+      </div>
     )
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Button
+          className="flex-1"
+          onClick={() => aggiornaStato('completato')}
+          disabled={caricamento}
+        >
+          Segna completato
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => aggiornaStato('annullato')}
+          disabled={caricamento}
+        >
+          Annulla
+        </Button>
+      </div>
+
       <Button
-        className="flex-1"
-        onClick={() => aggiornaStato('completato')}
+        variant="destructive"
+        className="w-full"
+        onClick={eliminaImpegno}
         disabled={caricamento}
       >
-        Segna completato
-      </Button>
-      <Button
-        variant="outline"
-        className="flex-1"
-        onClick={() => aggiornaStato('annullato')}
-        disabled={caricamento}
-      >
-        Annulla
+        Elimina impegno
       </Button>
     </div>
   )
