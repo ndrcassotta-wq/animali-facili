@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { BottoneDownload } from '@/components/documenti/BottoneDownload'
 import { formatData } from '@/lib/utils/date'
 import type { Documento } from '@/lib/types/query.types'
+import { AzioniDocumento } from '@/components/documenti/AzioniDocumento'
 
 const labelCategoria: Record<string, string> = {
   ricetta: 'Ricetta', referto: 'Referto', analisi: 'Analisi',
@@ -71,6 +72,11 @@ export default async function DettaglioDocumentoPage({
         <BottoneDownload
           signedUrl={signed?.signedUrl ?? null}
           titolo={doc.titolo}
+          filePath={doc.file_url}
+        />
+
+        <AzioniDocumento
+          documentoId={doc.id}
           filePath={doc.file_url}
         />
 
