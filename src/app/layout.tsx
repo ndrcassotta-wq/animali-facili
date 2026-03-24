@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import './globals.css'
+import { CapacitorAuthRedirectHandler } from '@/components/CapacitorAuthRedirectHandler'
 
 const geist = Geist({ subsets: ['latin'] })
 
@@ -47,6 +48,7 @@ export default function RootLayout({
             }
           })();
         `}} />
+        <CapacitorAuthRedirectHandler />
         {children}
       </body>
     </html>
