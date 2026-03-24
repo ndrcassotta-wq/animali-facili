@@ -7,7 +7,29 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 
-type AnimaleBase = { id: string; nome: string; categoria: string }
+type AnimaleBase = { id: string; nome: string; categoria: string; foto_url: string | null }
+
+const iconaCategoria: Record<string, string> = {
+  cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
+  rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
+}
+
+function FotoAnimale({ foto_url, nome, categoria }: { foto_url: string | null; nome: string; categoria: string }) {
+  if (foto_url) {
+    return (
+      <img
+        src={foto_url}
+        alt={nome}
+        className="w-6 h-6 rounded-full object-cover shrink-0"
+      />
+    )
+  }
+  return (
+    <span className="text-base leading-none shrink-0">
+      {iconaCategoria[categoria] ?? '🐾'}
+    </span>
+  )
+}
 
 export function AnimaleSelect({
   valore,
@@ -24,7 +46,7 @@ export function AnimaleSelect({
     const supabase = createClient()
     supabase
       .from('animali')
-      .select('id, nome, categoria')
+      .select('id, nome, categoria, foto_url')
       .order('nome')
       .then(({ data }) => setAnimali((data ?? []) as AnimaleBase[]))
   }, [])
@@ -33,6 +55,8 @@ export function AnimaleSelect({
     if (value) onChange(value)
   }
 
+  const animaleSelezionato = animali.find(a => a.id === valore)
+
   return (
     <div className="space-y-1">
       <Label>
@@ -40,11 +64,33 @@ export function AnimaleSelect({
       </Label>
       <Select value={valore} onValueChange={handleChange} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder="Seleziona un animale" />
+          {animaleSelezionato ? (
+            <div className="flex items-center gap-2">
+              <FotoAnimale
+                foto_url={animaleSelezionato.foto_url}
+                nome={animaleSelezionato.nome}
+                categoria={animaleSelezionato.categoria}
+              />
+              <span>{animaleSelezionato.nome}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">
+              {valore ? 'Caricamento...' : 'Seleziona un animale'}
+            </span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {animali.map(a => (
-            <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+            <SelectItem key={a.id} value={a.id}>
+              <div className="flex items-center gap-2">
+                <FotoAnimale
+                  foto_url={a.foto_url}
+                  nome={a.nome}
+                  categoria={a.categoria}
+                />
+                <span>{a.nome}</span>
+              </div>
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>

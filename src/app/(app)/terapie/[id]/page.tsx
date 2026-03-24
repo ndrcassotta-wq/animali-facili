@@ -10,6 +10,8 @@ type Terapia = Database['public']['Tables']['terapie']['Row']
 type Animale = Database['public']['Tables']['animali']['Row']
 type Somministrazione =
   Database['public']['Tables']['somministrazioni_terapia']['Row']
+type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
+type ImpegnoRow = Database['public']['Tables']['impegni']['Row']
 
 const LABEL_FREQUENZA: Record<string, string> = {
   una_volta_giorno: '1× al giorno',
@@ -44,6 +46,120 @@ function formatDataOra(data: string | null) {
   }).format(new Date(data))
 }
 
+function formatDateOnlyIso(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function getAutoTerapiaMarker(terapiaId: string) {
+  return `[AUTO_TERAPIA:${terapiaId}]`
+}
+
+function buildAutoImpegnoNote(terapia: Terapia) {
+  return `${getAutoTerapiaMarker(terapia.id)}
+Promemoria automatico terapia: ${terapia.nome_farmaco}
+Dose: ${terapia.dose || 'Non indicata'}
+Frequenza: ${terapia.frequenza || 'Non indicata'}`
+}
+
+function calcolaProssimaSomministrazione(
+  terapia: Terapia,
+  ultimaSomministrazione: Somministrazione | null
+) {
+  if (terapia.stato !== 'attiva') return null
+
+  if (!ultimaSomministrazione?.somministrata_il) {
+    if (!terapia.data_inizio) return null
+
+    const primaData = new Date(`${terapia.data_inizio}T09:00:00`)
+    if (Number.isNaN(primaData.getTime())) return null
+
+    if (terapia.data_fine) {
+      const dataFine = new Date(`${terapia.data_fine}T23:59:59`)
+      if (primaData > dataFine) return null
+    }
+
+    return primaData
+  }
+
+  const base = new Date(ultimaSomministrazione.somministrata_il)
+  if (Number.isNaN(base.getTime())) return null
+
+  const prossima = new Date(base)
+
+  switch (terapia.frequenza) {
+    case 'una_volta_giorno':
+      prossima.setDate(prossima.getDate() + 1)
+      break
+    case 'due_volte_giorno':
+      prossima.setHours(prossima.getHours() + 12)
+      break
+    case 'tre_volte_giorno':
+      prossima.setHours(prossima.getHours() + 8)
+      break
+    case 'al_bisogno':
+    case 'personalizzata':
+    default:
+      return null
+  }
+
+  if (terapia.data_fine) {
+    const dataFine = new Date(`${terapia.data_fine}T23:59:59`)
+    if (prossima > dataFine) return null
+  }
+
+  return prossima
+}
+
+function getTestoProssimaSomministrazione(
+  terapia: Terapia,
+  prossimaSomministrazione: Date | null
+) {
+  if (terapia.stato !== 'attiva') {
+    return 'Terapia non attiva'
+  }
+
+  if (terapia.frequenza === 'al_bisogno') {
+    return 'Somministrazione al bisogno'
+  }
+
+  if (terapia.frequenza === 'personalizzata') {
+    return 'Frequenza personalizzata'
+  }
+
+  if (!prossimaSomministrazione) {
+    return 'Non calcolabile'
+  }
+
+  return new Intl.DateTimeFormat('it-IT', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(prossimaSomministrazione)
+}
+
+function calcolaProssimaDataImpegno(
+  terapia: Terapia,
+  riferimento: Date
+): string | null {
+  if (terapia.stato !== 'attiva') return null
+
+  // Prima versione affidabile con schema impegni attuale:
+  // gestiamo automatico davvero bene il caso 1× al giorno.
+  if (terapia.frequenza !== 'una_volta_giorno') {
+    return null
+  }
+
+  const prossima = new Date(riferimento)
+  prossima.setDate(prossima.getDate() + 1)
+
+  const prossimaData = formatDateOnlyIso(prossima)
+
+  if (terapia.data_fine && prossimaData > terapia.data_fine) {
+    return null
+  }
+
+  return prossimaData
+}
+
 type PageProps = {
   params: Promise<{ id: string }>
 }
@@ -70,19 +186,95 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
     const supabase = await createClient()
     const notaRaw = String(formData.get('nota') ?? '').trim()
 
-    const { error } = await supabase.from('somministrazioni_terapia').insert({
-      terapia_id: terapia.id,
-      somministrata_il: new Date().toISOString(),
-      nota: notaRaw || null,
-    })
+    const adesso = new Date()
+    const oggi = formatDateOnlyIso(adesso)
+    const autoMarker = getAutoTerapiaMarker(terapia.id)
 
-    if (error) {
-      throw new Error(error.message)
+    const { error: insertSomministrazioneError } = await supabase
+      .from('somministrazioni_terapia')
+      .insert({
+        terapia_id: terapia.id,
+        somministrata_il: adesso.toISOString(),
+        nota: notaRaw || null,
+      })
+
+    if (insertSomministrazioneError) {
+      throw new Error(insertSomministrazioneError.message)
+    }
+
+    const { data: autoImpegniRows, error: autoImpegniError } = await supabase
+      .from('impegni')
+      .select('*')
+      .eq('animale_id', terapia.animale_id)
+      .eq('tipo', 'terapia')
+      .ilike('note', `%${autoMarker}%`)
+      .order('data', { ascending: true })
+
+    if (autoImpegniError) {
+      throw new Error(autoImpegniError.message)
+    }
+
+    const autoImpegni = (autoImpegniRows ?? []) as ImpegnoRow[]
+
+    const idsDaCompletare = autoImpegni
+      .filter((i) => i.stato === 'programmato' && i.data <= oggi)
+      .map((i) => i.id)
+
+    if (idsDaCompletare.length > 0) {
+      const { error: completaError } = await supabase
+        .from('impegni')
+        .update({ stato: 'completato' })
+        .in('id', idsDaCompletare)
+
+      if (completaError) {
+        throw new Error(completaError.message)
+      }
+    }
+
+    const idsFuturiDaEliminare = autoImpegni
+      .filter((i) => i.stato === 'programmato' && i.data > oggi)
+      .map((i) => i.id)
+
+    if (idsFuturiDaEliminare.length > 0) {
+      const { error: deleteFuturiError } = await supabase
+        .from('impegni')
+        .delete()
+        .in('id', idsFuturiDaEliminare)
+
+      if (deleteFuturiError) {
+        throw new Error(deleteFuturiError.message)
+      }
+    }
+
+    const prossimaDataImpegno = calcolaProssimaDataImpegno(terapia, adesso)
+
+    if (prossimaDataImpegno) {
+      const payloadImpegno: ImpegnoInsert = {
+        animale_id: terapia.animale_id,
+        titolo: `Terapia: ${terapia.nome_farmaco}`,
+        tipo: 'terapia',
+        data: prossimaDataImpegno,
+        frequenza: 'nessuna',
+        notifiche_attive: false,
+        stato: 'programmato',
+        note: buildAutoImpegnoNote(terapia),
+      }
+
+      const { error: insertImpegnoError } = await supabase
+        .from('impegni')
+        .insert(payloadImpegno)
+
+      if (insertImpegnoError) {
+        throw new Error(insertImpegnoError.message)
+      }
     }
 
     revalidatePath(`/terapie/${terapia.id}`)
     revalidatePath(`/animali/${terapia.animale_id}`)
     revalidatePath(`/animali/${terapia.animale_id}?tab=terapie`)
+    revalidatePath(`/animali/${terapia.animale_id}?tab=impegni`)
+    revalidatePath('/impegni')
+    revalidatePath('/home')
 
     redirect(`/terapie/${terapia.id}`)
   }
@@ -91,6 +283,7 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
     'use server'
 
     const supabase = await createClient()
+    const autoMarker = getAutoTerapiaMarker(terapia.id)
 
     const dataFine = terapia.data_fine ?? new Date().toISOString().slice(0, 10)
 
@@ -106,9 +299,24 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
       throw new Error(error.message)
     }
 
+    const { error: annullaImpegniError } = await supabase
+      .from('impegni')
+      .update({ stato: 'annullato' })
+      .eq('animale_id', terapia.animale_id)
+      .eq('tipo', 'terapia')
+      .eq('stato', 'programmato')
+      .ilike('note', `%${autoMarker}%`)
+
+    if (annullaImpegniError) {
+      throw new Error(annullaImpegniError.message)
+    }
+
     revalidatePath(`/terapie/${terapia.id}`)
     revalidatePath(`/animali/${terapia.animale_id}`)
     revalidatePath(`/animali/${terapia.animale_id}?tab=terapie`)
+    revalidatePath(`/animali/${terapia.animale_id}?tab=impegni`)
+    revalidatePath('/impegni')
+    revalidatePath('/home')
 
     redirect(`/terapie/${terapia.id}`)
   }
@@ -117,6 +325,7 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
     'use server'
 
     const supabase = await createClient()
+    const autoMarker = getAutoTerapiaMarker(terapia.id)
 
     const { error } = await supabase
       .from('terapie')
@@ -129,9 +338,24 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
       throw new Error(error.message)
     }
 
+    const { error: annullaImpegniError } = await supabase
+      .from('impegni')
+      .update({ stato: 'annullato' })
+      .eq('animale_id', terapia.animale_id)
+      .eq('tipo', 'terapia')
+      .eq('stato', 'programmato')
+      .ilike('note', `%${autoMarker}%`)
+
+    if (annullaImpegniError) {
+      throw new Error(annullaImpegniError.message)
+    }
+
     revalidatePath(`/terapie/${terapia.id}`)
     revalidatePath(`/animali/${terapia.animale_id}`)
     revalidatePath(`/animali/${terapia.animale_id}?tab=terapie`)
+    revalidatePath(`/animali/${terapia.animale_id}?tab=impegni`)
+    revalidatePath('/impegni')
+    revalidatePath('/home')
 
     redirect(`/terapie/${terapia.id}`)
   }
@@ -155,6 +379,12 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
   const animale = (animaleRow ?? null) as Animale | null
   const somministrazioni = (somministrazioniRows ??
     []) as Somministrazione[]
+
+  const ultimaSomministrazione = somministrazioni[0] ?? null
+  const prossimaSomministrazione = calcolaProssimaSomministrazione(
+    terapia,
+    ultimaSomministrazione
+  )
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
@@ -249,6 +479,77 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="space-y-3">
           <div>
+            <h2 className="text-base font-semibold">Somministrazione</h2>
+            <p className="text-sm text-muted-foreground">
+              Registra quando hai dato il farmaco e controlla la prossima
+              somministrazione prevista.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Ultima somministrazione
+              </p>
+              <p className="text-sm font-medium">
+                {ultimaSomministrazione
+                  ? formatDataOra(ultimaSomministrazione.somministrata_il)
+                  : 'Nessuna registrazione'}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Prossima prevista
+              </p>
+              <p className="text-sm font-medium">
+                {getTestoProssimaSomministrazione(
+                  terapia,
+                  prossimaSomministrazione
+                )}
+              </p>
+            </div>
+          </div>
+
+          {terapia.frequenza !== 'una_volta_giorno' &&
+            terapia.stato === 'attiva' && (
+              <p className="text-xs text-muted-foreground">
+                Per ora il promemoria automatico negli impegni si aggiorna in
+                automatico soprattutto per le terapie 1× al giorno.
+              </p>
+            )}
+
+          {terapia.stato === 'attiva' ? (
+            <form action={segnaSomministrata} className="space-y-3">
+              <div className="space-y-2">
+                <label htmlFor="nota" className="text-sm font-medium">
+                  Nota somministrazione
+                </label>
+                <textarea
+                  id="nota"
+                  name="nota"
+                  rows={3}
+                  placeholder="Es. presa dopo pasto, mezza compressa, nessun problema..."
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+
+              <Button type="submit" className="w-full sm:w-auto">
+                Segna somministrata
+              </Button>
+            </form>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              La terapia non è attiva, quindi non può essere registrata una
+              nuova somministrazione.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="space-y-3">
+          <div>
             <h2 className="text-base font-semibold">Gestione terapia</h2>
             <p className="text-sm text-muted-foreground">
               Modifica i dati o aggiorna lo stato della terapia.
@@ -280,48 +581,6 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
           </div>
         </div>
       </div>
-
-      {terapia.stato === 'attiva' && (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-base font-semibold">Somministrazione</h2>
-              <p className="text-sm text-muted-foreground">
-                Registra una nuova somministrazione e, se vuoi, aggiungi una
-                nota.
-              </p>
-            </div>
-
-            <form action={segnaSomministrata} className="space-y-3">
-              <div className="space-y-2">
-                <label htmlFor="nota" className="text-sm font-medium">
-                  Nota somministrazione
-                </label>
-                <textarea
-                  id="nota"
-                  name="nota"
-                  rows={3}
-                  placeholder="Es. presa dopo pasto, mezza compressa, nessun problema..."
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
-                />
-              </div>
-
-              <Button type="submit" className="w-full sm:w-auto">
-                Segna somministrata
-              </Button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {terapia.stato === 'archiviata' && (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">
-            Questa terapia è archiviata e non può più essere segnata come
-            somministrata.
-          </p>
-        </div>
-      )}
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="space-y-1">

@@ -22,20 +22,21 @@ export const animaleSchema = z.object({
   note: z.string().optional(),
 })
 
-export const scadenzaSchema = z.object({
+export const impegnoSchema = z.object({
   titolo: z.string().min(1, 'Il titolo è obbligatorio'),
-  tipo: z.enum(['visita','terapia','controllo','manutenzione_habitat','alimentazione_integrazione','altro']),
+  tipo: z.enum([
+    'visita', 'terapia', 'controllo', 'vaccinazione',
+    'toelettatura', 'addestramento', 'compleanno',
+    'analisi_esame', 'peso', 'nota', 'altro'
+  ]),
   data: z.string().min(1, 'La data è obbligatoria'),
-  frequenza: z.string().optional(),
-  note: z.string().optional(),
+  ora: z.string().optional(),
+  frequenza: z.enum([
+    'nessuna', 'settimanale', 'mensile',
+    'trimestrale', 'semestrale', 'annuale'
+  ]).default('nessuna'),
   notifiche_attive: z.boolean().default(false),
-})
-
-export const eventoSchema = z.object({
-  tipo: z.enum(['visita','trattamento','controllo','aggiornamento_peso','analisi_esame','nota','altro']),
-  titolo: z.string().optional(),
-  data: z.string().min(1, 'La data è obbligatoria'),
-  descrizione: z.string().optional(),
+  note: z.string().optional(),
 })
 
 export const documentoSchema = z.object({
@@ -45,9 +46,19 @@ export const documentoSchema = z.object({
   note: z.string().optional(),
 })
 
-export type LoginData          = z.infer<typeof loginSchema>
-export type RegistrazioneData  = z.infer<typeof registrazioneSchema>
-export type AnimaleData        = z.infer<typeof animaleSchema>
-export type ScadenzaData       = z.infer<typeof scadenzaSchema>
-export type EventoData         = z.infer<typeof eventoSchema>
-export type DocumentoData      = z.infer<typeof documentoSchema>
+export const terapiaSchema = z.object({
+  nome_farmaco: z.string().min(1, 'Il nome del farmaco è obbligatorio'),
+  dose: z.string().min(1, 'La dose è obbligatoria'),
+  frequenza: z.enum(['una_volta_giorno','due_volte_giorno','tre_volte_giorno','al_bisogno','personalizzata']),
+  frequenza_custom: z.string().optional(),
+  data_inizio: z.string().min(1, 'La data di inizio è obbligatoria'),
+  data_fine: z.string().optional(),
+  note: z.string().optional(),
+})
+
+export type LoginData         = z.infer<typeof loginSchema>
+export type RegistrazioneData = z.infer<typeof registrazioneSchema>
+export type AnimaleData       = z.infer<typeof animaleSchema>
+export type ImpegnoData       = z.infer<typeof impegnoSchema>
+export type DocumentoData     = z.infer<typeof documentoSchema>
+export type TerapiaData       = z.infer<typeof terapiaSchema>

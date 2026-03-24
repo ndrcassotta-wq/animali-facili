@@ -33,11 +33,38 @@ function iconaCategoria(cat: string) {
   return m[cat] ?? '🐾'
 }
 
-function Campo({ label, valore }: { label: string; valore: string }) {
+function getSottotitolo(animale: Animale) {
+  const categoria = labelCategoria[animale.categoria] ?? animale.categoria
+
+  if (animale.razza) {
+    return `${categoria} · ${animale.razza}`
+  }
+
+  return `${categoria} · ${animale.specie}`
+}
+
+function Campo({
+  label,
+  valore,
+  multilinea = false,
+}: {
+  label: string
+  valore: string
+  multilinea?: boolean
+}) {
+  if (multilinea) {
+    return (
+      <div className="space-y-1 border-b border-border py-3 last:border-0">
+        <span className="text-sm capitalize text-muted-foreground">{label}</span>
+        <p className="whitespace-pre-wrap text-sm font-medium">{valore}</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex justify-between gap-4 border-b border-border py-2 last:border-0">
+    <div className="flex justify-between gap-4 border-b border-border py-3 last:border-0">
       <span className="text-sm capitalize text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium whitespace-pre-wrap">
+      <span className="whitespace-pre-wrap text-right text-sm font-medium">
         {valore}
       </span>
     </div>
@@ -46,58 +73,68 @@ function Campo({ label, valore }: { label: string; valore: string }) {
 
 export function TabProfilo({ animale }: { animale: Animale }) {
   const meta = animale.meta_categoria as Record<string, string> | null
+  const sottotitolo = getSottotitolo(animale)
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex justify-center">
-        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
-          {animale.foto_url ? (
-            <img
-              src={animale.foto_url}
-              alt={animale.nome}
-              width={96}
-              height={96}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-4xl">{iconaCategoria(animale.categoria)}</span>
-          )}
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+            {animale.foto_url ? (
+              <img
+                src={animale.foto_url}
+                alt={animale.nome}
+                width={96}
+                height={96}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-4xl">{iconaCategoria(animale.categoria)}</span>
+            )}
+          </div>
+
+          <h2 className="mt-3 text-xl font-semibold">{animale.nome}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{sottotitolo}</p>
+
+          <Button asChild variant="outline" size="sm" className="mt-4">
+            <Link href={`/animali/${animale.id}/modifica`}>
+              Modifica animale
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <Button asChild variant="outline" className="w-full">
-        <Link href={`/animali/${animale.id}/modifica`}>
-          Modifica animale
-        </Link>
-      </Button>
-
-      <div className="space-y-3">
-        <Campo
-          label="Categoria"
-          valore={labelCategoria[animale.categoria] ?? animale.categoria}
-        />
-        <Campo label="Specie" valore={animale.specie} />
-        {animale.razza && <Campo label="Razza" valore={animale.razza} />}
-        {animale.sesso && (
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="space-y-1">
           <Campo
-            label="Sesso"
-            valore={labelSesso[animale.sesso] ?? animale.sesso}
+            label="Categoria"
+            valore={labelCategoria[animale.categoria] ?? animale.categoria}
           />
-        )}
-        {animale.data_nascita && (
-          <Campo
-            label="Data di nascita"
-            valore={formatData(animale.data_nascita)}
-          />
-        )}
-        {animale.peso != null && (
-          <Campo label="Peso" valore={`${animale.peso} kg`} />
-        )}
-        {meta &&
-          Object.entries(meta).map(([k, v]) => (
-            <Campo key={k} label={k.replace(/_/g, ' ')} valore={v} />
-          ))}
-        {animale.note && <Campo label="Note" valore={animale.note} />}
+          <Campo label="Specie" valore={animale.specie} />
+          {animale.razza && <Campo label="Razza" valore={animale.razza} />}
+          {animale.sesso && (
+            <Campo
+              label="Sesso"
+              valore={labelSesso[animale.sesso] ?? animale.sesso}
+            />
+          )}
+          {animale.data_nascita && (
+            <Campo
+              label="Data di nascita"
+              valore={formatData(animale.data_nascita)}
+            />
+          )}
+          {animale.peso != null && (
+            <Campo label="Peso" valore={`${animale.peso} kg`} />
+          )}
+          {meta &&
+            Object.entries(meta).map(([k, v]) => (
+              <Campo key={k} label={k.replace(/_/g, ' ')} valore={v} />
+            ))}
+          {animale.note && (
+            <Campo label="Note" valore={animale.note} multilinea />
+          )}
+        </div>
       </div>
     </div>
   )

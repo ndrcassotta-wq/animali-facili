@@ -3,43 +3,33 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabProfilo } from '@/components/animali/TabProfilo'
-import { TabScadenze } from '@/components/animali/TabScadenze'
-import { TabEventi } from '@/components/animali/TabEventi'
+import { TabImpegni } from '@/components/animali/TabImpegni'
 import { TabDocumenti } from '@/components/animali/TabDocumenti'
 import TabTerapie from '@/components/animali/TabTerapie'
-import type { Animale, Scadenza, Evento, Documento } from '@/lib/types/query.types'
+import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
 type SomministrazioneTerapia =
   Database['public']['Tables']['somministrazioni_terapia']['Row']
-
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 
-type TabId = 'profilo' | 'scadenze' | 'eventi' | 'documenti' | 'terapie'
+type TabId = 'profilo' | 'impegni' | 'documenti' | 'terapie'
 
-const TAB_VALIDI: TabId[] = [
-  'profilo',
-  'scadenze',
-  'eventi',
-  'documenti',
-  'terapie',
-]
+const TAB_VALIDI: TabId[] = ['profilo', 'impegni', 'documenti', 'terapie']
 
 const TAB_LABELS: Record<TabId, string> = {
   profilo: 'Profilo',
-  scadenze: 'Scadenze',
-  eventi: 'Eventi',
+  impegni: 'Impegni',
   documenti: 'Documenti',
   terapie: 'Terapie',
 }
 
 interface Props {
   animale: Animale
-  scadenze: Scadenza[]
-  eventi: Evento[]
+  impegni: Impegno[]
   documenti: Documento[]
   terapie: TerapiaConUltimaSomministrazione[]
   tabIniziale: TabId
@@ -47,8 +37,7 @@ interface Props {
 
 export function SchedaAnimaleTab({
   animale,
-  scadenze,
-  eventi,
+  impegni,
   documenti,
   terapie,
   tabIniziale,
@@ -63,47 +52,65 @@ export function SchedaAnimaleTab({
     setTabAttivo(nuovaTab)
 
     const url = new URL(window.location.href)
-
     if (nuovaTab === 'profilo') {
       url.searchParams.delete('tab')
     } else {
       url.searchParams.set('tab', nuovaTab)
     }
-
     window.history.replaceState(null, '', url.toString())
   }
 
   return (
     <Tabs value={tabAttivo} onValueChange={cambiaTab} className="w-full">
-      <TabsList className="h-auto w-full rounded-none border-b border-border bg-transparent p-0">
-        {TAB_VALIDI.map((tab) => (
-          <TabsTrigger
-            key={tab}
-            value={tab}
-            className="flex-1 rounded-none border-b-2 border-transparent py-3 text-xs data-[state=active]:border-foreground data-[state=active]:bg-transparent"
-          >
-            {TAB_LABELS[tab]}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      <div className="border-b border-border">
+        <TabsList className="grid h-auto w-full grid-cols-4 rounded-none bg-transparent p-0">
+          {TAB_VALIDI.map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="min-w-0 rounded-none border-b-2 border-transparent px-2 py-3 text-center text-xs whitespace-nowrap data-[state=active]:border-foreground data-[state=active]:bg-transparent sm:text-sm"
+            >
+              {TAB_LABELS[tab]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
 
-      <TabsContent value="profilo">
+      {tabAttivo !== 'profilo' && (
+        <div className="px-4 pt-3">
+          <div className="flex items-center gap-3 rounded-xl bg-muted/50 px-3 py-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+              {animale.foto_url ? (
+                <img
+                  src={animale.foto_url}
+                  alt={animale.nome}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-sm">🐾</span>
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{animale.nome}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TabsContent value="profilo" className="mt-0">
         <TabProfilo animale={animale} />
       </TabsContent>
 
-      <TabsContent value="scadenze">
-        <TabScadenze animaleId={animale.id} scadenze={scadenze} />
+      <TabsContent value="impegni" className="mt-0">
+        <TabImpegni animaleId={animale.id} impegni={impegni} />
       </TabsContent>
 
-      <TabsContent value="eventi">
-        <TabEventi animaleId={animale.id} eventi={eventi} />
-      </TabsContent>
-
-      <TabsContent value="documenti">
+      <TabsContent value="documenti" className="mt-0">
         <TabDocumenti animaleId={animale.id} documenti={documenti} />
       </TabsContent>
 
-      <TabsContent value="terapie">
+      <TabsContent value="terapie" className="mt-0">
         <TabTerapie animaleId={animale.id} terapie={terapie} />
       </TabsContent>
     </Tabs>

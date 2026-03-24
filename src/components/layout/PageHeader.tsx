@@ -32,10 +32,22 @@ export function PageHeader({ titolo, backHref, onBack, azione, className }: Page
   ) : null
 
   return (
-    <header className={cn('flex items-center gap-3 px-4 py-4 border-b border-border', className)}>
-      {backElement}
-      <h1 className="flex-1 text-base font-semibold truncate">{titolo}</h1>
-      {azione && <div className="shrink-0">{azione}</div>}
-    </header>
+    <>
+      <header
+        className={cn(
+          'fixed left-0 right-0 top-0 z-40 flex items-center gap-3 px-4 border-b border-border bg-background',
+          className
+        )}
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 12px)',
+          paddingBottom: '12px',
+        }}
+      >
+        {backElement}
+        <h1 className="flex-1 text-base font-semibold truncate">{titolo}</h1>
+        {azione && <div className="shrink-0">{azione}</div>}
+      </header>
+      <div style={{ height: 'calc(env(safe-area-inset-top) + 20px)' }} />
+    </>
   )
 }

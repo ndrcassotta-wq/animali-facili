@@ -3,9 +3,36 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/types/database.types'
 
 type PageProps = {
   params: Promise<{ id: string }>
+}
+
+type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
+
+function getAutoTerapiaMarker(terapiaId: string) {
+  return `[AUTO_TERAPIA:${terapiaId}]`
+}
+
+function buildAutoImpegnoNote(
+  terapiaId: string,
+  dose: string,
+  frequenza: string,
+  noteRaw: string
+) {
+  const parts = [
+    getAutoTerapiaMarker(terapiaId),
+    `Promemoria automatico terapia`,
+    `Dose: ${dose}`,
+    `Frequenza: ${frequenza}`,
+  ]
+
+  if (noteRaw) {
+    parts.push(`Note terapia: ${noteRaw}`)
+  }
+
+  return parts.join('\n')
 }
 
 export default async function NuovaTerapiaPage({ params }: PageProps) {
@@ -38,14 +65,46 @@ export default async function NuovaTerapiaPage({ params }: PageProps) {
       stato: 'attiva',
     }
 
-    const { error } = await supabase.from('terapie').insert(payload as never)
+    const { data: terapiaCreata, error: terapiaError } = await supabase
+      .from('terapie')
+      .insert(payload as never)
+      .select('id, animale_id, nome_farmaco, dose, frequenza, data_inizio, data_fine, stato')
+      .single()
 
-    if (error) {
-      throw new Error(error.message)
+    if (terapiaError || !terapiaCreata) {
+      throw new Error(terapiaError?.message || 'Errore durante la creazione della terapia.')
+    }
+
+    const terapiaId = terapiaCreata.id
+
+    // Crea subito il primo impegno automatico per le terapie programmate.
+    // "Al bisogno" resta fuori perché non è un promemoria pianificato.
+    if (terapiaCreata.stato === 'attiva' && terapiaCreata.frequenza !== 'al_bisogno') {
+      const payloadImpegno: ImpegnoInsert = {
+        animale_id: animaleId,
+        titolo: `Terapia: ${nomeFarmaco}`,
+        tipo: 'terapia',
+        data: dataInizio,
+        frequenza: 'nessuna',
+        notifiche_attive: false,
+        stato: 'programmato',
+        note: buildAutoImpegnoNote(terapiaId, dose, frequenza, noteRaw),
+      }
+
+      const { error: impegnoError } = await supabase
+        .from('impegni')
+        .insert(payloadImpegno)
+
+      if (impegnoError) {
+        throw new Error(impegnoError.message)
+      }
     }
 
     revalidatePath(`/animali/${animaleId}`)
     revalidatePath(`/animali/${animaleId}?tab=terapie`)
+    revalidatePath(`/animali/${animaleId}?tab=impegni`)
+    revalidatePath('/impegni')
+    revalidatePath('/home')
 
     redirect(`/animali/${animaleId}?tab=terapie`)
   }

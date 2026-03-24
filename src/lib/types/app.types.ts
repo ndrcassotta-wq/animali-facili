@@ -2,16 +2,17 @@ export type CategoriaAnimale =
   | 'cani' | 'gatti' | 'pesci'
   | 'uccelli' | 'rettili' | 'piccoli_mammiferi' | 'altri_animali'
 
-export type TipoScadenza =
-  | 'visita' | 'terapia' | 'controllo'
-  | 'manutenzione_habitat' | 'alimentazione_integrazione' | 'altro'
+export type TipoImpegno =
+  | 'visita' | 'terapia' | 'controllo' | 'vaccinazione'
+  | 'toelettatura' | 'addestramento' | 'compleanno'
+  | 'analisi_esame' | 'peso' | 'nota' | 'altro'
 
-export type TipoEvento =
-  | 'visita' | 'trattamento' | 'controllo'
-  | 'aggiornamento_peso' | 'analisi_esame' | 'nota' | 'altro'
+export type FrequenzaImpegno =
+  | 'nessuna' | 'settimanale' | 'mensile'
+  | 'trimestrale' | 'semestrale' | 'annuale'
+
+export type StatoImpegno = 'programmato' | 'completato' | 'annullato'
 
 export type CategoriaDocumento =
   | 'ricetta' | 'referto' | 'analisi' | 'certificato'
   | 'documento_sanitario' | 'ricevuta' | 'altro'
-
-export type StatoScadenza = 'attiva' | 'completata' | 'archiviata'

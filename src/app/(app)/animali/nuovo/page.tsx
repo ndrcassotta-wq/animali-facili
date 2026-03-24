@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
@@ -11,24 +11,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import type { CategoriaAnimale } from '@/lib/types/app.types'
 import type { Database } from '@/lib/types/database.types'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
-type AnimaleIdRow  = { id: string }
+type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
+
+const BUCKET_FOTO_ANIMALI = 'foto-animali'
 
 const valoriIniziali: FormValori = {
-  nome:         '',
-  categoria:    'cani',
-  specie:       '',
-  razza:        '',
-  sesso:        'non_specificato',
+  nome: '',
+  categoria: 'cani',
+  specie: '',
+  razza: '',
+  sesso: 'non_specificato',
   data_nascita: '',
-  peso:         undefined,
-  note:         '',
+  peso: undefined,
+  note: '',
 }
 
 const categorie: { valore: CategoriaAnimale; label: string; icona: string }[] = [
@@ -51,12 +57,12 @@ const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: strin
 
 function specieSuggerita(categoria: CategoriaAnimale): string {
   const mappa: Record<CategoriaAnimale, string> = {
-    cani:              'Cane domestico, Canis lupus familiaris',
-    gatti:             'Gatto domestico, Felis catus',
-    pesci:             'Carassio dorato, Betta splendens',
-    uccelli:           'Pappagallino ondulato, Canarino',
-    rettili:           'Iguana verde, Geco leopardo',
-    piccoli_mammiferi: 'Criceto dorato, Coniglio nano',
+    cani:              'es. Cane domestico',
+    gatti:             'es. Gatto domestico',
+    pesci:             'es. Betta, Carassio',
+    uccelli:           'es. Canarino, Cocorita',
+    rettili:           'es. Geco, Iguana',
+    piccoli_mammiferi: 'es. Criceto, Coniglio',
     altri_animali:     'Indica la specie del tuo animale',
   }
   return mappa[categoria] ?? ''
@@ -73,14 +79,55 @@ function metaSuggerito(categoria: CategoriaAnimale): string {
   return mappa[categoria] ?? ''
 }
 
+function getEstensioneFile(file: File) {
+  const parti = file.name.split('.')
+  return parti[parti.length - 1]?.toLowerCase() || 'jpg'
+}
+
+function generaUuidCompatibile() {
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16)
+    globalThis.crypto.getRandomValues(bytes)
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0'))
+    return [hex.slice(0,4).join(''), hex.slice(4,6).join(''), hex.slice(6,8).join(''), hex.slice(8,10).join(''), hex.slice(10,16).join('')].join('-')
+  }
+  throw new Error('Impossibile generare un ID valido su questo dispositivo.')
+}
+
+// Calcola la prossima data di compleanno a partire dalla data di nascita
+function prossimCompleanno(dataNascita: string): string {
+  const nascita = new Date(dataNascita)
+  const oggi = new Date()
+  const anno = oggi.getFullYear()
+  const candidato = new Date(anno, nascita.getMonth(), nascita.getDate())
+  if (candidato < oggi) candidato.setFullYear(anno + 1)
+  return candidato.toISOString().split('T')[0]
+}
+
 export default function NuovoAnimalePage() {
   const router = useRouter()
-  const [step, setStep] = useState<'categoria' | 'form'>('categoria')
-  const [erroreSrv, setErroreSrv] = useState<string | null>(null)
-  const [metaValore, setMetaValore] = useState('')
-  const [valori, setValori] = useState<FormValori>(valoriIniziali)
-  const [erroriForm, setErroriForm] = useState<Partial<Record<keyof FormValori, string>>>({})
+
+  const [step,         setStep]         = useState<'categoria' | 'form'>('categoria')
+  const [erroreSrv,    setErroreSrv]    = useState<string | null>(null)
+  const [metaValore,   setMetaValore]   = useState('')
+  const [fotoFile,     setFotoFile]     = useState<File | null>(null)
+  const [valori,       setValori]       = useState<FormValori>(valoriIniziali)
+  const [erroriForm,   setErroriForm]   = useState<Partial<Record<keyof FormValori, string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const fotoPreview = useMemo(() => {
+    if (!fotoFile) return null
+    return URL.createObjectURL(fotoFile)
+  }, [fotoFile])
+
+  useEffect(() => {
+    return () => { if (fotoPreview) URL.revokeObjectURL(fotoPreview) }
+  }, [fotoPreview])
 
   function setValue(field: keyof FormValori, value: unknown) {
     setValori(prev => ({ ...prev, [field]: value }))
@@ -107,47 +154,76 @@ export default function NuovoAnimalePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErroreSrv(null)
+
     const data = validate()
     if (!data) return
 
     setIsSubmitting(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
 
-    const meta = metaCampo && metaValore
-      ? { [metaCampo.chiave]: metaValore }
-      : null
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
 
-    const payload: AnimaleInsert = {
-      user_id:        user.id,
-      nome:           data.nome,
-      categoria:      data.categoria,
-      specie:         data.specie ?? '',
-      razza:          data.razza ?? null,
-      sesso:          data.sesso ?? 'non_specificato',
-      data_nascita:   data.data_nascita ?? null,
-      peso:           data.peso ?? null,
-      note:           data.note ?? null,
-      foto_url:       null,
-      meta_categoria: meta,
+      const nuovoId = generaUuidCompatibile()
+
+      // Upload foto
+      let fotoUrl: string | null = null
+      if (fotoFile) {
+        const estensione = getEstensioneFile(fotoFile)
+        const filePath = `animali/${nuovoId}/foto-${Date.now()}.${estensione}`
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_FOTO_ANIMALI)
+          .upload(filePath, fotoFile, { cacheControl: '3600', upsert: true, contentType: fotoFile.type || undefined })
+        if (uploadError) throw new Error(`Upload foto non riuscito: ${uploadError.message}`)
+        const { data: publicUrlData } = supabase.storage.from(BUCKET_FOTO_ANIMALI).getPublicUrl(filePath)
+        fotoUrl = publicUrlData.publicUrl
+      }
+
+      const meta = metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
+      const dataNascita = data.data_nascita && data.data_nascita.trim() !== '' ? data.data_nascita : null
+
+      const payload: AnimaleInsert = {
+        id:             nuovoId,
+        user_id:        user.id,
+        nome:           data.nome,
+        categoria:      data.categoria,
+        specie:         data.specie ?? '',
+        razza:          data.razza ?? null,
+        sesso:          data.sesso ?? 'non_specificato',
+        data_nascita:   dataNascita,
+        peso:           data.peso ?? null,
+        note:           data.note ?? null,
+        foto_url:       fotoUrl,
+        meta_categoria: meta,
+      }
+
+      const { error } = await supabase.from('animali').insert(payload)
+      if (error) throw new Error(`Errore durante il salvataggio: ${error.message}`)
+
+      // Crea impegno compleanno automatico se c'è la data di nascita
+      if (dataNascita) {
+        const impegnoCompleanno: ImpegnoInsert = {
+          animale_id:       nuovoId,
+          titolo:           'Compleanno',
+          tipo:             'compleanno',
+          data:             prossimCompleanno(dataNascita),
+          frequenza:        'annuale',
+          notifiche_attive: true,
+          stato:            'programmato',
+          note:             `Compleanno di ${data.nome}`,
+        }
+        await supabase.from('impegni').insert(impegnoCompleanno)
+        // Non blocchiamo il flusso se fallisce
+      }
+
+      router.push(`/animali/${nuovoId}`)
+    } catch (error) {
+      console.error('handleSubmit nuovo animale:', error)
+      setErroreSrv(error instanceof Error ? error.message : 'Errore durante il salvataggio. Riprova.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const { data: risultato, error } = await supabase
-      .from('animali')
-      .insert(payload)
-      .select('id')
-      .single()
-
-    setIsSubmitting(false)
-
-    if (error || !risultato) {
-      setErroreSrv('Errore durante il salvataggio. Riprova.')
-      return
-    }
-
-    const { id } = risultato as AnimaleIdRow
-    router.push(`/animali/${id}`)
   }
 
   if (step === 'categoria') {
@@ -155,18 +231,18 @@ export default function NuovoAnimalePage() {
       <div>
         <PageHeader titolo="Che animale hai?" backHref="/animali" />
         <div className="px-4 py-4">
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">Scegli il tipo di animale per iniziare.</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            {categorie.map(c => (
+            {categorie.map(categoria => (
               <button
-                key={c.valore}
-                onClick={() => {
-                  setValue('categoria', c.valore)
-                  setStep('form')
-                }}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-muted transition-colors text-center"
+                key={categoria.valore}
+                onClick={() => { setValue('categoria', categoria.valore); setStep('form') }}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:bg-muted"
               >
-                <span className="text-3xl" role="img" aria-label={c.label}>{c.icona}</span>
-                <span className="text-sm font-medium">{c.label}</span>
+                <span className="text-3xl" role="img" aria-label={categoria.label}>{categoria.icona}</span>
+                <span className="text-sm font-medium">{categoria.label}</span>
               </button>
             ))}
           </div>
@@ -181,7 +257,41 @@ export default function NuovoAnimalePage() {
         titolo={`Nuovo ${categoriaSelezionata?.label.toLowerCase() ?? 'animale'}`}
         onBack={() => setStep('categoria')}
       />
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
+
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl" role="img" aria-label={categoriaSelezionata?.label}>
+              {categoriaSelezionata?.icona}
+            </span>
+            <p className="text-sm font-medium">{categoriaSelezionata?.label ?? 'Animale'}</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Foto animale</Label>
+          <div className="flex items-center gap-4 rounded-xl border border-border p-3">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+              {fotoPreview
+                ? <img src={fotoPreview} alt="Anteprima foto animale" className="h-full w-full object-cover" />
+                : <span className="text-3xl">{categoriaSelezionata?.icona ?? '🐾'}</span>
+              }
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <Input
+                id="foto"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={isSubmitting}
+                onChange={e => setFotoFile(e.target.files?.[0] ?? null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Puoi scegliere una foto dalla galleria o scattarla subito.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-1">
           <Label htmlFor="nome">
@@ -203,7 +313,7 @@ export default function NuovoAnimalePage() {
           </Label>
           <Input
             id="specie"
-            placeholder={`es. ${specieSuggerita(valori.categoria as CategoriaAnimale)}`}
+            placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
             value={valori.specie}
             onChange={e => setValue('specie', e.target.value)}
             disabled={isSubmitting}
@@ -211,98 +321,103 @@ export default function NuovoAnimalePage() {
           {erroriForm.specie && <p className="text-xs text-destructive">{erroriForm.specie}</p>}
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="razza">
-            Razza <span className="text-xs text-muted-foreground">(opzionale)</span>
-          </Label>
-          <Input
-            id="razza"
-            placeholder="Razza o varietà"
-            value={valori.razza ?? ''}
-            onChange={e => setValue('razza', e.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
+        <details className="rounded-xl border border-border bg-card p-4">
+          <summary className="cursor-pointer text-sm font-medium">
+            Altri dettagli opzionali
+          </summary>
+          <div className="mt-4 space-y-4">
 
-        <div className="space-y-1">
-          <Label>Sesso</Label>
-          <Select
-            value={valori.sesso ?? 'non_specificato'}
-            onValueChange={v => setValue('sesso', v)}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="maschio">Maschio</SelectItem>
-              <SelectItem value="femmina">Femmina</SelectItem>
-              <SelectItem value="non_specificato">Non specificato</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-1">
+              <Label htmlFor="razza">
+                Razza <span className="text-xs text-muted-foreground">(opzionale)</span>
+              </Label>
+              <Input
+                id="razza"
+                placeholder="Razza o varietà"
+                value={valori.razza ?? ''}
+                onChange={e => setValue('razza', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="data_nascita">
-            Data di nascita <span className="text-xs text-muted-foreground">(opzionale)</span>
-          </Label>
-          <Input
-            id="data_nascita"
-            type="date"
-            value={valori.data_nascita ?? ''}
-            onChange={e => setValue('data_nascita', e.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
+            <div className="space-y-1">
+              <Label>Sesso</Label>
+              <Select
+                value={valori.sesso ?? 'non_specificato'}
+                onValueChange={v => setValue('sesso', v)}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maschio">Maschio</SelectItem>
+                  <SelectItem value="femmina">Femmina</SelectItem>
+                  <SelectItem value="non_specificato">Non specificato</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="peso">
-            Peso in kg <span className="text-xs text-muted-foreground">(opzionale)</span>
-          </Label>
-          <Input
-            id="peso"
-            type="number"
-            step="0.001"
-            min="0"
-            placeholder="es. 4.250"
-            value={valori.peso ?? ''}
-            onChange={e => setValue('peso', e.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
+            <div className="space-y-1">
+              <Label htmlFor="data_nascita">
+                Data di nascita <span className="text-xs text-muted-foreground">(opzionale)</span>
+              </Label>
+              <Input
+                id="data_nascita"
+                type="date"
+                value={valori.data_nascita ?? ''}
+                onChange={e => setValue('data_nascita', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
 
-        {metaCampo && (
-          <div className="space-y-1">
-            <Label htmlFor="meta">
-              {metaCampo.label} <span className="text-xs text-muted-foreground">(opzionale)</span>
-            </Label>
-            <Input
-              id="meta"
-              placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
-              value={metaValore}
-              onChange={e => setMetaValore(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className="space-y-1">
+              <Label htmlFor="peso">
+                Peso in kg <span className="text-xs text-muted-foreground">(opzionale)</span>
+              </Label>
+              <Input
+                id="peso"
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder="es. 4.250"
+                value={valori.peso ?? ''}
+                onChange={e => setValue('peso', e.target.value === '' ? undefined : Number(e.target.value))}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {metaCampo && (
+              <div className="space-y-1">
+                <Label htmlFor="meta">
+                  {metaCampo.label} <span className="text-xs text-muted-foreground">(opzionale)</span>
+                </Label>
+                <Input
+                  id="meta"
+                  placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
+                  value={metaValore}
+                  onChange={e => setMetaValore(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <Label htmlFor="note">
+                Note <span className="text-xs text-muted-foreground">(opzionale)</span>
+              </Label>
+              <Textarea
+                id="note"
+                placeholder="Informazioni aggiuntive"
+                value={valori.note ?? ''}
+                onChange={e => setValue('note', e.target.value)}
+                disabled={isSubmitting}
+                rows={3}
+              />
+            </div>
+
           </div>
-        )}
+        </details>
 
-        <div className="space-y-1">
-          <Label htmlFor="note">
-            Note <span className="text-xs text-muted-foreground">(opzionale)</span>
-          </Label>
-          <Textarea
-            id="note"
-            placeholder="Informazioni aggiuntive"
-            value={valori.note ?? ''}
-            onChange={e => setValue('note', e.target.value)}
-            disabled={isSubmitting}
-            rows={3}
-          />
-        </div>
-
-        {erroreSrv && (
-          <p className="text-sm text-destructive text-center">{erroreSrv}</p>
-        )}
+        {erroreSrv && <p className="text-center text-sm text-destructive">{erroreSrv}</p>}
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Salvataggio...' : 'Salva animale'}

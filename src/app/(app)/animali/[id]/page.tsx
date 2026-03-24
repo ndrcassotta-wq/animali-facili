@@ -1,45 +1,21 @@
 import { notFound } from 'next/navigation'
-
 import { SchedaAnimaleTab } from '@/components/animali/SchedaAnimaleTab'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/types/database.types'
-import type {
-  Animale,
-  Scadenza,
-  Evento,
-  Documento,
-} from '@/lib/types/query.types'
+import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
-type SomministrazioneTerapia =
-  Database['public']['Tables']['somministrazioni_terapia']['Row']
-
+type SomministrazioneTerapia = Database['public']['Tables']['somministrazioni_terapia']['Row']
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 
-type TabId =
-  | 'profilo'
-  | 'scadenze'
-  | 'eventi'
-  | 'documenti'
-  | 'terapie'
-
-const TAB_VALIDE: TabId[] = [
-  'profilo',
-  'scadenze',
-  'eventi',
-  'documenti',
-  'terapie',
-]
+type TabId = 'profilo' | 'impegni' | 'documenti' | 'terapie'
+const TAB_VALIDE: TabId[] = ['profilo', 'impegni', 'documenti', 'terapie']
 
 function getTabValida(tab?: string | string[]): TabId {
   const valore = Array.isArray(tab) ? tab[0] : tab
-
-  if (valore && TAB_VALIDE.includes(valore as TabId)) {
-    return valore as TabId
-  }
-
+  if (valore && TAB_VALIDE.includes(valore as TabId)) return valore as TabId
   return 'profilo'
 }
 
@@ -48,79 +24,37 @@ type PageProps = {
   searchParams: Promise<{ tab?: string | string[] }>
 }
 
-export default async function AnimalePage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { id } = await params
+export default async function AnimalePage({ params, searchParams }: PageProps) {
+  const { id }  = await params
   const { tab } = await searchParams
-
   const tabIniziale = getTabValida(tab)
 
   const supabase = await createClient()
 
   const [
-    { data: animaleData, error: animaleError },
-    { data: scadenzeData, error: scadenzeError },
-    { data: eventiData, error: eventiError },
+    { data: animaleData,   error: animaleError },
+    { data: impegniData,   error: impegniError },
     { data: documentiData, error: documentiError },
-    { data: terapieData, error: terapieError },
+    { data: terapieData,   error: terapieError },
   ] = await Promise.all([
-    supabase
-      .from('animali')
-      .select('*')
-      .eq('id', id)
-      .single(),
-
-    supabase
-      .from('scadenze')
-      .select('*')
-      .eq('animale_id', id),
-
-    supabase
-      .from('eventi')
-      .select('*')
-      .eq('animale_id', id),
-
-    supabase
-      .from('documenti')
-      .select('*')
-      .eq('animale_id', id),
-
-    supabase
-      .from('terapie')
-      .select('*')
-      .eq('animale_id', id),
+    supabase.from('animali').select('*').eq('id', id).single(),
+    supabase.from('impegni').select('*').eq('animale_id', id).order('data', { ascending: true }),
+    supabase.from('documenti').select('*').eq('animale_id', id).order('created_at', { ascending: false }),
+    supabase.from('terapie').select('*').eq('animale_id', id),
   ])
 
-  if (animaleError || !animaleData) {
-    notFound()
-  }
+  if (animaleError || !animaleData) notFound()
 
-  if (scadenzeError) {
-    console.error('Errore caricamento scadenze:', scadenzeError)
-  }
+  if (impegniError)   console.error('Errore caricamento impegni:', impegniError)
+  if (documentiError) console.error('Errore caricamento documenti:', documentiError)
+  if (terapieError)   console.error('Errore caricamento terapie:', terapieError)
 
-  if (eventiError) {
-    console.error('Errore caricamento eventi:', eventiError)
-  }
-
-  if (documentiError) {
-    console.error('Errore caricamento documenti:', documentiError)
-  }
-
-  if (terapieError) {
-    console.error('Errore caricamento terapie:', terapieError)
-  }
-
-  const animale = animaleData as Animale
-  const scadenze = (scadenzeData ?? []) as Scadenza[]
-  const eventi = (eventiData ?? []) as Evento[]
+  const animale   = animaleData as Animale
+  const impegni   = (impegniData   ?? []) as Impegno[]
   const documenti = (documentiData ?? []) as Documento[]
   const terapieBase = (terapieData ?? []) as Terapia[]
 
-  const terapiaIds = terapieBase.map((terapia) => terapia.id)
-
+  const terapiaIds = terapieBase.map(t => t.id)
   let tutteLeSomministrazioni: SomministrazioneTerapia[] = []
 
   if (terapiaIds.length > 0) {
@@ -132,40 +66,28 @@ export default async function AnimalePage({
         .order('somministrata_il', { ascending: false })
 
     if (somministrazioniError) {
-      console.error(
-        'Errore caricamento somministrazioni terapia:',
-        somministrazioniError
-      )
+      console.error('Errore caricamento somministrazioni:', somministrazioniError)
     } else {
-      tutteLeSomministrazioni =
-        (somministrazioniData ?? []) as SomministrazioneTerapia[]
+      tutteLeSomministrazioni = (somministrazioniData ?? []) as SomministrazioneTerapia[]
     }
   }
 
   const somministrazioniPerTerapia = new Map<string, SomministrazioneTerapia>()
-
-  for (const somministrazione of tutteLeSomministrazioni) {
-    if (!somministrazioniPerTerapia.has(somministrazione.terapia_id)) {
-      somministrazioniPerTerapia.set(
-        somministrazione.terapia_id,
-        somministrazione
-      )
+  for (const s of tutteLeSomministrazioni) {
+    if (!somministrazioniPerTerapia.has(s.terapia_id)) {
+      somministrazioniPerTerapia.set(s.terapia_id, s)
     }
   }
 
-  const terapie: TerapiaConUltimaSomministrazione[] = terapieBase.map(
-    (terapia) => ({
-      ...terapia,
-      ultimaSomministrazione:
-        somministrazioniPerTerapia.get(terapia.id) ?? null,
-    })
-  )
+  const terapie: TerapiaConUltimaSomministrazione[] = terapieBase.map(t => ({
+    ...t,
+    ultimaSomministrazione: somministrazioniPerTerapia.get(t.id) ?? null,
+  }))
 
   return (
     <SchedaAnimaleTab
       animale={animale}
-      scadenze={scadenze}
-      eventi={eventi}
+      impegni={impegni}
       documenti={documenti}
       terapie={terapie}
       tabIniziale={tabIniziale}

@@ -25,7 +25,7 @@ export function LoginForm() {
   const next         = searchParams.get('next') ?? '/home'
   const safeNext     = isSafeRedirect(next) ? next : '/home'
 
-  const [erroreSrv,    setErroreSrv]    = useState<string | null>(null)
+  const [erroreSrv,     setErroreSrv]    = useState<string | null>(null)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
 
   const { values, errors, isSubmitting, setValue, validate, setSubmitting } =
@@ -57,19 +57,40 @@ export function LoginForm() {
   async function handleGoogle() {
     setErroreSrv(null)
     setLoadingGoogle(true)
-    const supabase = createClient()
 
-    const callbackUrl = new URL('/auth/callback', window.location.origin)
-    callbackUrl.searchParams.set('next', safeNext)
+    try {
+      const supabase = createClient()
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
-    })
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'com.animalifacili.app://home',
+          skipBrowserRedirect: true,
+        },
+      })
 
-    if (error) {
+      if (error || !data.url) {
+        setErroreSrv('Errore durante il login con Google. Riprova.')
+        setLoadingGoogle(false)
+        return
+      }
+
+      // Apri il browser di Capacitor invece del browser di sistema
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({
+        url: data.url,
+        windowName: '_self',
+      })
+
+      // Ascolta quando il browser si chiude e ricarica la sessione
+      Browser.addListener('browserFinished', async () => {
+        await supabase.auth.getSession()
+        router.push('/home')
+        router.refresh()
+        setLoadingGoogle(false)
+      })
+
+    } catch {
       setErroreSrv('Errore durante il login con Google. Riprova.')
       setLoadingGoogle(false)
     }

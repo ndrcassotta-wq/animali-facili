@@ -5,16 +5,22 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { formatData, isImminente, isScaduta } from '@/lib/utils/date'
 import {
-  asScadenzeConAnimale,
-  asEventiConAnimale,
+  asImpegniConAnimale,
   asDocumentiConAnimale,
-  type ScadenzaConAnimale,
-  type EventoConAnimale,
+  type ImpegnoConAnimale,
   type DocumentoConAnimale,
 } from '@/lib/types/query.types'
 import type { Animale } from '@/lib/types/query.types'
 import { User, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+type HomeTerapia = {
+  id: string
+  nome_farmaco: string
+  stato: 'attiva' | 'conclusa' | 'archiviata'
+  data_inizio: string
+  animali: { nome: string } | null
+}
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -23,9 +29,9 @@ export default async function HomePage() {
 
   const [
     { data: animaliRaw },
-    { data: scadenzeRaw },
-    { data: eventiRaw },
+    { data: impegniRaw },
     { data: documentiRaw },
+    { data: terapieRaw },
     { count: notificheNonLette },
   ] = await Promise.all([
     supabase
@@ -33,22 +39,27 @@ export default async function HomePage() {
       .select('id, nome, categoria, foto_url')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true }),
+
     supabase
-      .from('scadenze')
+      .from('impegni')
       .select('id, titolo, data, tipo, stato, animali(nome)')
-      .eq('stato', 'attiva')
+      .eq('stato', 'programmato')
       .order('data', { ascending: true })
       .limit(5),
-    supabase
-      .from('eventi')
-      .select('id, titolo, tipo, data, animali(nome)')
-      .order('data', { ascending: false })
-      .limit(5),
+
     supabase
       .from('documenti')
       .select('id, titolo, categoria, created_at, animali(nome)')
       .order('created_at', { ascending: false })
       .limit(5),
+
+    supabase
+      .from('terapie')
+      .select('id, nome_farmaco, stato, data_inizio, animali(nome)')
+      .eq('stato', 'attiva')
+      .order('data_inizio', { ascending: false })
+      .limit(5),
+
     supabase
       .from('notifiche')
       .select('*', { count: 'exact', head: true })
@@ -56,16 +67,16 @@ export default async function HomePage() {
       .eq('letta', false),
   ])
 
-  const animaliList = (animaliRaw ?? []) as Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
-  const scadenzeList = asScadenzeConAnimale(scadenzeRaw)
-  const eventiList = asEventiConAnimale(eventiRaw)
+  const animaliList   = (animaliRaw ?? []) as Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
+  const impegniList   = asImpegniConAnimale(impegniRaw)
   const documentiList = asDocumentiConAnimale(documentiRaw)
+  const terapieList   = (terapieRaw ?? []) as HomeTerapia[]
   const nessunAnimale = animaliList.length === 0
-  const badge = notificheNonLette ?? 0
+  const badge         = notificheNonLette ?? 0
 
   return (
     <div>
-      <header className="flex items-center justify-between px-4 py-4 border-b border-border">
+      <header className="flex items-center justify-between border-b border-border px-4 py-4">
         <div className="flex items-center gap-2">
           <Image
             src="/logo-animali-facili.png"
@@ -79,24 +90,23 @@ export default async function HomePage() {
 
         <div className="flex items-center gap-3">
           <Link href="/notifiche" className="relative" aria-label="Notifiche">
-            <Bell className="w-5 h-5 text-muted-foreground" />
+            <Bell className="h-5 w-5 text-muted-foreground" />
             {badge > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium flex items-center justify-center leading-none">
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium leading-none text-destructive-foreground">
                 {badge > 9 ? '9+' : badge}
               </span>
             )}
           </Link>
-
           <Link href="/profilo" aria-label="Profilo utente">
-            <User className="w-5 h-5 text-muted-foreground" />
+            <User className="h-5 w-5 text-muted-foreground" />
           </Link>
         </div>
       </header>
 
-      <div className="px-4 py-4 space-y-6">
+      <div className="space-y-6 px-4 py-4">
 
         {nessunAnimale && (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-3">
+          <div className="space-y-3 rounded-xl border border-dashed border-border p-6 text-center">
             <p className="text-sm text-muted-foreground">
               Non hai ancora aggiunto nessun animale.
             </p>
@@ -109,48 +119,69 @@ export default async function HomePage() {
         {!nessunAnimale && (
           <section>
             <SectionHeader titolo="I tuoi animali" linkHref="/animali" linkLabel="Vedi tutti" />
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
+            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
               {animaliList.map(a => (
                 <Link
                   key={a.id}
                   href={`/animali/${a.id}`}
-                  className="flex-none flex flex-col items-center gap-1.5 w-16"
+                  className="flex w-16 flex-none flex-col items-center gap-1.5"
                 >
-                  <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
                     {a.foto_url
-                      ? <img src={a.foto_url} alt={a.nome} width={56} height={56} className="w-full h-full object-cover" />
+                      ? <img src={a.foto_url} alt={a.nome} width={56} height={56} className="h-full w-full object-cover" />
                       : <span className="text-xl" role="img" aria-label={a.categoria}>{iconaCategoria(a.categoria)}</span>
                     }
                   </div>
-                  <span className="text-xs text-center truncate w-full">{a.nome}</span>
+                  <span className="w-full truncate text-center text-xs">{a.nome}</span>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
-        {scadenzeList.length > 0 && (
+        {impegniList.length > 0 && (
           <section>
-            <SectionHeader titolo="Prossime scadenze" linkHref="/scadenze" linkLabel="Vedi tutte" />
+            <SectionHeader titolo="Prossimi impegni" linkHref="/impegni" linkLabel="Vedi tutti" />
             <div className="space-y-2">
-              {scadenzeList.map((s: ScadenzaConAnimale) => {
-                const scaduta = isScaduta(s.data)
+              {impegniList.map((s: ImpegnoConAnimale) => {
+                const scaduta   = isScaduta(s.data)
                 const imminente = isImminente(s.data)
                 return (
                   <Link
                     key={s.id}
-                    href={`/scadenze/${s.id}`}
-                    className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+                    href={`/impegni/${s.id}`}
+                    className={cn(
+                      'flex items-center justify-between rounded-xl border p-3 transition-colors',
+                      scaduta
+                        ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
+                        : imminente
+                        ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30'
+                        : 'border-border bg-card hover:bg-muted/50'
+                    )}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{s.titolo}</p>
-                      {s.animali && <p className="text-xs text-muted-foreground">{s.animali.nome}</p>}
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium">{s.titolo}</p>
+                        {scaduta && (
+                          <span className="shrink-0 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-destructive-foreground">
+                            Scaduto
+                          </span>
+                        )}
+                        {!scaduta && imminente && (
+                          <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
+                            Urgente
+                          </span>
+                        )}
+                      </div>
+                      {s.animali && (
+                        <p className="text-xs text-muted-foreground">{s.animali.nome}</p>
+                      )}
                     </div>
                     <span className={cn(
-                      'text-xs font-medium shrink-0 ml-3',
-                      scaduta ? 'text-destructive' :
-                      imminente ? 'text-amber-600 dark:text-amber-400' :
-                      'text-muted-foreground'
+                      'ml-3 shrink-0 text-xs font-medium',
+                      scaduta   ? 'text-destructive' :
+                      imminente ? 'text-amber-700 dark:text-amber-300' :
+                                  'text-muted-foreground'
                     )}>
                       {formatData(s.data)}
                     </span>
@@ -161,25 +192,26 @@ export default async function HomePage() {
           </section>
         )}
 
-        {eventiList.length > 0 && (
+        {terapieList.length > 0 && (
           <section>
-            <SectionHeader titolo="Ultimi eventi" />
+            <SectionHeader titolo="Terapie attive" />
             <div className="space-y-2">
-              {eventiList.map((ev: EventoConAnimale) => (
-                <div
-                  key={ev.id}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-card"
+              {terapieList.map(terapia => (
+                <Link
+                  key={terapia.id}
+                  href={`/terapie/${terapia.id}`}
+                  className="flex items-center justify-between rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {ev.titolo ?? labelTipoEvento(ev.tipo)}
-                    </p>
-                    {ev.animali && <p className="text-xs text-muted-foreground">{ev.animali.nome}</p>}
+                    <p className="truncate text-sm font-medium">{terapia.nome_farmaco}</p>
+                    {terapia.animali && (
+                      <p className="text-xs text-muted-foreground">{terapia.animali.nome}</p>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-3">
-                    {formatData(ev.data)}
+                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                    dal {formatData(terapia.data_inizio)}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
@@ -193,13 +225,15 @@ export default async function HomePage() {
                 <Link
                   key={d.id}
                   href={`/documenti/${d.id}`}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{d.titolo}</p>
-                    {d.animali && <p className="text-xs text-muted-foreground">{d.animali.nome}</p>}
+                    <p className="truncate text-sm font-medium">{d.titolo}</p>
+                    {d.animali && (
+                      <p className="text-xs text-muted-foreground">{d.animali.nome}</p>
+                    )}
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-3">
+                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
                     {labelCategoriaDoc(d.categoria)}
                   </span>
                 </Link>
@@ -223,8 +257,8 @@ function SectionHeader({
   linkLabel?: string
 }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {titolo}
       </h2>
       {linkHref && linkLabel && (
@@ -242,15 +276,6 @@ function iconaCategoria(categoria: string): string {
     rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
   }
   return m[categoria] ?? '🐾'
-}
-
-function labelTipoEvento(tipo: string): string {
-  const m: Record<string, string> = {
-    visita: 'Visita', trattamento: 'Trattamento', controllo: 'Controllo',
-    aggiornamento_peso: 'Peso aggiornato', analisi_esame: 'Analisi',
-    nota: 'Nota', altro: 'Evento',
-  }
-  return m[tipo] ?? 'Evento'
 }
 
 function labelCategoriaDoc(categoria: string): string {
