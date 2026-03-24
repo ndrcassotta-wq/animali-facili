@@ -25,6 +25,8 @@ type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
 type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
 
 const BUCKET_FOTO_ANIMALI = 'foto-animali'
+const MAX_FOTO_SIZE_MB = 10
+const MAX_FOTO_SIZE_BYTES = MAX_FOTO_SIZE_MB * 1024 * 1024
 
 const valoriIniziali: FormValori = {
   nome: '',
@@ -284,7 +286,16 @@ export default function NuovoAnimalePage() {
                 accept="image/*"
                 capture="environment"
                 disabled={isSubmitting}
-                onChange={e => setFotoFile(e.target.files?.[0] ?? null)}
+                onChange={e => {
+                  const file = e.target.files?.[0] ?? null
+                  if (file && file.size > MAX_FOTO_SIZE_BYTES) {
+                    setErroreSrv(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+                    e.target.value = ''
+                    return
+                  }
+                  setErroreSrv(null)
+                  setFotoFile(file)
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Puoi scegliere una foto dalla galleria o scattarla subito.

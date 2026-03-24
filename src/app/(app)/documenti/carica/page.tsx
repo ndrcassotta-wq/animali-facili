@@ -73,6 +73,10 @@ export default function CaricaDocumentoPage() {
     setErroreSrv(null)
     if (!animaleId) { setErroreSrv('Seleziona un animale.'); return }
     if (!file) { setErroreSrv('Seleziona un file da caricare.'); return }
+    if (file.size > 20 * 1024 * 1024) {
+      setErroreSrv('Il file non può superare 20MB.')
+      return
+    }
     const data = validate()
     if (!data) return
 
