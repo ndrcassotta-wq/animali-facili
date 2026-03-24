@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { formatData } from '@/lib/utils/date'
 import type { Animale } from '@/lib/types/query.types'
+import { AzioniAnimale } from '@/components/animali/AzioniAnimale'
 
 const labelSesso: Record<string, string> = {
   maschio: 'Maschio',
@@ -101,6 +102,13 @@ export function TabProfilo({ animale }: { animale: Animale }) {
               Modifica animale
             </Link>
           </Button>
+
+          <div className="mt-2 w-full">
+            <AzioniAnimale
+              animaleId={animale.id}
+              animaleNome={animale.nome}
+            />
+          </div>
         </div>
       </div>
 
