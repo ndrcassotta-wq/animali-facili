@@ -120,15 +120,49 @@ function generaUuidCompatibile() {
   ].join('-')
 }
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function prossimoCompleanno(dataNascita: string): string {
-  const nascita = new Date(dataNascita)
+  const parts = dataNascita.split('-')
+
+  if (parts.length !== 3) {
+    return dataNascita
+  }
+
+  const mese = Number(parts[1]) - 1
+  const giorno = Number(parts[2])
+
   const oggi = new Date()
-  const anno = oggi.getFullYear()
-  const candidato = new Date(anno, nascita.getMonth(), nascita.getDate())
+  const oggiLocale = new Date(
+    oggi.getFullYear(),
+    oggi.getMonth(),
+    oggi.getDate(),
+    12,
+    0,
+    0,
+    0
+  )
 
-  if (candidato < oggi) candidato.setFullYear(anno + 1)
+  const candidato = new Date(
+    oggi.getFullYear(),
+    mese,
+    giorno,
+    12,
+    0,
+    0,
+    0
+  )
 
-  return candidato.toISOString().split('T')[0]
+  if (candidato < oggiLocale) {
+    candidato.setFullYear(candidato.getFullYear() + 1)
+  }
+
+  return formatLocalDate(candidato)
 }
 
 function labelCampoPrincipale(categoria: CategoriaAnimale): string {
