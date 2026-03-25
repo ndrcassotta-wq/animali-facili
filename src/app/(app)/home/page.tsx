@@ -21,8 +21,6 @@ type HomeTerapia = {
   animali: { nome: string } | null
 }
 
-// ─── Colori placeholder ───────────────────────────────────────────────────────
-
 const COLORI = [
   'from-amber-300 to-orange-400',
   'from-rose-300 to-pink-400',
@@ -36,53 +34,41 @@ function colorePerNome(nome: string) {
   return COLORI[nome.charCodeAt(0) % COLORI.length]
 }
 
-// ─── Layout griglia animali ───────────────────────────────────────────────────
-// Restituisce le righe: ogni riga è un array di indici degli animali
-
-function calcolaRighe(n: number): number[][] {
-  if (n === 1) return [[0]]
-  if (n === 2) return [[0], [1]]
-  if (n === 3) return [[0], [1, 2]]
-  if (n === 4) return [[0, 1], [2, 3]]
-  if (n === 5) return [[0, 1], [2, 3, 4]]
-  if (n === 6) return [[0, 1, 2], [3, 4, 5]]
-  // 7+: righe da 3
-  const righe: number[][] = []
-  for (let i = 0; i < n; i += 3) {
-    righe.push(
-      Array.from({ length: Math.min(3, n - i) }, (_, j) => i + j)
-    )
-  }
-  return righe
+// Scala percepibile: 1→enorme, 2→grande, 3→medio-grande, 4+→progressivo
+function sizeCls(n: number): string {
+  if (n === 1) return 'h-56 w-56'   // 224px — protagonista assoluto
+  if (n === 2) return 'h-44 w-44'   // 176px — chiaramente più piccolo
+  if (n === 3) return 'h-36 w-36'   // 144px
+  if (n === 4) return 'h-32 w-32'   // 128px
+  if (n <= 6)  return 'h-28 w-28'   // 112px
+  return 'h-24 w-24'                // 96px
 }
 
-// ─── Dimensione cerchio in base al numero di animali ─────────────────────────
-
-function dimensioneCerchio(n: number): string {
-  if (n === 1) return 'h-44 w-44'
-  if (n === 2) return 'h-40 w-40'
-  if (n === 3) return 'h-36 w-36'
-  if (n <= 4)  return 'h-36 w-36'
-  if (n <= 6)  return 'h-28 w-28'
-  return 'h-24 w-24'
+function fontSizePx(n: number): string {
+  if (n === 1) return '3rem'
+  if (n === 2) return '2.5rem'
+  if (n === 3) return '2rem'
+  return '1.5rem'
 }
 
-function dimensioneTesto(n: number): string {
+function textCls(n: number): string {
   if (n <= 2) return 'text-base'
   if (n <= 4) return 'text-sm'
   return 'text-xs'
 }
 
-// ─── Componente singolo animale ───────────────────────────────────────────────
+function gapCls(n: number): string {
+  if (n <= 2) return 'gap-8'
+  if (n <= 4) return 'gap-7'
+  return 'gap-5'
+}
 
 function AvatarAnimale({
   animale,
-  sizeCls,
-  textCls,
+  n,
 }: {
   animale: Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>
-  sizeCls: string
-  textCls: string
+  n: number
 }) {
   const iniziale = animale.nome.charAt(0).toUpperCase()
   const colore   = colorePerNome(animale.nome)
@@ -96,57 +82,60 @@ function AvatarAnimale({
         <img
           src={animale.foto_url}
           alt={animale.nome}
-          className={cn(sizeCls, 'rounded-full border-4 border-white object-cover shadow-xl')}
+          className={cn(sizeCls(n), 'rounded-full border-4 border-white object-cover shadow-xl')}
         />
       ) : (
         <div className={cn(
-          sizeCls,
+          sizeCls(n),
           'rounded-full border-4 border-white bg-gradient-to-br shadow-xl flex items-center justify-center',
           colore
         )}>
-          <span className="font-bold text-white" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>
+          <span
+            className="font-bold text-white select-none"
+            style={{ fontSize: fontSizePx(n) }}
+          >
             {iniziale}
           </span>
         </div>
       )}
-      <span className={cn('font-semibold text-gray-800 max-w-[120px] truncate text-center', textCls)}>
+      <span className={cn('font-semibold text-gray-800 max-w-[140px] truncate text-center', textCls(n))}>
         {animale.nome}
       </span>
     </Link>
   )
 }
 
-// ─── Griglia animali ──────────────────────────────────────────────────────────
-
 function GrigliaAnimali({
   animali,
 }: {
   animali: Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
 }) {
-  const n       = animali.length
-  const righe   = calcolaRighe(n)
-  const sizeCls = dimensioneCerchio(n)
-  const textCls = dimensioneTesto(n)
+  const n   = animali.length
+  const gap = gapCls(n)
+
+  let righe: (typeof animali)[] = []
+  if (n === 1) righe = [[animali[0]]]
+  else if (n === 2) righe = [[animali[0]], [animali[1]]]
+  else if (n === 3) righe = [[animali[0]], [animali[1], animali[2]]]
+  else if (n === 4) righe = [[animali[0], animali[1]], [animali[2], animali[3]]]
+  else if (n === 5) righe = [[animali[0], animali[1]], [animali[2], animali[3], animali[4]]]
+  else if (n === 6) righe = [[animali[0], animali[1], animali[2]], [animali[3], animali[4], animali[5]]]
+  else {
+    for (let i = 0; i < n; i += 3) righe.push(animali.slice(i, i + 3))
+  }
 
   return (
-    <div className="flex flex-col items-center gap-8 w-full">
+    <div className={cn('flex flex-col items-center w-full', gap)}>
       {righe.map((riga, ri) => (
-        <div key={ri} className="flex items-center justify-center gap-8 w-full">
-          {riga.map(idx => (
-            <AvatarAnimale
-              key={animali[idx].id}
-              animale={animali[idx]}
-              sizeCls={sizeCls}
-              textCls={textCls}
-            />
+        <div key={ri} className={cn('flex items-center justify-center', gap)}>
+          {riga.map(a => (
+            <AvatarAnimale key={a.id} animale={a} n={n} />
           ))}
         </div>
       ))}
     </div>
   )
 }
-
-// ─── Pagina ───────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -200,11 +189,13 @@ export default async function HomePage() {
   const nessunAnimale = animaliList.length === 0
   const badge         = notificheNonLette ?? 0
 
+  const haSezioni = impegniList.length > 0 || terapieList.length > 0 || documentiList.length > 0
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDF8F3]">
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <header className="shrink-0 px-5 pt-12 pb-4">
+      <header className="shrink-0 px-5 pt-10 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -218,7 +209,6 @@ export default async function HomePage() {
               Animali Facili
             </span>
           </div>
-
           <div className="flex items-center gap-2">
             <Link href="/notifiche" aria-label="Notifiche">
               <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
@@ -239,8 +229,22 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* ── SEZIONE ANIMALI — occupa tutto lo spazio disponibile ────────── */}
-      <section className="flex flex-1 items-center justify-center px-6 py-6">
+      {/* ── ANIMALI ─────────────────────────────────────────────────────── */}
+      {/*
+        justify-start + pt calibrato: spinge il blocco verso l'alto
+        invece di centrarlo matematicamente (che lo faceva sembrare basso).
+        pb-20 compensa la bottom nav visivamente.
+        Con sezioni sotto: minHeight garantisce presenza forte degli animali.
+      */}
+      <section
+        className={cn(
+          'flex items-start justify-center px-6',
+          haSezioni
+            ? 'pt-10 pb-6'
+            : 'flex-1 pt-12 pb-20'
+        )}
+        style={haSezioni ? { minHeight: '45dvh' } : undefined}
+      >
         {nessunAnimale ? (
           <Link href="/animali/nuovo">
             <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-amber-200 bg-white px-10 py-14 text-center active:scale-[0.98] transition-transform">
@@ -258,8 +262,8 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* ── SEZIONI SECONDARIE (impegni, terapie, documenti) ────────────── */}
-      {(impegniList.length > 0 || terapieList.length > 0 || documentiList.length > 0) && (
+      {/* ── SEZIONI SECONDARIE ───────────────────────────────────────────── */}
+      {haSezioni && (
         <div className="shrink-0 space-y-6 px-5 pb-32">
 
           {impegniList.length > 0 && (
@@ -368,8 +372,6 @@ export default async function HomePage() {
     </div>
   )
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function SectionHeader({
   titolo,
