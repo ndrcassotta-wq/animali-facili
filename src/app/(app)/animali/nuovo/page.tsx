@@ -697,7 +697,7 @@ export default function NuovoAnimalePage() {
                 {metaCampo.chiave === 'taglia' ? (
                   <Select
                     value={metaValore}
-                    onValueChange={(value) => setMetaValore(value ?? '')}
+                    onValueChange={(value: string | null) => setMetaValore(value ?? '')}
                   >
                     <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                       <SelectValue placeholder="Seleziona la taglia" />

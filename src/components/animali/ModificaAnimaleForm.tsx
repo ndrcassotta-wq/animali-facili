@@ -599,7 +599,10 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             {metaCampo && (
               <CampoForm label={metaCampo.label} opzionale>
                 {metaCampo.chiave === 'taglia' ? (
-                  <Select value={metaValore} onValueChange={setMetaValore}>
+                  <Select
+                    value={metaValore}
+                    onValueChange={(value: string | null) => setMetaValore(value ?? '')}
+                  >
                     <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                       <SelectValue placeholder="Seleziona la taglia" />
                     </SelectTrigger>
