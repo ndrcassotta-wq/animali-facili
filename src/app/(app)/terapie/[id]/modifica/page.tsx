@@ -58,7 +58,7 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
       .update({
         nome_farmaco:     nomeFarmaco,
         dose,
-        frequenza,
+        frequenza: frequenza as 'una_volta_giorno' | 'due_volte_giorno' | 'tre_volte_giorno' | 'al_bisogno' | 'personalizzata',
         frequenza_custom: frequenza === 'personalizzata' ? frequenzaCustom || null : null,
         data_inizio:      dataInizio,
         data_fine:        dataFineRaw || null,
