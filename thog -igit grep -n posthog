@@ -1,0 +1,142 @@
+[33md103e14[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mbackup-posthog-disastro[m[33m)[m Allineata meglio schermata login
+src/app/(auth)/layout.tsx
+[33m2dea558[m Rifinita schermata login
+src/app/(auth)/layout.tsx
+[33m415c513[m Migliorata schermata login
+src/app/(auth)/layout.tsx
+src/components/auth/LoginForm.tsx
+[33mec25e7b[m Aggiunto elimina animale
+src/components/animali/AzioniAnimale.tsx
+src/components/animali/TabProfilo.tsx
+[33mc2cb956[m Aggiunto elimina documento
+src/app/(app)/documenti/[id]/page.tsx
+src/components/documenti/AzioniDocumento.tsx
+[33mbf6c128[m Aggiunto elimina impegno
+src/components/impegni/AzioniImpegno.tsx
+[33m5eebfb4[m Fix login Google Android con exchangeCodeForSession
+src/components/CapacitorAuthRedirectHandler.tsx
+[33mb908dfc[m Aggiunto handler deep link login Google per Android
+src/app/layout.tsx
+src/components/CapacitorAuthRedirectHandler.tsx
+[33m5a2e046[m Fix Google OAuth deep link token handling
+src/app/layout.tsx
+[33m00a9d1e[m Fix Google OAuth polling sessione
+src/components/auth/LoginForm.tsx
+[33m1ac9919[m Fix Google OAuth su APK produzione
+capacitor.config.ts
+public/sw.js
+src/components/auth/LoginForm.tsx
+[33m0716f07[m Limiti dimensione file upload, impostazioni notifiche
+src/app/(app)/animali/nuovo/page.tsx
+src/app/(app)/documenti/carica/page.tsx
+src/components/animali/ModificaAnimaleForm.tsx
+[33m41fcefb[m Impegni, notifiche locali, Capacitor
+android/.gitignore
+android/.idea/.gitignore
+android/.idea/AndroidProjectSystem.xml
+android/.idea/compiler.xml
+android/.idea/deploymentTargetSelector.xml
+android/.idea/deviceManager.xml
+android/.idea/migrations.xml
+android/.idea/misc.xml
+android/.idea/runConfigurations.xml
+android/app/.gitignore
+android/app/build.gradle
+android/app/capacitor.build.gradle
+android/app/proguard-rules.pro
+android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java
+android/app/src/main/AndroidManifest.xml
+android/app/src/main/java/com/animalifacili/app/MainActivity.java
+android/app/src/main/res/drawable-land-hdpi/splash.png
+android/app/src/main/res/drawable-land-mdpi/splash.png
+android/app/src/main/res/drawable-land-xhdpi/splash.png
+android/app/src/main/res/drawable-land-xxhdpi/splash.png
+android/app/src/main/res/drawable-land-xxxhdpi/splash.png
+android/app/src/main/res/drawable-port-hdpi/splash.png
+android/app/src/main/res/drawable-port-mdpi/splash.png
+android/app/src/main/res/drawable-port-xhdpi/splash.png
+android/app/src/main/res/drawable-port-xxhdpi/splash.png
+android/app/src/main/res/drawable-port-xxxhdpi/splash.png
+android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
+android/app/src/main/res/drawable/ic_launcher_background.xml
+android/app/src/main/res/drawable/splash.png
+android/app/src/main/res/layout/activity_main.xml
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+android/app/src/main/res/mipmap-hdpi/ic_launcher_adaptive_back.png
+android/app/src/main/res/mipmap-hdpi/ic_launcher_adaptive_fore.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher_adaptive_back.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher_adaptive_fore.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher_adaptive_back.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher_adaptive_fore.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher_adaptive_back.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher_adaptive_fore.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_adaptive_back.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_adaptive_fore.png
+android/app/src/main/res/values/ic_launcher_background.xml
+android/app/src/main/res/values/strings.xml
+android/app/src/main/res/values/styles.xml
+android/app/src/main/res/xml/file_paths.xml
+android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
+android/build.gradle
+android/capacitor.settings.gradle
+android/gradle.properties
+android/gradle/wrapper/gradle-wrapper.jar
+android/gradle/wrapper/gradle-wrapper.properties
+android/gradlew
+android/gradlew.bat
+android/settings.gradle
+android/variables.gradle
+capacitor.config.ts
+package-lock.json
+package.json
+src/app/(app)/animali/[id]/eventi/nuovo/page.tsx
+src/app/(app)/animali/[id]/page.tsx
+src/app/(app)/animali/[id]/terapie/nuova/page.tsx
+src/app/(app)/animali/nuovo/page.tsx
+src/app/(app)/animali/page.tsx
+src/app/(app)/documenti/page.tsx
+src/app/(app)/home/page.tsx
+src/app/(app)/impegni/[id]/modifica/page.tsx
+src/app/(app)/impegni/[id]/page.tsx
+src/app/(app)/impegni/nuovo/page.tsx
+src/app/(app)/impegni/page.tsx
+src/app/(app)/layout.tsx
+src/app/(app)/notifiche/page.tsx
+src/app/(app)/profilo/notifiche/page.tsx
+src/app/(app)/profilo/page.tsx
+src/app/(app)/scadenze/[id]/modifica/page.tsx
+src/app/(app)/scadenze/[id]/page.tsx
+src/app/(app)/scadenze/nuova/page.tsx
+src/app/(app)/terapie/[id]/page.tsx
+src/app/(auth)/layout.tsx
+src/app/globals.css
+src/app/layout.tsx
+src/components/animali/ModificaAnimaleForm.tsx
+src/components/animali/SchedaAnimaleTab.tsx
+src/components/animali/TabEventi.tsx
+src/components/animali/TabImpegni.tsx
+src/components/animali/TabProfilo.tsx
+src/components/animali/TabScadenze.tsx
+src/components/auth/LoginForm.tsx
+src/components/impegni/AzioniImpegno.tsx
+src/components/impegni/FiltroImpegni.tsx
+src/components/impegni/ModificaImpegnoForm.tsx
+src/components/impegni/NotificaImpegno.tsx
+src/components/layout/BottomNav.tsx
+src/components/layout/PageHeader.tsx
+src/components/profilo/ImpostazioniNotifiche.tsx
+src/components/scadenze/AnimaleSelect.tsx
+src/components/scadenze/FiltroScadenze.tsx
+src/components/scadenze/ModificaScadenzaForm.tsx
+src/components/ui/switch.tsx
+src/hooks/useNotifiche.ts
+src/lib/types/app.types.ts
+src/lib/types/database.types.ts
+src/lib/types/query.types.ts
+src/lib/utils/validation.ts

@@ -11,7 +11,7 @@ import {
   type DocumentoConAnimale,
 } from '@/lib/types/query.types'
 import type { Animale } from '@/lib/types/query.types'
-import { User, Bell } from 'lucide-react'
+import { User, Bell, Plus, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type HomeTerapia = {
@@ -75,74 +75,120 @@ export default async function HomePage() {
   const badge         = notificheNonLette ?? 0
 
   return (
-    <div>
-      <header className="flex items-center justify-between border-b border-border px-4 py-4">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/logo-animali-facili.png"
-            alt="Animali Facili"
-            width={40}
-            height={40}
-            className="rounded-lg"
-          />
-          <span className="text-base font-semibold">Animali Facili</span>
-        </div>
+    <div className="min-h-screen bg-[#FDF8F3]">
 
-        <div className="flex items-center gap-3">
-          <Link href="/notifiche" className="relative" aria-label="Notifiche">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            {badge > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium leading-none text-destructive-foreground">
-                {badge > 9 ? '9+' : badge}
-              </span>
-            )}
-          </Link>
-          <Link href="/profilo" aria-label="Profilo utente">
-            <User className="h-5 w-5 text-muted-foreground" />
-          </Link>
+      {/* ── HEADER ────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-10 bg-[#FDF8F3]/95 backdrop-blur-sm px-5 pt-12 pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo-animali-facili.png"
+              alt="Animali Facili"
+              width={44}
+              height={44}
+              className="rounded-2xl shadow-md"
+            />
+            <span className="text-xl font-extrabold tracking-tight text-gray-900">
+              Animali Facili
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link href="/notifiche" aria-label="Notifiche">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
+                <Bell className="h-5 w-5 text-gray-500" />
+                {badge > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+              </div>
+            </Link>
+            <Link href="/profilo" aria-label="Profilo utente">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
+                <User className="h-5 w-5 text-gray-500" />
+              </div>
+            </Link>
+          </div>
         </div>
       </header>
 
-      <div className="space-y-6 px-4 py-4">
+      {/* ── CONTENUTO ─────────────────────────────────────────────────────── */}
+      <div className="space-y-8 px-5 py-4 pb-32">
 
-        {nessunAnimale && (
-          <div className="space-y-3 rounded-xl border border-dashed border-border p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Non hai ancora aggiunto nessun animale.
-            </p>
-            <Button asChild size="sm">
-              <Link href="/animali/nuovo">Aggiungi il tuo animale</Link>
-            </Button>
-          </div>
-        )}
-
-        {!nessunAnimale && (
+        {/* ── ANIMALI ───────────────────────────────────────────────────── */}
+        {nessunAnimale ? (
+          <Link href="/animali/nuovo">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-amber-200 bg-white py-10 text-center active:scale-[0.98] transition-transform">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+                <Plus className="h-7 w-7 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Aggiungi il tuo primo animale</p>
+                <p className="mt-0.5 text-xs text-gray-400">Tocca per iniziare 🐾</p>
+              </div>
+            </div>
+          </Link>
+        ) : (
           <section>
-            <SectionHeader titolo="I tuoi animali" linkHref="/animali" linkLabel="Vedi tutti" />
-            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-              {animaliList.map(a => (
-                <Link
-                  key={a.id}
-                  href={`/animali/${a.id}`}
-                  className="flex w-16 flex-none flex-col items-center gap-1.5"
-                >
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
-                    {a.foto_url
-                      ? <img src={a.foto_url} alt={a.nome} width={56} height={56} className="h-full w-full object-cover" />
-                      : <span className="text-xl" role="img" aria-label={a.categoria}>{iconaCategoria(a.categoria)}</span>
-                    }
-                  </div>
-                  <span className="w-full truncate text-center text-xs">{a.nome}</span>
-                </Link>
-              ))}
+            <div className="-mx-5 flex gap-5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {animaliList.map(a => {
+                const iniziale = a.nome.charAt(0).toUpperCase()
+                const colori = [
+                  'from-amber-300 to-orange-400',
+                  'from-rose-300 to-pink-400',
+                  'from-teal-300 to-emerald-400',
+                  'from-violet-300 to-purple-400',
+                  'from-sky-300 to-blue-400',
+                  'from-lime-300 to-green-400',
+                ]
+                const colore = colori[a.nome.charCodeAt(0) % colori.length]
+                return (
+                  <Link
+                    key={a.id}
+                    href={`/animali/${a.id}`}
+                    className="flex min-w-[80px] flex-col items-center gap-2 active:scale-95 transition-transform"
+                  >
+                    {a.foto_url ? (
+                      <img
+                        src={a.foto_url}
+                        alt={a.nome}
+                        className="h-20 w-20 rounded-full border-[3px] border-white object-cover shadow-md"
+                      />
+                    ) : (
+                      <div className={cn(
+                        'flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br shadow-md',
+                        colore
+                      )}>
+                        <span className="text-2xl font-bold text-white">{iniziale}</span>
+                      </div>
+                    )}
+                    <span className="max-w-[80px] truncate text-center text-sm font-semibold text-gray-700">
+                      {a.nome}
+                    </span>
+                  </Link>
+                )
+              })}
+
+              {/* Pulsante aggiungi */}
+              <Link
+                href="/animali/nuovo"
+                className="flex min-w-[80px] flex-col items-center gap-2 active:scale-95 transition-transform"
+              >
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-amber-300 bg-white">
+                  <Plus className="h-6 w-6 text-amber-400" />
+                </div>
+                <span className="text-sm font-medium text-amber-500">Aggiungi</span>
+              </Link>
             </div>
           </section>
         )}
 
+        {/* ── PROSSIMI IMPEGNI ──────────────────────────────────────────── */}
         {impegniList.length > 0 && (
           <section>
             <SectionHeader titolo="Prossimi impegni" linkHref="/impegni" linkLabel="Vedi tutti" />
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {impegniList.map((s: ImpegnoConAnimale) => {
                 const scaduta   = isScaduta(s.data)
                 const imminente = isImminente(s.data)
@@ -151,40 +197,48 @@ export default async function HomePage() {
                     key={s.id}
                     href={`/impegni/${s.id}`}
                     className={cn(
-                      'flex items-center justify-between rounded-xl border p-3 transition-colors',
+                      'flex items-center gap-3 rounded-2xl border p-4 transition-colors active:scale-[0.98]',
                       scaduta
-                        ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
+                        ? 'border-red-200 bg-red-50'
                         : imminente
-                        ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30'
-                        : 'border-border bg-card hover:bg-muted/50'
+                        ? 'border-amber-200 bg-amber-50'
+                        : 'border-gray-100 bg-white'
                     )}
                   >
-                    <div className="min-w-0">
+                    <div className={cn(
+                      'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl',
+                      scaduta   ? 'bg-red-100' :
+                      imminente ? 'bg-amber-100' :
+                                  'bg-gray-50'
+                    )}>
+                      <span className={cn(
+                        'text-[10px] font-bold uppercase tracking-wide',
+                        scaduta   ? 'text-red-500' :
+                        imminente ? 'text-amber-600' :
+                                    'text-gray-400'
+                      )}>
+                        {formatData(s.data)}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium">{s.titolo}</p>
+                        <p className="truncate text-sm font-semibold text-gray-800">{s.titolo}</p>
                         {scaduta && (
-                          <span className="shrink-0 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-destructive-foreground">
+                          <span className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
                             Scaduto
                           </span>
                         )}
                         {!scaduta && imminente && (
-                          <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
+                          <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
                             Urgente
                           </span>
                         )}
                       </div>
                       {s.animali && (
-                        <p className="text-xs text-muted-foreground">{s.animali.nome}</p>
+                        <p className="mt-0.5 text-xs text-gray-400">{s.animali.nome}</p>
                       )}
                     </div>
-                    <span className={cn(
-                      'ml-3 shrink-0 text-xs font-medium',
-                      scaduta   ? 'text-destructive' :
-                      imminente ? 'text-amber-700 dark:text-amber-300' :
-                                  'text-muted-foreground'
-                    )}>
-                      {formatData(s.data)}
-                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
                   </Link>
                 )
               })}
@@ -192,23 +246,27 @@ export default async function HomePage() {
           </section>
         )}
 
+        {/* ── TERAPIE ATTIVE ────────────────────────────────────────────── */}
         {terapieList.length > 0 && (
           <section>
-            <SectionHeader titolo="Terapie attive" />
-            <div className="space-y-2">
+            <SectionHeader titolo="Terapie attive" linkHref="/terapie" linkLabel="Vedi tutti" />
+            <div className="space-y-2.5">
               {terapieList.map(terapia => (
                 <Link
                   key={terapia.id}
                   href={`/terapie/${terapia.id}`}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:scale-[0.98]"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{terapia.nome_farmaco}</p>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50">
+                    <span className="text-xl">💊</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-800">{terapia.nome_farmaco}</p>
                     {terapia.animali && (
-                      <p className="text-xs text-muted-foreground">{terapia.animali.nome}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{terapia.animali.nome}</p>
                     )}
                   </div>
-                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                  <span className="ml-2 shrink-0 text-xs text-gray-400">
                     dal {formatData(terapia.data_inizio)}
                   </span>
                 </Link>
@@ -217,23 +275,27 @@ export default async function HomePage() {
           </section>
         )}
 
+        {/* ── ULTIMI DOCUMENTI ──────────────────────────────────────────── */}
         {documentiList.length > 0 && (
           <section>
             <SectionHeader titolo="Ultimi documenti" linkHref="/documenti" linkLabel="Vedi tutti" />
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {documentiList.map((d: DocumentoConAnimale) => (
                 <Link
                   key={d.id}
                   href={`/documenti/${d.id}`}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:scale-[0.98]"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{d.titolo}</p>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                    <span className="text-xl">📄</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-800">{d.titolo}</p>
                     {d.animali && (
-                      <p className="text-xs text-muted-foreground">{d.animali.nome}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{d.animali.nome}</p>
                     )}
                   </div>
-                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                  <span className="ml-2 shrink-0 text-xs text-gray-400">
                     {labelCategoriaDoc(d.categoria)}
                   </span>
                 </Link>
@@ -258,24 +320,14 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {titolo}
-      </h2>
+      <h2 className="text-base font-bold text-gray-800">{titolo}</h2>
       {linkHref && linkLabel && (
-        <Link href={linkHref} className="text-xs text-muted-foreground underline underline-offset-4">
+        <Link href={linkHref} className="text-xs font-semibold text-amber-500">
           {linkLabel}
         </Link>
       )}
     </div>
   )
-}
-
-function iconaCategoria(categoria: string): string {
-  const m: Record<string, string> = {
-    cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
-    rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
-  }
-  return m[categoria] ?? '🐾'
 }
 
 function labelCategoriaDoc(categoria: string): string {
