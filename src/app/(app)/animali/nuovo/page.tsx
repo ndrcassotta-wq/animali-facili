@@ -86,6 +86,19 @@ function metaSuggerito(categoria: CategoriaAnimale): string {
   return mappa[categoria] ?? ''
 }
 
+function colorePerCategoria(categoria: CategoriaAnimale): string {
+  const mappa: Record<CategoriaAnimale, string> = {
+    cani:              'bg-amber-100',
+    gatti:             'bg-orange-100',
+    pesci:             'bg-sky-100',
+    uccelli:           'bg-lime-100',
+    rettili:           'bg-green-100',
+    piccoli_mammiferi: 'bg-rose-100',
+    altri_animali:     'bg-violet-100',
+  }
+  return mappa[categoria] ?? 'bg-gray-100'
+}
+
 function getEstensioneFile(file: File) {
   const parti = file.name.split('.')
   return parti[parti.length - 1]?.toLowerCase() || 'jpg'
@@ -294,7 +307,7 @@ export default function NuovoAnimalePage() {
                 <span className="text-5xl leading-none" role="img" aria-label={cat.label}>
                   {cat.icona}
                 </span>
-                <span className="text-base font-bold text-gray-800">{cat.label}</span>
+                <span className="text-lg font-extrabold text-gray-800">{cat.label}</span>
               </button>
             ))}
           </div>
@@ -331,10 +344,10 @@ export default function NuovoAnimalePage() {
         {/* ── FOTO ───────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center gap-3 rounded-3xl bg-white border border-gray-100 shadow-sm py-6">
           <div className="relative">
-            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
+            <div className={`h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg flex items-center justify-center ${fotoPreview ? '' : colorePerCategoria(valori.categoria as CategoriaAnimale)}`}>
               {fotoPreview
                 ? <img src={fotoPreview} alt="Anteprima" className="h-full w-full object-cover" />
-                : <span className="text-5xl leading-none">{categoriaSelezionata?.icona ?? '🐾'}</span>
+                : <span className="text-6xl leading-none">{categoriaSelezionata?.icona ?? '🐾'}</span>
               }
             </div>
             <label
