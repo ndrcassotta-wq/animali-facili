@@ -190,7 +190,7 @@ export default async function HomePage() {
       <section className="flex flex-1 items-center justify-center px-6 pb-16">
         {nessunAnimale ? (
           <Link href="/animali/nuovo">
-            <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-amber-200 bg-white px-10 py-14 text-center active:scale-[0.98] transition-transform">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-amber-200 bg-white px-10 py-20 text-center active:scale-[0.98] transition-transform mx-4">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50">
                 <span className="text-4xl">🐾</span>
               </div>

@@ -19,6 +19,8 @@ import type { CategoriaAnimale } from '@/lib/types/app.types'
 import type { Database } from '@/lib/types/database.types'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { CropFoto } from '@/components/ui/CropFoto'
+import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
+import { SPECIE_PER_CATEGORIA, RAZZE_PER_CATEGORIA } from '@/lib/utils/specieSuggerimenti'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
@@ -65,12 +67,16 @@ function speciePresentate(categoria: CategoriaAnimale): boolean {
 }
 
 function specieSuggerita(categoria: CategoriaAnimale): string {
-  const m: Record<CategoriaAnimale, string> = {
-    cani: '', gatti: '', pesci: 'es. Betta, Carassio',
-    uccelli: 'es. Canarino, Cocorita', rettili: 'es. Geco, Iguana',
-    piccoli_mammiferi: 'es. Criceto, Coniglio', altri_animali: 'Indica la specie',
+  const mappa: Record<CategoriaAnimale, string> = {
+    cani:              '',
+    gatti:             '',
+    pesci:             'es. Betta, Carassius, Guppy...',
+    uccelli:           'es. Cocorita, Canarino, Ara...',
+    rettili:           'es. Geco Leopardino, Drago Barbuto...',
+    piccoli_mammiferi: 'es. Criceto Dorato, Coniglio Nano...',
+    altri_animali:     'Indica la specie del tuo animale',
   }
-  return m[categoria] ?? ''
+  return mappa[categoria] ?? ''
 }
 
 function metaSuggerito(categoria: CategoriaAnimale): string {
@@ -500,24 +506,28 @@ export default function NuovoAnimalePage() {
           <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-5 mb-4">
 
             {speciePresentate(valori.categoria as CategoriaAnimale) && (
-              <CampoForm label="Specie" opzionale>
-                <Input
+              <CampoForm label="Specie" required errore={erroriForm.specie}>
+                <AutocompleteInput
                   id="specie"
                   placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
                   value={valori.specie}
-                  onChange={e => setValue('specie', e.target.value)}
-                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                  onChange={(v: string) => setValue('specie', v)}
+                  suggerimenti={SPECIE_PER_CATEGORIA[valori.categoria as CategoriaAnimale] ?? []}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-base"
                 />
               </CampoForm>
             )}
 
             <CampoForm label="Razza" opzionale>
-              <Input
+              <AutocompleteInput
                 id="razza"
-                placeholder="Razza o varietà"
+                placeholder="es. Labrador, Maine Coon, Meticcio..."
                 value={valori.razza ?? ''}
-                onChange={e => setValue('razza', e.target.value)}
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                onChange={(v: string) => setValue('razza', v)}
+                suggerimenti={RAZZE_PER_CATEGORIA[valori.categoria as CategoriaAnimale] ?? []}
+                disabled={isSubmitting}
+                className="h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-base"
               />
             </CampoForm>
 

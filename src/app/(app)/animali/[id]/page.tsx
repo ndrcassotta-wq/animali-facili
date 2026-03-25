@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound } from 'next/navigation'
 import { SchedaAnimaleTab } from '@/components/animali/SchedaAnimaleTab'
 import { createClient } from '@/lib/supabase/server'
