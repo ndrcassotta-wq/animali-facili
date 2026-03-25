@@ -28,7 +28,6 @@ export function TabImpegni({
   return (
     <div className="px-5 py-5 space-y-4 pb-32">
 
-      {/* Pulsante aggiungi */}
       <Link
         href={`/impegni/nuovo?animale_id=${animaleId}`}
         className="flex items-center justify-center gap-2 w-full rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 active:scale-[0.98] transition-transform"
@@ -60,8 +59,7 @@ export function TabImpegni({
                 <div className={cn(
                   'h-10 w-10 shrink-0 rounded-xl flex items-center justify-center text-lg',
                   scaduto   ? 'bg-red-100' :
-                  imminente ? 'bg-amber-100' :
-                              'bg-gray-50'
+                  imminente ? 'bg-amber-100' : 'bg-gray-50'
                 )}>
                   {iconaTipo[i.tipo] ?? '📌'}
                 </div>
@@ -75,8 +73,7 @@ export function TabImpegni({
                   <span className={cn(
                     'text-xs font-semibold',
                     scaduto   ? 'text-red-500' :
-                    imminente ? 'text-amber-600' :
-                                'text-gray-400'
+                    imminente ? 'text-amber-600' : 'text-gray-400'
                   )}>
                     {formatData(i.data)}
                   </span>
