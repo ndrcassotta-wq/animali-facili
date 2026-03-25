@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { animaleSchema } from '@/lib/utils/validation'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,6 +18,7 @@ import {
 import type { CategoriaAnimale } from '@/lib/types/app.types'
 import type { Database } from '@/lib/types/database.types'
 import { ArrowLeft, Camera, ChevronDown, ChevronUp } from 'lucide-react'
+import { CropFoto } from '@/components/ui/CropFoto'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
@@ -57,7 +57,6 @@ const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: strin
   piccoli_mammiferi: { label: 'Tipo habitat',  chiave: 'tipo_habitat' },
 }
 
-// Cani e gatti: specie implicita nella categoria, non serve chiederla
 function speciePresentate(categoria: CategoriaAnimale): boolean {
   return categoria !== 'cani' && categoria !== 'gatti'
 }
@@ -159,14 +158,16 @@ function CampoForm({
 export default function NuovoAnimalePage() {
   const router = useRouter()
 
-  const [step,             setStep]             = useState<'categoria' | 'form'>('categoria')
-  const [erroreSrv,        setErroreSrv]        = useState<string | null>(null)
-  const [metaValore,       setMetaValore]       = useState('')
-  const [fotoFile,         setFotoFile]         = useState<File | null>(null)
-  const [valori,           setValori]           = useState<FormValori>(valoriIniziali)
-  const [erroriForm,       setErroriForm]       = useState<Partial<Record<keyof FormValori, string>>>({})
-  const [isSubmitting,     setIsSubmitting]     = useState(false)
-  const [dettagliAperti,   setDettagliAperti]   = useState(false)
+  const [step,             setStep]           = useState<'categoria' | 'form'>('categoria')
+  const [erroreSrv,        setErroreSrv]      = useState<string | null>(null)
+  const [metaValore,       setMetaValore]     = useState('')
+  const [fotoFile,         setFotoFile]       = useState<File | null>(null)
+  const [cropSrc,          setCropSrc]        = useState<string | null>(null)
+  const [cropNome,         setCropNome]       = useState<string>('')
+  const [valori,           setValori]         = useState<FormValori>(valoriIniziali)
+  const [erroriForm,       setErroriForm]     = useState<Partial<Record<keyof FormValori, string>>>({})
+  const [isSubmitting,     setIsSubmitting]   = useState(false)
+  const [dettagliAperti,   setDettagliAperti] = useState(false)
 
   const fotoPreview = useMemo(() => {
     if (!fotoFile) return null
@@ -183,12 +184,10 @@ export default function NuovoAnimalePage() {
   }
 
   function validate(): FormValori | null {
-    // Per cani e gatti la specie è implicita: la impostiamo prima di validare
     const valoriDaValidare = { ...valori }
     if (!speciePresentate(valori.categoria as CategoriaAnimale)) {
       valoriDaValidare.specie = valori.categoria === 'cani' ? 'Cane' : 'Gatto'
     }
-
     const result = animaleSchema.safeParse(valoriDaValidare)
     if (!result.success) {
       const fe: Partial<Record<keyof FormValori, string>> = {}
@@ -320,6 +319,24 @@ export default function NuovoAnimalePage() {
 
   return (
     <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+
+      {/* Crop overlay — appare sopra tutto quando l'utente sceglie una foto */}
+      {cropSrc && (
+        <CropFoto
+          imageSrc={cropSrc}
+          fileName={cropNome}
+          onConfirm={file => {
+            setFotoFile(file)
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+        />
+      )}
+
       <header className="shrink-0 px-5 pt-10 pb-4">
         <button
           onClick={() => setStep('categoria')}
@@ -373,7 +390,11 @@ export default function NuovoAnimalePage() {
                 return
               }
               setErroreSrv(null)
-              setFotoFile(file)
+              if (file) {
+                setCropNome(file.name)
+                setCropSrc(URL.createObjectURL(file))
+              }
+              e.target.value = ''
             }}
           />
         </div>
@@ -392,7 +413,6 @@ export default function NuovoAnimalePage() {
             />
           </CampoForm>
 
-          {/* Specie: visibile e obbligatoria solo per categorie che non siano cani/gatti */}
           {speciePresentate(valori.categoria as CategoriaAnimale) && (
             <CampoForm label="Specie" required errore={erroriForm.specie}>
               <Input

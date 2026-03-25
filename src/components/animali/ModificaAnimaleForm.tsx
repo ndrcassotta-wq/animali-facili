@@ -19,6 +19,7 @@ import type { Animale } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
 import { ArrowLeft, Camera, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CropFoto } from '@/components/ui/CropFoto'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleUpdate = Database['public']['Tables']['animali']['Update']
@@ -61,7 +62,6 @@ function prossimCompleanno(dataNascita: string): string {
   return candidato.toISOString().split('T')[0]
 }
 
-// Specie nascosta per cani e gatti (implicita nella categoria)
 function speciePresentate(categoria: string): boolean {
   return categoria !== 'cani' && categoria !== 'gatti'
 }
@@ -100,6 +100,8 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   const [erroreSrv,      setErroreSrv]      = useState<string | null>(null)
   const [isSubmitting,   setIsSubmitting]   = useState(false)
   const [fotoFile,       setFotoFile]       = useState<File | null>(null)
+  const [cropSrc,        setCropSrc]        = useState<string | null>(null)
+  const [cropNome,       setCropNome]       = useState<string>('')
   const [dettagliAperti, setDettagliAperti] = useState(false)
 
   const metaEsistente = animale.meta_categoria as Record<string, string> | null
@@ -245,6 +247,23 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   return (
     <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
+      {/* Crop overlay */}
+      {cropSrc && (
+        <CropFoto
+          imageSrc={cropSrc}
+          fileName={cropNome}
+          onConfirm={file => {
+            setFotoFile(file)
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+        />
+      )}
+
       {/* Header */}
       <header className="shrink-0 px-5 pt-10 pb-4">
         <button
@@ -306,7 +325,11 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 return
               }
               setErroreSrv(null)
-              setFotoFile(file)
+              if (file) {
+                setCropNome(file.name)
+                setCropSrc(URL.createObjectURL(file))
+              }
+              e.target.value = ''
             }}
           />
         </div>
@@ -324,7 +347,6 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             />
           </CampoForm>
 
-          {/* Categoria non modificabile */}
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold text-gray-700">Categoria</Label>
             <div className="flex items-center gap-2 h-12 rounded-xl border border-gray-200 bg-gray-100 px-4">
@@ -336,7 +358,6 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             <p className="text-xs text-gray-400">La categoria non può essere modificata</p>
           </div>
 
-          {/* Specie: solo per categorie che non siano cani/gatti */}
           {speciePresentate(animale.categoria) && (
             <CampoForm label="Specie" required errore={erroriForm.specie}>
               <Input
