@@ -6,17 +6,21 @@ import type { Animale } from '@/lib/types/query.types'
 import { User, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const COLORI = [
-  'from-amber-300 to-orange-400',
-  'from-rose-300 to-pink-400',
-  'from-teal-300 to-emerald-400',
-  'from-violet-300 to-purple-400',
-  'from-sky-300 to-blue-400',
-  'from-lime-300 to-green-400',
-]
+function iconaCategoria(categoria: string): string {
+  const m: Record<string, string> = {
+    cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
+    rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
+  }
+  return m[categoria] ?? '🐾'
+}
 
-function colorePerNome(nome: string) {
-  return COLORI[nome.charCodeAt(0) % COLORI.length]
+function colorePerCategoria(categoria: string): string {
+  const m: Record<string, string> = {
+    cani: 'bg-amber-100', gatti: 'bg-orange-100', pesci: 'bg-sky-100',
+    uccelli: 'bg-lime-100', rettili: 'bg-green-100',
+    piccoli_mammiferi: 'bg-rose-100', altri_animali: 'bg-violet-100',
+  }
+  return m[categoria] ?? 'bg-gray-100'
 }
 
 function sizeCls(n: number): string {
@@ -42,7 +46,7 @@ function textCls(n: number): string {
 }
 
 function gapCls(n: number): string {
-  if (n === 2) return 'gap-6'   // più compatti verticalmente
+  if (n === 2) return 'gap-6'
   if (n <= 4)  return 'gap-7'
   return 'gap-5'
 }
@@ -54,9 +58,6 @@ function AvatarAnimale({
   animale: Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>
   n: number
 }) {
-  const iniziale = animale.nome.charAt(0).toUpperCase()
-  const colore   = colorePerNome(animale.nome)
-
   return (
     <Link
       href={`/animali/${animale.id}`}
@@ -71,14 +72,11 @@ function AvatarAnimale({
       ) : (
         <div className={cn(
           sizeCls(n),
-          'rounded-full border-4 border-white bg-gradient-to-br shadow-xl flex items-center justify-center',
-          colore
+          'rounded-full border-4 border-white shadow-xl flex items-center justify-center',
+          colorePerCategoria(animale.categoria)
         )}>
-          <span
-            className="font-bold text-white select-none"
-            style={{ fontSize: fontSizePx(n) }}
-          >
-            {iniziale}
+          <span style={{ fontSize: fontSizePx(n) }}>
+            {iconaCategoria(animale.categoria)}
           </span>
         </div>
       )}
@@ -189,11 +187,6 @@ export default async function HomePage() {
       </header>
 
       {/* ── ANIMALI ─────────────────────────────────────────────────────── */}
-      {/*
-        flex-1 prende tutto lo spazio tra header e bottom nav.
-        pb-16 compensa visivamente la bottom nav (bias verso l'alto).
-        justify-center centra nel rimanente spazio utile.
-      */}
       <section className="flex flex-1 items-center justify-center px-6 pb-16">
         {nessunAnimale ? (
           <Link href="/animali/nuovo">
