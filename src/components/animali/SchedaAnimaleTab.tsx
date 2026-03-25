@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, FileText, Pill, User, ChevronRight, ArrowLeft, Pencil } from 'lucide-react'
+import { Calendar, FolderOpen, Stethoscope, User, ArrowLeft, Pencil } from 'lucide-react'
 import { TabProfilo }   from '@/components/animali/TabProfilo'
 import { TabImpegni }   from '@/components/animali/TabImpegni'
 import { TabDocumenti } from '@/components/animali/TabDocumenti'
@@ -73,7 +73,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
     return (
       <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
-        {/* Header fisso tab */}
         <header className="shrink-0 bg-[#FDF8F3] px-5 pt-10 pb-0">
           <div className="flex items-center gap-3 mb-4">
             <button
@@ -83,7 +82,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
               <ArrowLeft size={20} strokeWidth={2.2} className="text-gray-600" />
             </button>
 
-            {/* Foto + nome */}
             <div className="flex flex-1 items-center gap-2.5 min-w-0">
               <div className={cn(
                 'h-9 w-9 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center',
@@ -97,7 +95,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
               <span className="text-base font-extrabold text-gray-900 truncate">{animale.nome}</span>
             </div>
 
-            {/* Modifica */}
             <Link
               href={`/animali/${animale.id}/modifica`}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100"
@@ -106,7 +103,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
             </Link>
           </div>
 
-          {/* Tab bar scrollabile */}
           <div className="flex gap-2 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-5 px-5">
             {TABS.map(tab => (
               <button
@@ -127,7 +123,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
           <div className="border-b border-gray-100" />
         </header>
 
-        {/* Contenuto tab */}
         <div className="flex-1 overflow-y-auto">
           {tabAttivo === 'profilo'   && <TabProfilo   animale={animale} />}
           {tabAttivo === 'impegni'   && <TabImpegni   animaleId={animale.id} impegni={impegni} />}
@@ -145,7 +140,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
 
       {/* Hero */}
       <div className="relative w-full" style={{ height: '300px' }}>
-
         {animale.foto_url ? (
           <img
             src={animale.foto_url}
@@ -163,10 +157,8 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
           </div>
         )}
 
-        {/* Gradiente scuro in basso */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-        {/* Back button */}
         <button
           onClick={() => router.back()}
           className="absolute left-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
@@ -174,7 +166,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
           <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
         </button>
 
-        {/* Modifica button */}
         <Link
           href={`/animali/${animale.id}/modifica`}
           className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm"
@@ -182,7 +173,6 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
           <Pencil size={16} strokeWidth={2.2} className="text-white" />
         </Link>
 
-        {/* Nome e info sovrapposti al gradiente */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
           <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">
             {animale.nome}
@@ -202,69 +192,65 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
         </div>
       </div>
 
-      {/* Card griglia 2x2 */}
+      {/* Card 2x2 centrate */}
       <div className="px-5 pt-5 pb-32 grid grid-cols-2 gap-4">
 
         <button
           onClick={() => cambiaTab('impegni')}
-          className="flex flex-col items-start gap-3 p-5 rounded-3xl bg-blue-50 border border-blue-100 text-left active:scale-95 transition-transform"
+          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-blue-50 border border-blue-100 text-center active:scale-95 transition-transform"
         >
-          <div className="w-11 h-11 rounded-2xl bg-blue-100 flex items-center justify-center">
-            <Calendar size={22} strokeWidth={2} className="text-blue-600" />
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+            <Calendar size={24} strokeWidth={2} className="text-blue-600" />
           </div>
-          <div className="flex-1">
+          <div>
             <p className="text-base font-extrabold text-blue-900">Impegni</p>
             <p className="text-xs text-blue-500 mt-0.5">
               {impegniProssimi > 0 ? `${impegniProssimi} programmati` : 'Nessuno in arrivo'}
             </p>
           </div>
-          <ChevronRight size={16} className="text-blue-300 self-end" />
         </button>
 
         <button
           onClick={() => cambiaTab('terapie')}
-          className="flex flex-col items-start gap-3 p-5 rounded-3xl bg-teal-50 border border-teal-100 text-left active:scale-95 transition-transform"
+          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-teal-50 border border-teal-100 text-center active:scale-95 transition-transform"
         >
-          <div className="w-11 h-11 rounded-2xl bg-teal-100 flex items-center justify-center">
-            <Pill size={22} strokeWidth={2} className="text-teal-600" />
+          <div className="w-12 h-12 rounded-2xl bg-teal-100 flex items-center justify-center">
+            <Stethoscope size={24} strokeWidth={2} className="text-teal-600" />
           </div>
-          <div className="flex-1">
+          <div>
             <p className="text-base font-extrabold text-teal-900">Terapie</p>
             <p className="text-xs text-teal-500 mt-0.5">
               {terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'}
             </p>
           </div>
-          <ChevronRight size={16} className="text-teal-300 self-end" />
         </button>
 
         <button
           onClick={() => cambiaTab('documenti')}
-          className="flex flex-col items-start gap-3 p-5 rounded-3xl bg-amber-50 border border-amber-100 text-left active:scale-95 transition-transform"
+          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-slate-100 border border-slate-200 text-center active:scale-95 transition-transform"
         >
-          <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center">
-            <FileText size={22} strokeWidth={2} className="text-amber-600" />
+          <div className="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center">
+            <FolderOpen size={24} strokeWidth={2} className="text-slate-600" />
           </div>
-          <div className="flex-1">
-            <p className="text-base font-extrabold text-amber-900">Documenti</p>
-            <p className="text-xs text-amber-500 mt-0.5">
+          <div>
+            <p className="text-base font-extrabold text-slate-800">Documenti</p>
+            <p className="text-xs text-slate-500 mt-0.5">
               {documenti.length > 0 ? `${documenti.length} salvati` : 'Nessun documento'}
             </p>
           </div>
-          <ChevronRight size={16} className="text-amber-300 self-end" />
         </button>
 
         <button
           onClick={() => cambiaTab('profilo')}
-          className="flex flex-col items-start gap-3 p-5 rounded-3xl bg-violet-50 border border-violet-100 text-left active:scale-95 transition-transform"
+          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-violet-50 border border-violet-100 text-center active:scale-95 transition-transform"
         >
-          <div className="w-11 h-11 rounded-2xl bg-violet-100 flex items-center justify-center">
-            <User size={22} strokeWidth={2} className="text-violet-600" />
+          <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">
+            <User size={24} strokeWidth={2} className="text-violet-600" />
           </div>
-          <div className="flex-1">
+          <div>
             <p className="text-base font-extrabold text-violet-900">Profilo</p>
             <p className="text-xs text-violet-500 mt-0.5">Info e dettagli</p>
           </div>
-          <ChevronRight size={16} className="text-violet-300 self-end" />
         </button>
 
       </div>
