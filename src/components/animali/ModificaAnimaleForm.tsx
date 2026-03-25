@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
@@ -167,7 +167,7 @@ function CampoForm({
   required?: boolean
   opzionale?: boolean
   errore?: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <div className="space-y-1.5">
@@ -193,19 +193,22 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   const [valori, setValori] = useState<FormValori>({
     nome: animale.nome ?? '',
     categoria,
-    specie: animale.specie ?? animale.razza ?? '',
+    specie: animale.specie || animale.razza || '',
     razza: '',
     sesso: animale.sesso ?? 'non_specificato',
     data_nascita: animale.data_nascita ?? '',
     peso: animale.peso ?? undefined,
     note: animale.note ?? '',
   })
+
   const [erroriForm, setErroriForm] = useState<Partial<Record<keyof FormValori, string>>>({})
   const [metaValore, setMetaValore] = useState(() => {
     const metaCampo = metaCampi[categoria]
     if (!metaCampo) return ''
+
     const meta = animale.meta_categoria as Record<string, unknown> | null
     const valore = meta?.[metaCampo.chiave]
+
     return typeof valore === 'string' ? valore : ''
   })
   const [fotoFile, setFotoFile] = useState<File | null>(null)
@@ -280,7 +283,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
 
       if (fotoFile) {
         const estensione = getEstensioneFile(fotoFile)
-        const filePath = `animali/${animale.id}/foto-${Date.now()}.${estensione}`
+        const filePath = `${user.id}/animali/${animale.id}/foto-${Date.now()}.${estensione}`
 
         const { error: uploadError } = await supabase.storage
           .from(BUCKET_FOTO_ANIMALI)

@@ -11,10 +11,21 @@ type StatoImpegno = 'programmato' | 'completato' | 'annullato'
 export function AzioniImpegno({
   impegnoId,
   statoAttuale,
+  tipo,
 }: {
   impegnoId: string
   statoAttuale: string
+  tipo: string
 }) {
+  if (tipo === 'compleanno') {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <p className="text-sm font-medium text-amber-700">
+        Questo compleanno è gestito automaticamente dall’app.
+      </p>
+    </div>
+  )
+}
   const router = useRouter()
   const [caricamento, setCaricamento] = useState(false)
 

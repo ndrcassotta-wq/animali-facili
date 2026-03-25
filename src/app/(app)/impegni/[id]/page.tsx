@@ -137,10 +137,14 @@ export default async function DettaglioImpegnoPage({
         </div>
 
         {/* Azioni */}
-        <AzioniImpegno impegnoId={impegno.id} statoAttuale={impegno.stato} />
+        <AzioniImpegno
+          impegnoId={impegno.id}
+          statoAttuale={impegno.stato}
+          tipo={impegno.tipo}
+        />
 
         {/* Pulsante modifica — solo se programmato */}
-        {impegno.stato === 'programmato' && (
+        {impegno.stato === 'programmato' && impegno.tipo !== 'compleanno' && (
           <Link
             href={`/impegni/${impegno.id}/modifica`}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-4 text-sm font-bold text-gray-600 shadow-sm active:scale-[0.98] transition-all"

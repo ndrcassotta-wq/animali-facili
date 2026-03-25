@@ -295,7 +295,7 @@ export default function NuovoAnimalePage() {
 
       if (fotoFile) {
         const estensione = getEstensioneFile(fotoFile)
-        const filePath = `animali/${nuovoId}/foto-${Date.now()}.${estensione}`
+        const filePath = `${user.id}/animali/${nuovoId}/foto-${Date.now()}.${estensione}`
 
         const { error: uploadError } = await supabase.storage
           .from(BUCKET_FOTO_ANIMALI)
