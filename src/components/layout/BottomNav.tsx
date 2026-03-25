@@ -31,41 +31,43 @@ export function BottomNav() {
       {/* ── BOTTOM SHEET ──────────────────────────────────────────────── */}
       {aperto && (
         <>
-          {/* Overlay */}
           <div
             className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
             onClick={() => setAperto(false)}
           />
 
-          {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white px-5 pb-safe shadow-2xl"
-               style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white px-5 shadow-2xl"
+            style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+          >
             {/* Handle */}
-            <div className="mx-auto mt-3 mb-5 h-1 w-10 rounded-full bg-gray-200" />
+            <div className="mx-auto mt-3 mb-6 h-1 w-12 rounded-full bg-gray-200" />
 
-            <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-gray-400">
+            {/* Titolo */}
+            <p className="mb-5 text-center text-sm font-bold uppercase tracking-widest text-gray-400">
               Cosa vuoi aggiungere?
             </p>
 
-            <div className="space-y-2 pb-2">
+            {/* Voci */}
+            <div className="space-y-3 pb-2">
               {SCELTE.map(scelta => (
                 <button
                   key={scelta.href}
                   onClick={() => { setAperto(false); router.push(scelta.href) }}
-                  className="flex w-full items-center gap-4 rounded-2xl bg-gray-50 px-4 py-4 text-left transition-colors active:bg-amber-50"
+                  className="flex w-full items-center gap-5 rounded-2xl bg-gray-50 px-5 py-5 text-left transition-colors active:bg-amber-50"
                 >
-                  <span className="text-2xl">{scelta.emoji}</span>
-                  <span className="text-base font-semibold text-gray-800">{scelta.label}</span>
+                  <span className="text-4xl leading-none">{scelta.emoji}</span>
+                  <span className="text-lg font-bold text-gray-800">{scelta.label}</span>
                 </button>
               ))}
             </div>
 
+            {/* Annulla */}
             <button
               onClick={() => setAperto(false)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 py-3 text-sm font-semibold text-gray-400"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 py-4 text-base font-semibold text-gray-400 active:bg-gray-50"
             >
-              <X size={16} />
+              <X size={18} />
               Annulla
             </button>
           </div>
@@ -78,9 +80,8 @@ export function BottomNav() {
           className="flex items-end justify-around px-2 pt-2 max-w-lg mx-auto"
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
         >
-          {VOCI.map((voce, i) => {
+          {VOCI.map((voce) => {
 
-            // ── Pulsante + centrale ──────────────────────────────────────
             if (voce.label === null) {
               return (
                 <button
@@ -89,7 +90,7 @@ export function BottomNav() {
                   className="flex flex-col items-center -mt-5 active:scale-90 transition-transform"
                 >
                   <div className={cn(
-                    'w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform',
+                    'w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200',
                     aperto
                       ? 'bg-gray-800 shadow-gray-300'
                       : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-orange-200'
@@ -97,15 +98,14 @@ export function BottomNav() {
                     <Plus
                       size={28}
                       strokeWidth={2.5}
-                      className={cn('transition-transform duration-200', aperto ? 'rotate-45' : 'rotate-0')}
                       color="white"
+                      className={cn('transition-transform duration-200', aperto ? 'rotate-45' : 'rotate-0')}
                     />
                   </div>
                 </button>
               )
             }
 
-            // ── Voci normali ─────────────────────────────────────────────
             const Icona  = voce.icon
             const attiva = pathname === voce.href || pathname.startsWith(voce.href + '/')
 
