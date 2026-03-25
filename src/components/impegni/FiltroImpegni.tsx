@@ -54,7 +54,7 @@ export function FiltroImpegni({
     <div className="flex-1 flex flex-col px-5 pb-32">
 
       {/* Filtri pill */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex justify-center gap-2 mb-5">
         {filtri.map(f => (
           <button
             key={f.valore}
@@ -76,19 +76,24 @@ export function FiltroImpegni({
 
       {/* Lista */}
       {impegni.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-gray-200 bg-white py-14 text-center">
+        <Link
+          href="/impegni/nuovo"
+          className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-gray-200 bg-white py-14 text-center active:scale-[0.98] transition-transform"
+        >
           <span className="text-4xl">📅</span>
           <div>
             <p className="text-sm font-semibold text-gray-700">
               {statoAttivo === 'programmato' ? 'Nessun impegno programmato' :
-               statoAttivo === 'completato'  ? 'Nessun impegno completato'  :
-                                               'Nessun impegno annullato'}
+              statoAttivo === 'completato'  ? 'Nessun impegno completato'  :
+                                              'Nessun impegno annullato'}
             </p>
             {statoAttivo === 'programmato' && (
-              <p className="mt-1 text-xs text-gray-400">Tocca + per aggiungerne uno</p>
+              <p className="mt-1 text-sm font-bold text-amber-500">
+                Tocca qui per aggiungerne uno →
+              </p>
             )}
           </div>
-        </div>
+        </Link>
       ) : (
         <div className="space-y-3">
           {impegni.map(i => {
