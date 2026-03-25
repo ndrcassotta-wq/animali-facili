@@ -2,7 +2,6 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { AzioniImpegno } from '@/components/impegni/AzioniImpegno'
-import { NotificaImpegno } from '@/components/impegni/NotificaImpegno'
 import { formatData, isScaduta, isImminente } from '@/lib/utils/date'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Pencil } from 'lucide-react'
@@ -77,9 +76,9 @@ export default async function DettaglioImpegnoPage({
   return (
     <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
-      {/* Header */}
+      {/* Header — solo freccia indietro, niente matita */}
       <header className="shrink-0 px-5 pt-10 pb-4">
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5">
           <Link
             href={animale ? `/animali/${animale.id}?tab=impegni` : '/impegni'}
             className="flex items-center gap-2 text-gray-500 active:opacity-70"
@@ -87,17 +86,9 @@ export default async function DettaglioImpegnoPage({
             <ArrowLeft size={20} strokeWidth={2.2} />
             <span className="text-sm font-semibold">Indietro</span>
           </Link>
-          {impegno.stato === 'programmato' && (
-            <Link
-              href={`/impegni/${impegno.id}/modifica`}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100"
-            >
-              <Pencil size={16} strokeWidth={2.2} className="text-gray-500" />
-            </Link>
-          )}
         </div>
 
-        {/* Hero impegno */}
+        {/* Hero */}
         <div className="flex items-center gap-4">
           <div className={cn(
             'flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-3xl',
@@ -146,15 +137,15 @@ export default async function DettaglioImpegnoPage({
         {/* Azioni */}
         <AzioniImpegno impegnoId={impegno.id} statoAttuale={impegno.stato} />
 
-        {/* Notifica */}
-        {impegno.stato === 'programmato' && !scaduto && (
-          <NotificaImpegno
-            impegnoId={impegno.id}
-            titolo={impegno.titolo}
-            animaleNome={animale?.nome ?? ''}
-            data={impegno.data}
-            tipo={impegno.tipo}
-          />
+        {/* Pulsante modifica — solo se programmato */}
+        {impegno.stato === 'programmato' && (
+          <Link
+            href={`/impegni/${impegno.id}/modifica`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-4 text-sm font-bold text-gray-600 shadow-sm active:scale-[0.98] transition-all"
+          >
+            <Pencil size={16} strokeWidth={2.2} />
+            Modifica impegno
+          </Link>
         )}
 
       </div>
