@@ -1,8 +1,5 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/button'
 import { FiltroImpegni } from '@/components/impegni/FiltroImpegni'
 import { asImpegniConAnimale } from '@/lib/types/query.types'
 
@@ -31,15 +28,11 @@ export default async function ListaImpegniPage({
   const impegni = asImpegniConAnimale(data)
 
   return (
-    <div>
-      <PageHeader
-        titolo="Impegni"
-        azione={
-          <Button asChild size="sm" variant="outline">
-            <Link href="/impegni/nuovo">+ Nuovo</Link>
-          </Button>
-        }
-      />
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+      <header className="shrink-0 px-5 pt-10 pb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Impegni</h1>
+        <p className="mt-0.5 text-sm text-gray-400">Visite, vaccini e appuntamenti</p>
+      </header>
       <FiltroImpegni statoAttivo={statoFiltro} impegni={impegni} />
     </div>
   )

@@ -1,39 +1,34 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/button'
 import { AzioniImpegno } from '@/components/impegni/AzioniImpegno'
 import { NotificaImpegno } from '@/components/impegni/NotificaImpegno'
 import { formatData, isScaduta, isImminente } from '@/lib/utils/date'
 import { cn } from '@/lib/utils'
+import { ArrowLeft, Pencil } from 'lucide-react'
 import type { Impegno } from '@/lib/types/query.types'
 
 const labelTipo: Record<string, string> = {
-  visita:        'Visita',
-  controllo:     'Controllo',
-  vaccinazione:  'Vaccinazione',
-  toelettatura:  'Toelettatura',
-  terapia:       'Terapia',
-  addestramento: 'Addestramento',
-  compleanno:    'Compleanno',
-  altro:         'Altro',
+  visita: 'Visita', controllo: 'Controllo', vaccinazione: 'Vaccinazione',
+  toelettatura: 'Toelettatura', terapia: 'Terapia', addestramento: 'Addestramento',
+  compleanno: 'Compleanno', altro: 'Altro',
+}
+
+const iconaTipo: Record<string, string> = {
+  visita: '🩺', controllo: '🔍', vaccinazione: '💉', toelettatura: '✂️',
+  terapia: '💊', addestramento: '🎓', compleanno: '🎂', altro: '📌',
 }
 
 const labelFrequenza: Record<string, string> = {
-  nessuna:     'Non si ripete',
-  settimanale: 'Settimanale',
-  mensile:     'Mensile',
-  trimestrale: 'Trimestrale',
-  semestrale:  'Semestrale',
-  annuale:     'Annuale',
+  nessuna: 'Non si ripete', settimanale: 'Settimanale', mensile: 'Mensile',
+  trimestrale: 'Trimestrale', semestrale: 'Semestrale', annuale: 'Annuale',
 }
 
-function Campo({ label, valore }: { label: string; valore: string }) {
+function RigaInfo({ label, valore }: { label: string; valore: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-border py-2 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium">{valore}</span>
+    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-sm font-semibold text-gray-800">{valore}</span>
     </div>
   )
 }
@@ -65,47 +60,93 @@ export default async function DettaglioImpegnoPage({
   const scaduto   = impegno.stato === 'programmato' && isScaduta(impegno.data)
   const imminente = impegno.stato === 'programmato' && isImminente(impegno.data)
 
-  const badgeClass = cn(
-    'text-xs font-medium px-2 py-0.5 rounded-full',
-    impegno.stato === 'completato'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      : impegno.stato === 'annullato'
-      ? 'bg-muted text-muted-foreground'
-      : scaduto
-      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      : imminente
-      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-  )
-
-  const labelStato =
-    impegno.stato === 'completato' ? 'Completato' :
-    impegno.stato === 'annullato'  ? 'Annullato'  :
-    scaduto                        ? 'Scaduto'    :
-    imminente                      ? 'Imminente'  : 'Programmato'
+  const statoBadge = {
+    label:
+      impegno.stato === 'completato' ? 'Completato' :
+      impegno.stato === 'annullato'  ? 'Annullato'  :
+      scaduto                        ? 'Scaduto'    :
+      imminente                      ? 'Imminente'  : 'Programmato',
+    cls:
+      impegno.stato === 'completato' ? 'bg-green-100 text-green-700' :
+      impegno.stato === 'annullato'  ? 'bg-gray-100 text-gray-500'   :
+      scaduto                        ? 'bg-red-100 text-red-600'     :
+      imminente                      ? 'bg-amber-100 text-amber-700' :
+                                       'bg-blue-100 text-blue-700',
+  }
 
   return (
-    <div>
-      <PageHeader
-        titolo={impegno.titolo}
-        backHref={animale ? `/animali/${animale.id}?tab=impegni` : '/impegni'}
-      />
-      <div className="space-y-4 px-4 py-4">
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
-        <div>
-          <span className={badgeClass}>{labelStato}</span>
+      {/* Header */}
+      <header className="shrink-0 px-5 pt-10 pb-4">
+        <div className="flex items-center justify-between mb-5">
+          <Link
+            href={animale ? `/animali/${animale.id}?tab=impegni` : '/impegni'}
+            className="flex items-center gap-2 text-gray-500 active:opacity-70"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+            <span className="text-sm font-semibold">Indietro</span>
+          </Link>
+          {impegno.stato === 'programmato' && (
+            <Link
+              href={`/impegni/${impegno.id}/modifica`}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100"
+            >
+              <Pencil size={16} strokeWidth={2.2} className="text-gray-500" />
+            </Link>
+          )}
         </div>
 
-        <div className="space-y-0">
-          {animale && <Campo label="Animale" valore={animale.nome} />}
-          <Campo label="Tipo"        valore={labelTipo[impegno.tipo] ?? impegno.tipo} />
-          <Campo label="Data"        valore={formatData(impegno.data)} />
-          <Campo label="Ripetizione" valore={labelFrequenza[impegno.frequenza] ?? impegno.frequenza} />
-          {impegno.note && <Campo label="Note" valore={impegno.note} />}
+        {/* Hero impegno */}
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            'flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-3xl',
+            scaduto   ? 'bg-red-100' :
+            imminente ? 'bg-amber-100' :
+            impegno.stato === 'completato' ? 'bg-green-100' :
+            impegno.stato === 'annullato'  ? 'bg-gray-100'  :
+                                             'bg-blue-100'
+          )}>
+            {iconaTipo[impegno.tipo] ?? '📌'}
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              {impegno.titolo}
+            </h1>
+            <div className="mt-1 flex items-center gap-2">
+              <span className={cn(
+                'rounded-full px-2.5 py-0.5 text-xs font-bold',
+                statoBadge.cls
+              )}>
+                {statoBadge.label}
+              </span>
+              {animale && (
+                <span className="text-xs text-gray-400">{animale.nome}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 px-5 pb-32 space-y-4">
+
+        {/* Card info */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-2">
+          <RigaInfo label="Tipo"        valore={labelTipo[impegno.tipo] ?? impegno.tipo} />
+          <RigaInfo label="Data"        valore={formatData(impegno.data)} />
+          {impegno.ora && (
+            <RigaInfo label="Ora" valore={impegno.ora.slice(0, 5)} />
+          )}
+          <RigaInfo label="Ripetizione" valore={labelFrequenza[impegno.frequenza] ?? impegno.frequenza} />
+          {impegno.note && (
+            <RigaInfo label="Note" valore={impegno.note} />
+          )}
         </div>
 
+        {/* Azioni */}
         <AzioniImpegno impegnoId={impegno.id} statoAttuale={impegno.stato} />
 
+        {/* Notifica */}
         {impegno.stato === 'programmato' && !scaduto && (
           <NotificaImpegno
             impegnoId={impegno.id}
@@ -114,12 +155,6 @@ export default async function DettaglioImpegnoPage({
             data={impegno.data}
             tipo={impegno.tipo}
           />
-        )}
-
-        {impegno.stato === 'programmato' && (
-          <Button asChild variant="outline" className="w-full">
-            <Link href={`/impegni/${impegno.id}/modifica`}>Modifica impegno</Link>
-          </Button>
         )}
 
       </div>

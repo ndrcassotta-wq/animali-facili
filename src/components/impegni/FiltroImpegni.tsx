@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { formatData, isScaduta, isImminente } from '@/lib/utils/date'
+import { ChevronRight, Plus } from 'lucide-react'
 import type { ImpegnoConAnimale } from '@/lib/types/query.types'
 
 const filtri = [
   { label: 'Programmati', valore: 'programmato' },
-  { label: 'Completati',  valore: 'completato' },
-  { label: 'Annullati',   valore: 'annullato' },
+  { label: 'Completati',  valore: 'completato'  },
+  { label: 'Annullati',   valore: 'annullato'   },
 ]
 
 const paramDaStato: Record<string, string> = {
@@ -29,6 +30,17 @@ const labelTipo: Record<string, string> = {
   altro:         'Altro',
 }
 
+const iconaTipo: Record<string, string> = {
+  visita:        '🩺',
+  controllo:     '🔍',
+  vaccinazione:  '💉',
+  toelettatura:  '✂️',
+  terapia:       '💊',
+  addestramento: '🎓',
+  compleanno:    '🎂',
+  altro:         '📌',
+}
+
 export function FiltroImpegni({
   statoAttivo,
   impegni,
@@ -39,80 +51,108 @@ export function FiltroImpegni({
   const router = useRouter()
 
   return (
-    <div>
-      {/* Barra filtri fixed sotto l'header fisso */}
-      <div
-        className="fixed left-0 right-0 z-30 bg-background px-4 py-2 border-b border-border"
-        style={{ top: 'calc(env(safe-area-inset-top) + 56px)' }}
-      >
-        <div className="flex gap-1 p-1 bg-muted rounded-lg">
-          {filtri.map(f => (
-            <button
-              key={f.valore}
-              onClick={() => {
-                const param = paramDaStato[f.valore]
-                router.push(param ? `/impegni?stato=${param}` : '/impegni')
-              }}
-              className={cn(
-                'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-                statoAttivo === f.valore
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+    <div className="flex-1 flex flex-col px-5 pb-32">
+
+      {/* Filtri pill */}
+      <div className="flex gap-2 mb-5">
+        {filtri.map(f => (
+          <button
+            key={f.valore}
+            onClick={() => {
+              const param = paramDaStato[f.valore]
+              router.push(param ? `/impegni?stato=${param}` : '/impegni')
+            }}
+            className={cn(
+              'rounded-full px-4 py-2 text-sm font-bold transition-colors',
+              statoAttivo === f.valore
+                ? 'bg-gray-900 text-white'
+                : 'bg-white text-gray-500 border border-gray-200'
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      {/* Spacer per compensare header + barra filtri */}
-      <div style={{ height: '40px' }} />
-
-      {/* Lista impegni */}
-      <div className="px-4 py-3 space-y-2">
-        {impegni.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            {statoAttivo === 'programmato' ? 'Nessun impegno programmato.' :
-             statoAttivo === 'completato'  ? 'Nessun impegno completato.'  :
-                                             'Nessun impegno annullato.'}
-          </p>
-        ) : (
-          impegni.map(i => {
+      {/* Lista */}
+      {impegni.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-gray-200 bg-white py-14 text-center">
+          <span className="text-4xl">📅</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-700">
+              {statoAttivo === 'programmato' ? 'Nessun impegno programmato' :
+               statoAttivo === 'completato'  ? 'Nessun impegno completato'  :
+                                               'Nessun impegno annullato'}
+            </p>
+            {statoAttivo === 'programmato' && (
+              <p className="mt-1 text-xs text-gray-400">Tocca + per aggiungerne uno</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {impegni.map(i => {
             const scaduto   = statoAttivo === 'programmato' && isScaduta(i.data)
             const imminente = statoAttivo === 'programmato' && isImminente(i.data)
+
             return (
               <Link
                 key={i.id}
                 href={`/impegni/${i.id}`}
                 className={cn(
-                  'flex items-center justify-between p-3 rounded-xl border transition-colors',
-                  scaduto
-                    ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
-                    : imminente
-                    ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30'
-                    : 'border-border bg-card hover:bg-muted/50'
+                  'flex items-center gap-3 rounded-2xl border p-4 transition-colors active:scale-[0.98]',
+                  scaduto   ? 'border-red-200 bg-red-50' :
+                  imminente ? 'border-amber-200 bg-amber-50' :
+                              'border-gray-100 bg-white'
                 )}
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{i.titolo}</p>
-                  <p className="text-xs text-muted-foreground">
+                {/* Icona tipo */}
+                <div className={cn(
+                  'h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center text-xl',
+                  scaduto   ? 'bg-red-100' :
+                  imminente ? 'bg-amber-100' :
+                              'bg-gray-50'
+                )}>
+                  {iconaTipo[i.tipo] ?? '📌'}
+                </div>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-gray-800 truncate">{i.titolo}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
                     {i.animali?.nome ?? '—'} · {labelTipo[i.tipo] ?? i.tipo}
                   </p>
                 </div>
-                <span className={cn(
-                  'text-xs font-medium shrink-0 ml-3',
-                  scaduto   ? 'text-destructive' :
-                  imminente ? 'text-amber-600 dark:text-amber-400' :
-                              'text-muted-foreground'
-                )}>
-                  {formatData(i.data)}
-                </span>
+
+                {/* Data + badge */}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className={cn(
+                    'text-xs font-semibold',
+                    scaduto   ? 'text-red-500' :
+                    imminente ? 'text-amber-600' :
+                                'text-gray-400'
+                  )}>
+                    {formatData(i.data)}
+                  </span>
+                  {scaduto && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                      Scaduto
+                    </span>
+                  )}
+                  {!scaduto && imminente && (
+                    <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                      Urgente
+                    </span>
+                  )}
+                </div>
+
+                <ChevronRight size={16} className="text-gray-300 shrink-0" />
               </Link>
             )
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
+
     </div>
   )
 }
