@@ -39,13 +39,6 @@ interface Props {
   tabIniziale: TabId
 }
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'impegni',   label: 'Impegni' },
-  { id: 'terapie',   label: 'Terapie' },
-  { id: 'documenti', label: 'Documenti' },
-  { id: 'profilo',   label: 'Profilo' },
-]
-
 export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniziale }: Props) {
   const router = useRouter()
   const [tabAttivo, setTabAttivo] = useState<TabId>(
@@ -73,15 +66,15 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
     return (
       <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
-        <header className="shrink-0 bg-[#FDF8F3] px-5 pt-10 pb-0">
-          <div className="flex items-center gap-3 mb-4">
+        {/* Header — solo freccia + nome animale, niente matita niente menu */}
+        <header className="shrink-0 bg-[#FDF8F3] px-5 pt-10 pb-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => cambiaTab('home')}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 active:opacity-70"
             >
               <ArrowLeft size={20} strokeWidth={2.2} className="text-gray-600" />
             </button>
-
             <div className="flex flex-1 items-center gap-2.5 min-w-0">
               <div className={cn(
                 'h-9 w-9 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center',
@@ -92,37 +85,15 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
                   : <span className="text-base leading-none">{iconaCategoria[animale.categoria] ?? '🐾'}</span>
                 }
               </div>
-              <span className="text-base font-extrabold text-gray-900 truncate">{animale.nome}</span>
+              <span className="text-base font-extrabold text-gray-900 truncate">
+                {animale.nome}
+              </span>
             </div>
-
-            <Link
-              href={`/animali/${animale.id}/modifica`}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100"
-            >
-              <Pencil size={16} strokeWidth={2.2} className="text-gray-500" />
-            </Link>
           </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-5 px-5">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => cambiaTab(tab.id)}
-                className={cn(
-                  'shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors',
-                  tabAttivo === tab.id
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-white text-gray-500 border border-gray-200'
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="border-b border-gray-100" />
+          <div className="mt-4 border-b border-gray-100" />
         </header>
 
+        {/* Contenuto tab */}
         <div className="flex-1 overflow-y-auto">
           {tabAttivo === 'profilo'   && <TabProfilo   animale={animale} />}
           {tabAttivo === 'impegni'   && <TabImpegni   animaleId={animale.id} impegni={impegni} />}
