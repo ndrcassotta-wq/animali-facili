@@ -2,7 +2,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import { formatData, isImminente, isScaduta } from '@/lib/utils/date'
 import {
   asImpegniConAnimale,
@@ -11,7 +10,7 @@ import {
   type DocumentoConAnimale,
 } from '@/lib/types/query.types'
 import type { Animale } from '@/lib/types/query.types'
-import { User, Bell, Plus, ChevronRight } from 'lucide-react'
+import { User, Bell, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type HomeTerapia = {
@@ -21,6 +20,133 @@ type HomeTerapia = {
   data_inizio: string
   animali: { nome: string } | null
 }
+
+// ─── Colori placeholder ───────────────────────────────────────────────────────
+
+const COLORI = [
+  'from-amber-300 to-orange-400',
+  'from-rose-300 to-pink-400',
+  'from-teal-300 to-emerald-400',
+  'from-violet-300 to-purple-400',
+  'from-sky-300 to-blue-400',
+  'from-lime-300 to-green-400',
+]
+
+function colorePerNome(nome: string) {
+  return COLORI[nome.charCodeAt(0) % COLORI.length]
+}
+
+// ─── Layout griglia animali ───────────────────────────────────────────────────
+// Restituisce le righe: ogni riga è un array di indici degli animali
+
+function calcolaRighe(n: number): number[][] {
+  if (n === 1) return [[0]]
+  if (n === 2) return [[0], [1]]
+  if (n === 3) return [[0], [1, 2]]
+  if (n === 4) return [[0, 1], [2, 3]]
+  if (n === 5) return [[0, 1], [2, 3, 4]]
+  if (n === 6) return [[0, 1, 2], [3, 4, 5]]
+  // 7+: righe da 3
+  const righe: number[][] = []
+  for (let i = 0; i < n; i += 3) {
+    righe.push(
+      Array.from({ length: Math.min(3, n - i) }, (_, j) => i + j)
+    )
+  }
+  return righe
+}
+
+// ─── Dimensione cerchio in base al numero di animali ─────────────────────────
+
+function dimensioneCerchio(n: number): string {
+  if (n === 1) return 'h-44 w-44'
+  if (n === 2) return 'h-40 w-40'
+  if (n === 3) return 'h-36 w-36'
+  if (n <= 4)  return 'h-36 w-36'
+  if (n <= 6)  return 'h-28 w-28'
+  return 'h-24 w-24'
+}
+
+function dimensioneTesto(n: number): string {
+  if (n <= 2) return 'text-base'
+  if (n <= 4) return 'text-sm'
+  return 'text-xs'
+}
+
+// ─── Componente singolo animale ───────────────────────────────────────────────
+
+function AvatarAnimale({
+  animale,
+  sizeCls,
+  textCls,
+}: {
+  animale: Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>
+  sizeCls: string
+  textCls: string
+}) {
+  const iniziale = animale.nome.charAt(0).toUpperCase()
+  const colore   = colorePerNome(animale.nome)
+
+  return (
+    <Link
+      href={`/animali/${animale.id}`}
+      className="flex flex-col items-center gap-3 active:scale-95 transition-transform"
+    >
+      {animale.foto_url ? (
+        <img
+          src={animale.foto_url}
+          alt={animale.nome}
+          className={cn(sizeCls, 'rounded-full border-4 border-white object-cover shadow-xl')}
+        />
+      ) : (
+        <div className={cn(
+          sizeCls,
+          'rounded-full border-4 border-white bg-gradient-to-br shadow-xl flex items-center justify-center',
+          colore
+        )}>
+          <span className="font-bold text-white" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}>
+            {iniziale}
+          </span>
+        </div>
+      )}
+      <span className={cn('font-semibold text-gray-800 max-w-[120px] truncate text-center', textCls)}>
+        {animale.nome}
+      </span>
+    </Link>
+  )
+}
+
+// ─── Griglia animali ──────────────────────────────────────────────────────────
+
+function GrigliaAnimali({
+  animali,
+}: {
+  animali: Pick<Animale, 'id' | 'nome' | 'categoria' | 'foto_url'>[]
+}) {
+  const n       = animali.length
+  const righe   = calcolaRighe(n)
+  const sizeCls = dimensioneCerchio(n)
+  const textCls = dimensioneTesto(n)
+
+  return (
+    <div className="flex flex-col items-center gap-8 w-full">
+      {righe.map((riga, ri) => (
+        <div key={ri} className="flex items-center justify-center gap-8 w-full">
+          {riga.map(idx => (
+            <AvatarAnimale
+              key={animali[idx].id}
+              animale={animali[idx]}
+              sizeCls={sizeCls}
+              textCls={textCls}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Pagina ───────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -75,10 +201,10 @@ export default async function HomePage() {
   const badge         = notificheNonLette ?? 0
 
   return (
-    <div className="min-h-screen bg-[#FDF8F3]">
+    <div className="flex min-h-screen flex-col bg-[#FDF8F3]">
 
-      {/* ── HEADER ────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-[#FDF8F3]/95 backdrop-blur-sm px-5 pt-12 pb-4">
+      {/* ── HEADER ──────────────────────────────────────────────────────── */}
+      <header className="shrink-0 px-5 pt-12 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -113,201 +239,137 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* ── CONTENUTO ─────────────────────────────────────────────────────── */}
-      <div className="space-y-8 px-5 py-4 pb-32">
-
-        {/* ── ANIMALI ───────────────────────────────────────────────────── */}
+      {/* ── SEZIONE ANIMALI — occupa tutto lo spazio disponibile ────────── */}
+      <section className="flex flex-1 items-center justify-center px-6 py-6">
         {nessunAnimale ? (
           <Link href="/animali/nuovo">
-            <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-amber-200 bg-white py-10 text-center active:scale-[0.98] transition-transform">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
-                <Plus className="h-7 w-7 text-amber-400" />
+            <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-amber-200 bg-white px-10 py-14 text-center active:scale-[0.98] transition-transform">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50">
+                <span className="text-4xl">🐾</span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700">Aggiungi il tuo primo animale</p>
-                <p className="mt-0.5 text-xs text-gray-400">Tocca per iniziare 🐾</p>
+                <p className="text-base font-bold text-gray-700">Aggiungi il tuo primo animale</p>
+                <p className="mt-1 text-sm text-gray-400">Tocca per iniziare</p>
               </div>
             </div>
           </Link>
         ) : (
-          <section>
-            <div className="-mx-5 flex gap-5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {animaliList.map(a => {
-                const iniziale = a.nome.charAt(0).toUpperCase()
-                const colori = [
-                  'from-amber-300 to-orange-400',
-                  'from-rose-300 to-pink-400',
-                  'from-teal-300 to-emerald-400',
-                  'from-violet-300 to-purple-400',
-                  'from-sky-300 to-blue-400',
-                  'from-lime-300 to-green-400',
-                ]
-                const colore = colori[a.nome.charCodeAt(0) % colori.length]
-                return (
-                  <Link
-                    key={a.id}
-                    href={`/animali/${a.id}`}
-                    className="flex min-w-[80px] flex-col items-center gap-2 active:scale-95 transition-transform"
-                  >
-                    {a.foto_url ? (
-                      <img
-                        src={a.foto_url}
-                        alt={a.nome}
-                        className="h-20 w-20 rounded-full border-[3px] border-white object-cover shadow-md"
-                      />
-                    ) : (
-                      <div className={cn(
-                        'flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br shadow-md',
-                        colore
-                      )}>
-                        <span className="text-2xl font-bold text-white">{iniziale}</span>
-                      </div>
-                    )}
-                    <span className="max-w-[80px] truncate text-center text-sm font-semibold text-gray-700">
-                      {a.nome}
-                    </span>
-                  </Link>
-                )
-              })}
-
-              {/* Pulsante aggiungi */}
-              <Link
-                href="/animali/nuovo"
-                className="flex min-w-[80px] flex-col items-center gap-2 active:scale-95 transition-transform"
-              >
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-amber-300 bg-white">
-                  <Plus className="h-6 w-6 text-amber-400" />
-                </div>
-                <span className="text-sm font-medium text-amber-500">Aggiungi</span>
-              </Link>
-            </div>
-          </section>
+          <GrigliaAnimali animali={animaliList} />
         )}
+      </section>
 
-        {/* ── PROSSIMI IMPEGNI ──────────────────────────────────────────── */}
-        {impegniList.length > 0 && (
-          <section>
-            <SectionHeader titolo="Prossimi impegni" linkHref="/impegni" linkLabel="Vedi tutti" />
-            <div className="space-y-2.5">
-              {impegniList.map((s: ImpegnoConAnimale) => {
-                const scaduta   = isScaduta(s.data)
-                const imminente = isImminente(s.data)
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/impegni/${s.id}`}
-                    className={cn(
-                      'flex items-center gap-3 rounded-2xl border p-4 transition-colors active:scale-[0.98]',
-                      scaduta
-                        ? 'border-red-200 bg-red-50'
-                        : imminente
-                        ? 'border-amber-200 bg-amber-50'
-                        : 'border-gray-100 bg-white'
-                    )}
-                  >
-                    <div className={cn(
-                      'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl',
-                      scaduta   ? 'bg-red-100' :
-                      imminente ? 'bg-amber-100' :
-                                  'bg-gray-50'
-                    )}>
+      {/* ── SEZIONI SECONDARIE (impegni, terapie, documenti) ────────────── */}
+      {(impegniList.length > 0 || terapieList.length > 0 || documentiList.length > 0) && (
+        <div className="shrink-0 space-y-6 px-5 pb-32">
+
+          {impegniList.length > 0 && (
+            <section>
+              <SectionHeader titolo="Prossimi impegni" linkHref="/impegni" linkLabel="Vedi tutti" />
+              <div className="space-y-2.5">
+                {impegniList.map((s: ImpegnoConAnimale) => {
+                  const scaduta   = isScaduta(s.data)
+                  const imminente = isImminente(s.data)
+                  return (
+                    <Link
+                      key={s.id}
+                      href={`/impegni/${s.id}`}
+                      className={cn(
+                        'flex items-center gap-3 rounded-2xl border p-4 transition-colors active:scale-[0.98]',
+                        scaduta   ? 'border-red-200 bg-red-50' :
+                        imminente ? 'border-amber-200 bg-amber-50' :
+                                    'border-gray-100 bg-white'
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-gray-800">{s.titolo}</p>
+                          {scaduta && (
+                            <span className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">Scaduto</span>
+                          )}
+                          {!scaduta && imminente && (
+                            <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">Urgente</span>
+                          )}
+                        </div>
+                        {s.animali && (
+                          <p className="mt-0.5 text-xs text-gray-400">{s.animali.nome}</p>
+                        )}
+                      </div>
                       <span className={cn(
-                        'text-[10px] font-bold uppercase tracking-wide',
+                        'ml-2 shrink-0 text-xs font-medium',
                         scaduta   ? 'text-red-500' :
                         imminente ? 'text-amber-600' :
                                     'text-gray-400'
                       )}>
                         {formatData(s.data)}
                       </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {terapieList.length > 0 && (
+            <section>
+              <SectionHeader titolo="Terapie attive" linkHref="/terapie" linkLabel="Vedi tutti" />
+              <div className="space-y-2.5">
+                {terapieList.map(terapia => (
+                  <Link
+                    key={terapia.id}
+                    href={`/terapie/${terapia.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 active:scale-[0.98]"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50">
+                      <span className="text-lg">💊</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-gray-800">{s.titolo}</p>
-                        {scaduta && (
-                          <span className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                            Scaduto
-                          </span>
-                        )}
-                        {!scaduta && imminente && (
-                          <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                            Urgente
-                          </span>
-                        )}
-                      </div>
-                      {s.animali && (
-                        <p className="mt-0.5 text-xs text-gray-400">{s.animali.nome}</p>
+                      <p className="truncate text-sm font-semibold text-gray-800">{terapia.nome_farmaco}</p>
+                      {terapia.animali && (
+                        <p className="mt-0.5 text-xs text-gray-400">{terapia.animali.nome}</p>
                       )}
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                    <span className="ml-2 shrink-0 text-xs text-gray-400">dal {formatData(terapia.data_inizio)}</span>
                   </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
+                ))}
+              </div>
+            </section>
+          )}
 
-        {/* ── TERAPIE ATTIVE ────────────────────────────────────────────── */}
-        {terapieList.length > 0 && (
-          <section>
-            <SectionHeader titolo="Terapie attive" linkHref="/terapie" linkLabel="Vedi tutti" />
-            <div className="space-y-2.5">
-              {terapieList.map(terapia => (
-                <Link
-                  key={terapia.id}
-                  href={`/terapie/${terapia.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:scale-[0.98]"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50">
-                    <span className="text-xl">💊</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-800">{terapia.nome_farmaco}</p>
-                    {terapia.animali && (
-                      <p className="mt-0.5 text-xs text-gray-400">{terapia.animali.nome}</p>
-                    )}
-                  </div>
-                  <span className="ml-2 shrink-0 text-xs text-gray-400">
-                    dal {formatData(terapia.data_inizio)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+          {documentiList.length > 0 && (
+            <section>
+              <SectionHeader titolo="Ultimi documenti" linkHref="/documenti" linkLabel="Vedi tutti" />
+              <div className="space-y-2.5">
+                {documentiList.map((d: DocumentoConAnimale) => (
+                  <Link
+                    key={d.id}
+                    href={`/documenti/${d.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 active:scale-[0.98]"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                      <span className="text-lg">📄</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-800">{d.titolo}</p>
+                      {d.animali && (
+                        <p className="mt-0.5 text-xs text-gray-400">{d.animali.nome}</p>
+                      )}
+                    </div>
+                    <span className="ml-2 shrink-0 text-xs text-gray-400">{labelCategoriaDoc(d.categoria)}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
-        {/* ── ULTIMI DOCUMENTI ──────────────────────────────────────────── */}
-        {documentiList.length > 0 && (
-          <section>
-            <SectionHeader titolo="Ultimi documenti" linkHref="/documenti" linkLabel="Vedi tutti" />
-            <div className="space-y-2.5">
-              {documentiList.map((d: DocumentoConAnimale) => (
-                <Link
-                  key={d.id}
-                  href={`/documenti/${d.id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-colors active:scale-[0.98]"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                    <span className="text-xl">📄</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-800">{d.titolo}</p>
-                    {d.animali && (
-                      <p className="mt-0.5 text-xs text-gray-400">{d.animali.nome}</p>
-                    )}
-                  </div>
-                  <span className="ml-2 shrink-0 text-xs text-gray-400">
-                    {labelCategoriaDoc(d.categoria)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        </div>
+      )}
 
-      </div>
     </div>
   )
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function SectionHeader({
   titolo,
