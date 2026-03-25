@@ -252,15 +252,15 @@ export default function NuovoImpegnoPage() {
             Scegli la categoria dell'appuntamento
           </p>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {tipi.map(t => (
               <button
                 key={t.valore}
                 onClick={() => { setTipo(t.valore); vaiAvanti('animale-data') }}
-                className="flex flex-col items-center gap-2 rounded-3xl border-2 border-gray-100 bg-white py-5 px-2 text-center shadow-sm transition-all active:scale-95 active:border-amber-300 active:bg-amber-50"
+                className="flex flex-col items-center gap-3 rounded-3xl border-2 border-gray-100 bg-white py-8 px-2 text-center shadow-sm transition-all active:scale-95 active:border-amber-300 active:bg-amber-50"
               >
                 <span className="text-4xl leading-none">{t.icona}</span>
-                <span className="text-sm font-extrabold text-gray-800">{t.label}</span>
+                <span className="text-base font-extrabold text-gray-800">{t.label}</span>
               </button>
             ))}
           </div>
