@@ -1,6 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { ModificaAnimaleForm } from '@/components/animali/ModificaAnimaleForm'
 import type { Animale } from '@/lib/types/query.types'
 
@@ -26,13 +25,5 @@ export default async function ModificaAnimalePage({
 
   const animale = rawAnimale as Animale
 
-  return (
-    <div>
-      <PageHeader
-        titolo="Modifica animale"
-        backHref={`/animali/${animale.id}`}
-      />
-      <ModificaAnimaleForm animale={animale} />
-    </div>
-  )
+  return <ModificaAnimaleForm animale={animale} />
 }

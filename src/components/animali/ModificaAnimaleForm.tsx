@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { animaleSchema } from '@/lib/utils/validation'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +17,8 @@ import {
 } from '@/components/ui/select'
 import type { Animale } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
+import { ArrowLeft, Camera, ChevronDown, ChevronUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleUpdate = Database['public']['Tables']['animali']['Update']
@@ -35,6 +36,17 @@ const metaCampi: Partial<Record<string, { label: string; chiave: string }>> = {
   piccoli_mammiferi: { label: 'Tipo habitat',  chiave: 'tipo_habitat' },
 }
 
+const iconaCategoria: Record<string, string> = {
+  cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
+  rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
+}
+
+const coloreCategoria: Record<string, string> = {
+  cani: 'bg-amber-100', gatti: 'bg-orange-100', pesci: 'bg-sky-100',
+  uccelli: 'bg-lime-100', rettili: 'bg-green-100',
+  piccoli_mammiferi: 'bg-rose-100', altri_animali: 'bg-violet-100',
+}
+
 function getEstensioneFile(file: File) {
   const nome = file.name.split('.')
   return nome[nome.length - 1]?.toLowerCase() || 'jpg'
@@ -49,12 +61,46 @@ function prossimCompleanno(dataNascita: string): string {
   return candidato.toISOString().split('T')[0]
 }
 
+// Specie nascosta per cani e gatti (implicita nella categoria)
+function speciePresentate(categoria: string): boolean {
+  return categoria !== 'cani' && categoria !== 'gatti'
+}
+
+function CampoForm({
+  label,
+  required,
+  opzionale,
+  errore,
+  children,
+}: {
+  label: string
+  required?: boolean
+  opzionale?: boolean
+  errore?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold text-gray-700">
+          {label}
+          {required && <span className="ml-1 text-red-400">*</span>}
+        </Label>
+        {opzionale && <span className="text-xs text-gray-400">opzionale</span>}
+      </div>
+      {children}
+      {errore && <p className="text-xs font-medium text-red-500">{errore}</p>}
+    </div>
+  )
+}
+
 export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   const router = useRouter()
 
-  const [erroreSrv,    setErroreSrv]    = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [fotoFile,     setFotoFile]     = useState<File | null>(null)
+  const [erroreSrv,      setErroreSrv]      = useState<string | null>(null)
+  const [isSubmitting,   setIsSubmitting]   = useState(false)
+  const [fotoFile,       setFotoFile]       = useState<File | null>(null)
+  const [dettagliAperti, setDettagliAperti] = useState(false)
 
   const metaEsistente = animale.meta_categoria as Record<string, string> | null
   const metaCampo     = metaCampi[animale.categoria]
@@ -87,7 +133,11 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   }
 
   function validate(): FormValori | null {
-    const result = animaleSchema.safeParse(valori)
+    const valoriDaValidare = { ...valori }
+    if (!speciePresentate(animale.categoria)) {
+      valoriDaValidare.specie = animale.categoria === 'cani' ? 'Cane' : 'Gatto'
+    }
+    const result = animaleSchema.safeParse(valoriDaValidare)
     if (!result.success) {
       const fe: Partial<Record<keyof FormValori, string>> = {}
       result.error.issues.forEach(issue => {
@@ -147,9 +197,7 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
 
       if (error) throw new Error('Errore durante il salvataggio.')
 
-      // Gestione compleanno automatico
       if (dataNascita) {
-        // Cerca se esiste già un impegno compleanno per questo animale
         const { data: esistente } = await supabase
           .from('impegni')
           .select('id')
@@ -160,13 +208,11 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         const nuovaData = prossimCompleanno(dataNascita)
 
         if (esistente) {
-          // Aggiorna la data del compleanno esistente
           await supabase
             .from('impegni')
             .update({ data: nuovaData, titolo: 'Compleanno' })
             .eq('id', esistente.id)
         } else {
-          // Crea nuovo impegno compleanno
           const impegnoCompleanno: ImpegnoInsert = {
             animale_id:       animale.id,
             titolo:           'Compleanno',
@@ -180,7 +226,6 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
           await supabase.from('impegni').insert(impegnoCompleanno)
         }
       } else {
-        // Se la data di nascita è stata rimossa, elimina l'impegno compleanno
         await supabase
           .from('impegni')
           .delete()
@@ -198,165 +243,229 @@ export function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
 
-      <div className="space-y-2">
-        <Label>Foto animale</Label>
-        <div className="flex items-center gap-4 rounded-xl border border-border p-3">
-          <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-muted">
-            {previewFoto
-              ? <img src={previewFoto} alt={animale.nome} className="h-full w-full object-cover" />
-              : <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Nessuna foto</div>
-            }
-          </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <Input
-              id="foto"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              disabled={isSubmitting}
-              onChange={e => {
-                const file = e.target.files?.[0] ?? null
-                if (file && file.size > MAX_FOTO_SIZE_BYTES) {
-                  setErroreSrv(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
-                  e.target.value = ''
-                  return
-                }
-                setErroreSrv(null)
-                setFotoFile(file)
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Puoi scegliere una foto dalla galleria o scattarla dal telefono.
+      {/* Header */}
+      <header className="shrink-0 px-5 pt-10 pb-4">
+        <button
+          onClick={() => router.back()}
+          className="mb-5 flex items-center gap-2 text-gray-500 active:opacity-70"
+        >
+          <ArrowLeft size={20} strokeWidth={2.2} />
+          <span className="text-sm font-semibold">Indietro</span>
+        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl leading-none">
+            {iconaCategoria[animale.categoria] ?? '🐾'}
+          </span>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              Modifica {animale.nome}
+            </h1>
+            <p className="text-sm text-gray-400">
+              {animale.categoria.replace(/_/g, ' ')}
             </p>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="space-y-1">
-        <Label htmlFor="nome">
-          Nome <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="nome"
-          value={valori.nome}
-          onChange={e => setValue('nome', e.target.value)}
-          disabled={isSubmitting}
-        />
-        {erroriForm.nome && <p className="text-xs text-destructive">{erroriForm.nome}</p>}
-      </div>
+      <form onSubmit={handleSubmit} className="flex-1 px-5 pb-12 space-y-5">
 
-      <div className="space-y-1">
-        <Label>Categoria</Label>
-        <p className="rounded-md bg-muted px-3 py-2 text-sm capitalize text-muted-foreground">
-          {animale.categoria.replace(/_/g, ' ')}
-        </p>
-        <p className="text-xs text-muted-foreground">La categoria non può essere modificata.</p>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="specie">
-          Specie <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="specie"
-          value={valori.specie}
-          onChange={e => setValue('specie', e.target.value)}
-          disabled={isSubmitting}
-        />
-        {erroriForm.specie && <p className="text-xs text-destructive">{erroriForm.specie}</p>}
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="razza">
-          Razza <span className="text-xs text-muted-foreground">(opzionale)</span>
-        </Label>
-        <Input
-          id="razza"
-          value={valori.razza ?? ''}
-          onChange={e => setValue('razza', e.target.value)}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <Label>Sesso</Label>
-        <Select
-          value={valori.sesso ?? 'non_specificato'}
-          onValueChange={v => setValue('sesso', v)}
-          disabled={isSubmitting}
-        >
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="maschio">Maschio</SelectItem>
-            <SelectItem value="femmina">Femmina</SelectItem>
-            <SelectItem value="non_specificato">Non specificato</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="data_nascita">
-          Data di nascita <span className="text-xs text-muted-foreground">(opzionale)</span>
-        </Label>
-        <Input
-          id="data_nascita"
-          type="date"
-          value={valori.data_nascita ?? ''}
-          onChange={e => setValue('data_nascita', e.target.value)}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="peso">
-          Peso in kg <span className="text-xs text-muted-foreground">(opzionale)</span>
-        </Label>
-        <Input
-          id="peso"
-          type="number"
-          step="0.001"
-          min="0"
-          value={valori.peso ?? ''}
-          onChange={e => setValue('peso', e.target.value === '' ? undefined : Number(e.target.value))}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      {metaCampo && (
-        <div className="space-y-1">
-          <Label htmlFor="meta">
-            {metaCampo.label} <span className="text-xs text-muted-foreground">(opzionale)</span>
-          </Label>
-          <Input
-            id="meta"
-            value={metaValore}
-            onChange={e => setMetaValore(e.target.value)}
+        {/* ── FOTO ───────────────────────────────────────────────────── */}
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-white border border-gray-100 shadow-sm py-6">
+          <div className="relative">
+            <div className={cn(
+              'h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg flex items-center justify-center',
+              !previewFoto && (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
+            )}>
+              {previewFoto
+                ? <img src={previewFoto} alt={animale.nome} className="h-full w-full object-cover" />
+                : <span className="text-5xl leading-none">{iconaCategoria[animale.categoria] ?? '🐾'}</span>
+              }
+            </div>
+            <label
+              htmlFor="foto"
+              className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-amber-500 shadow-md active:bg-amber-600"
+            >
+              <Camera size={16} strokeWidth={2.2} className="text-white" />
+            </label>
+          </div>
+          <p className="text-xs text-gray-400">Tocca la fotocamera per cambiare la foto</p>
+          <input
+            id="foto"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
             disabled={isSubmitting}
+            onChange={e => {
+              const file = e.target.files?.[0] ?? null
+              if (file && file.size > MAX_FOTO_SIZE_BYTES) {
+                setErroreSrv(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+                e.target.value = ''
+                return
+              }
+              setErroreSrv(null)
+              setFotoFile(file)
+            }}
           />
         </div>
-      )}
 
-      <div className="space-y-1">
-        <Label htmlFor="note">
-          Note <span className="text-xs text-muted-foreground">(opzionale)</span>
-        </Label>
-        <Textarea
-          id="note"
-          value={valori.note ?? ''}
-          onChange={e => setValue('note', e.target.value)}
+        {/* ── CAMPI PRINCIPALI ───────────────────────────────────────── */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-5">
+
+          <CampoForm label="Nome" required errore={erroriForm.nome}>
+            <Input
+              id="nome"
+              value={valori.nome}
+              onChange={e => setValue('nome', e.target.value)}
+              disabled={isSubmitting}
+              className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+            />
+          </CampoForm>
+
+          {/* Categoria non modificabile */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-semibold text-gray-700">Categoria</Label>
+            <div className="flex items-center gap-2 h-12 rounded-xl border border-gray-200 bg-gray-100 px-4">
+              <span className="text-lg leading-none">{iconaCategoria[animale.categoria]}</span>
+              <span className="text-base text-gray-500 capitalize">
+                {animale.categoria.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400">La categoria non può essere modificata</p>
+          </div>
+
+          {/* Specie: solo per categorie che non siano cani/gatti */}
+          {speciePresentate(animale.categoria) && (
+            <CampoForm label="Specie" required errore={erroriForm.specie}>
+              <Input
+                id="specie"
+                value={valori.specie}
+                onChange={e => setValue('specie', e.target.value)}
+                disabled={isSubmitting}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+              />
+            </CampoForm>
+          )}
+
+        </div>
+
+        {/* ── DETTAGLI OPZIONALI ─────────────────────────────────────── */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setDettagliAperti(v => !v)}
+            className="flex w-full items-center justify-between px-5 py-4"
+          >
+            <span className="text-sm font-bold text-gray-700">Altri dettagli</span>
+            <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
+              <span>{dettagliAperti ? 'Nascondi' : 'Mostra'}</span>
+              {dettagliAperti
+                ? <ChevronUp size={16} strokeWidth={2.5} />
+                : <ChevronDown size={16} strokeWidth={2.5} />
+              }
+            </div>
+          </button>
+
+          {dettagliAperti && (
+            <div className="border-t border-gray-100 px-5 py-5 space-y-5">
+
+              <CampoForm label="Razza" opzionale>
+                <Input
+                  id="razza"
+                  value={valori.razza ?? ''}
+                  onChange={e => setValue('razza', e.target.value)}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+
+              <CampoForm label="Sesso" opzionale>
+                <Select
+                  value={valori.sesso ?? 'non_specificato'}
+                  onValueChange={v => setValue('sesso', v)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="maschio">Maschio</SelectItem>
+                    <SelectItem value="femmina">Femmina</SelectItem>
+                    <SelectItem value="non_specificato">Non specificato</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CampoForm>
+
+              <CampoForm label="Data di nascita" opzionale>
+                <Input
+                  id="data_nascita"
+                  type="date"
+                  value={valori.data_nascita ?? ''}
+                  onChange={e => setValue('data_nascita', e.target.value)}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+
+              <CampoForm label="Peso in kg" opzionale>
+                <Input
+                  id="peso"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={valori.peso ?? ''}
+                  onChange={e => setValue('peso', e.target.value === '' ? undefined : Number(e.target.value))}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+
+              {metaCampo && (
+                <CampoForm label={metaCampo.label} opzionale>
+                  <Input
+                    id="meta"
+                    value={metaValore}
+                    onChange={e => setMetaValore(e.target.value)}
+                    disabled={isSubmitting}
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                  />
+                </CampoForm>
+              )}
+
+              <CampoForm label="Note" opzionale>
+                <Textarea
+                  id="note"
+                  value={valori.note ?? ''}
+                  onChange={e => setValue('note', e.target.value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                  className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+                />
+              </CampoForm>
+
+            </div>
+          )}
+        </div>
+
+        {/* ── ERRORE SERVER ──────────────────────────────────────────── */}
+        {erroreSrv && (
+          <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3">
+            <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+          </div>
+        )}
+
+        {/* ── SUBMIT ─────────────────────────────────────────────────── */}
+        <button
+          type="submit"
           disabled={isSubmitting}
-          rows={3}
-        />
-      </div>
+          className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
+        >
+          {isSubmitting ? 'Salvataggio in corso...' : 'Salva modifiche'}
+        </button>
 
-      {erroreSrv && <p className="text-center text-sm text-destructive">{erroreSrv}</p>}
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? 'Salvataggio...' : 'Salva modifiche'}
-      </Button>
-
-    </form>
+      </form>
+    </div>
   )
 }
