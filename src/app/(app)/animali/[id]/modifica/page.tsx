@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ModificaAnimaleForm } from '@/components/animali/ModificaAnimaleForm'
+import ModificaAnimaleForm from '@/components/animali/ModificaAnimaleForm'
 import type { Animale } from '@/lib/types/query.types'
 
 export default async function ModificaAnimalePage({

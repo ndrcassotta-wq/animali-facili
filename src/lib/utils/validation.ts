@@ -14,7 +14,7 @@ export const registrazioneSchema = z.object({
 export const animaleSchema = z.object({
   nome: z.string().min(1, 'Il nome è obbligatorio'),
   categoria: z.enum(['cani','gatti','pesci','uccelli','rettili','piccoli_mammiferi','altri_animali']),
-  specie: z.string().min(1, 'La specie è obbligatoria'),
+  specie: z.string().min(1, 'Questo campo è obbligatorio'),
   razza: z.string().optional(),
   sesso: z.enum(['maschio','femmina','non_specificato']).optional(),
   data_nascita: z.string().optional(),
