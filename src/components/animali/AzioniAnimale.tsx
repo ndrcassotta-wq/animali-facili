@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
+import { Trash2 } from 'lucide-react'
 
 export function AzioniAnimale({
   animaleId,
@@ -30,18 +30,18 @@ export function AzioniAnimale({
       .eq('id', animaleId)
 
     setCaricamento(false)
-    router.push('/animali')
+    router.push('/home')
     router.refresh()
   }
 
   return (
-    <Button
-      variant="destructive"
-      className="w-full"
+    <button
       onClick={eliminaAnimale}
       disabled={caricamento}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-4 text-sm font-bold text-red-600 active:scale-[0.98] transition-all disabled:opacity-60"
     >
-      Elimina animale
-    </Button>
+      <Trash2 size={16} strokeWidth={2.5} />
+      {caricamento ? 'Eliminazione...' : 'Elimina animale'}
+    </button>
   )
 }
