@@ -10,13 +10,13 @@ type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 
-type TabId = 'profilo' | 'impegni' | 'documenti' | 'terapie'
-const TAB_VALIDE: TabId[] = ['profilo', 'impegni', 'documenti', 'terapie']
+type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie'
+const TAB_VALIDE: TabId[] = ['home', 'profilo', 'impegni', 'documenti', 'terapie']
 
 function getTabValida(tab?: string | string[]): TabId {
   const valore = Array.isArray(tab) ? tab[0] : tab
   if (valore && TAB_VALIDE.includes(valore as TabId)) return valore as TabId
-  return 'profilo'
+  return 'home'
 }
 
 type PageProps = {
