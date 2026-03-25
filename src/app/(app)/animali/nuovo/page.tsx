@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { animaleSchema } from '@/lib/utils/validation'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import type { CategoriaAnimale } from '@/lib/types/app.types'
 import type { Database } from '@/lib/types/database.types'
+import { ArrowLeft, Camera, ChevronDown, ChevronUp } from 'lucide-react'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
@@ -101,7 +101,6 @@ function generaUuidCompatibile() {
   throw new Error('Impossibile generare un ID valido su questo dispositivo.')
 }
 
-// Calcola la prossima data di compleanno a partire dalla data di nascita
 function prossimCompleanno(dataNascita: string): string {
   const nascita = new Date(dataNascita)
   const oggi = new Date()
@@ -111,16 +110,49 @@ function prossimCompleanno(dataNascita: string): string {
   return candidato.toISOString().split('T')[0]
 }
 
+// ── Componenti UI locali ──────────────────────────────────────────────────────
+
+function CampoForm({
+  label,
+  required,
+  opzionale,
+  errore,
+  children,
+}: {
+  label: string
+  required?: boolean
+  opzionale?: boolean
+  errore?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold text-gray-700">
+          {label}
+          {required && <span className="ml-1 text-red-400">*</span>}
+        </Label>
+        {opzionale && <span className="text-xs text-gray-400">opzionale</span>}
+      </div>
+      {children}
+      {errore && <p className="text-xs font-medium text-red-500">{errore}</p>}
+    </div>
+  )
+}
+
+// ── Pagina ────────────────────────────────────────────────────────────────────
+
 export default function NuovoAnimalePage() {
   const router = useRouter()
 
-  const [step,         setStep]         = useState<'categoria' | 'form'>('categoria')
-  const [erroreSrv,    setErroreSrv]    = useState<string | null>(null)
-  const [metaValore,   setMetaValore]   = useState('')
-  const [fotoFile,     setFotoFile]     = useState<File | null>(null)
-  const [valori,       setValori]       = useState<FormValori>(valoriIniziali)
-  const [erroriForm,   setErroriForm]   = useState<Partial<Record<keyof FormValori, string>>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [step,          setStep]         = useState<'categoria' | 'form'>('categoria')
+  const [erroreSrv,     setErroreSrv]    = useState<string | null>(null)
+  const [metaValore,    setMetaValore]   = useState('')
+  const [fotoFile,      setFotoFile]     = useState<File | null>(null)
+  const [valori,        setValori]       = useState<FormValori>(valoriIniziali)
+  const [erroriForm,    setErroriForm]   = useState<Partial<Record<keyof FormValori, string>>>({})
+  const [isSubmitting,  setIsSubmitting] = useState(false)
+  const [dettagliAperti, setDettagliAperti] = useState(false)
 
   const fotoPreview = useMemo(() => {
     if (!fotoFile) return null
@@ -169,7 +201,6 @@ export default function NuovoAnimalePage() {
 
       const nuovoId = generaUuidCompatibile()
 
-      // Upload foto
       let fotoUrl: string | null = null
       if (fotoFile) {
         const estensione = getEstensioneFile(fotoFile)
@@ -203,7 +234,6 @@ export default function NuovoAnimalePage() {
       const { error } = await supabase.from('animali').insert(payload)
       if (error) throw new Error(`Errore durante il salvataggio: ${error.message}`)
 
-      // Crea impegno compleanno automatico se c'è la data di nascita
       if (dataNascita) {
         const impegnoCompleanno: ImpegnoInsert = {
           animale_id:       nuovoId,
@@ -216,7 +246,6 @@ export default function NuovoAnimalePage() {
           note:             `Compleanno di ${data.nome}`,
         }
         await supabase.from('impegni').insert(impegnoCompleanno)
-        // Non blocchiamo il flusso se fallisce
       }
 
       router.push(`/animali/${nuovoId}`)
@@ -228,211 +257,260 @@ export default function NuovoAnimalePage() {
     }
   }
 
+  // ── STEP 1: scelta categoria ────────────────────────────────────────────────
+
   if (step === 'categoria') {
     return (
-      <div>
-        <PageHeader titolo="Che animale hai?" backHref="/animali" />
-        <div className="px-4 py-4">
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground">Scegli il tipo di animale per iniziare.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {categorie.map(categoria => (
+      <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+
+        {/* Header */}
+        <header className="shrink-0 px-5 pt-10 pb-4">
+          <button
+            onClick={() => router.back()}
+            className="mb-5 flex items-center gap-2 text-gray-500 active:opacity-70"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+            <span className="text-sm font-semibold">Indietro</span>
+          </button>
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+            Che animale hai?
+          </h1>
+          <p className="mt-1 text-sm text-gray-400">
+            Scegli il tipo per iniziare
+          </p>
+        </header>
+
+        {/* Griglia categorie */}
+        <div className="px-5 pb-12">
+          <div className="grid grid-cols-2 gap-4">
+            {categorie.map(cat => (
               <button
-                key={categoria.valore}
-                onClick={() => { setValue('categoria', categoria.valore); setStep('form') }}
-                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:bg-muted"
+                key={cat.valore}
+                onClick={() => { setValue('categoria', cat.valore); setStep('form') }}
+                className="flex flex-col items-center gap-3 rounded-3xl border-2 border-gray-100 bg-white px-4 py-6 text-center shadow-sm transition-all active:scale-95 active:border-amber-300 active:bg-amber-50"
               >
-                <span className="text-3xl" role="img" aria-label={categoria.label}>{categoria.icona}</span>
-                <span className="text-sm font-medium">{categoria.label}</span>
+                <span className="text-5xl leading-none" role="img" aria-label={cat.label}>
+                  {cat.icona}
+                </span>
+                <span className="text-base font-bold text-gray-800">{cat.label}</span>
               </button>
             ))}
           </div>
         </div>
+
       </div>
     )
   }
 
-  return (
-    <div>
-      <PageHeader
-        titolo={`Nuovo ${categoriaSelezionata?.label.toLowerCase() ?? 'animale'}`}
-        onBack={() => setStep('categoria')}
-      />
-      <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
+  // ── STEP 2: form dati animale ───────────────────────────────────────────────
 
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl" role="img" aria-label={categoriaSelezionata?.label}>
-              {categoriaSelezionata?.icona}
-            </span>
-            <p className="text-sm font-medium">{categoriaSelezionata?.label ?? 'Animale'}</p>
+  return (
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+
+      {/* Header */}
+      <header className="shrink-0 px-5 pt-10 pb-4">
+        <button
+          onClick={() => setStep('categoria')}
+          className="mb-5 flex items-center gap-2 text-gray-500 active:opacity-70"
+        >
+          <ArrowLeft size={20} strokeWidth={2.2} />
+          <span className="text-sm font-semibold">Cambia tipo</span>
+        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl leading-none">{categoriaSelezionata?.icona}</span>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              Nuovo {categoriaSelezionata?.label.toLowerCase() ?? 'animale'}
+            </h1>
+            <p className="text-sm text-gray-400">Inserisci i dati del tuo animale</p>
           </div>
         </div>
+      </header>
 
-        <div className="space-y-2">
-          <Label>Foto animale</Label>
-          <div className="flex items-center gap-4 rounded-xl border border-border p-3">
-            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+      <form onSubmit={handleSubmit} className="flex-1 px-5 pb-12 space-y-5">
+
+        {/* ── FOTO ─────────────────────────────────────────────────────── */}
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-white border border-gray-100 shadow-sm py-6">
+          <div className="relative">
+            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
               {fotoPreview
-                ? <img src={fotoPreview} alt="Anteprima foto animale" className="h-full w-full object-cover" />
-                : <span className="text-3xl">{categoriaSelezionata?.icona ?? '🐾'}</span>
+                ? <img src={fotoPreview} alt="Anteprima" className="h-full w-full object-cover" />
+                : <span className="text-5xl leading-none">{categoriaSelezionata?.icona ?? '🐾'}</span>
               }
             </div>
-            <div className="min-w-0 flex-1 space-y-2">
-              <Input
-                id="foto"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                disabled={isSubmitting}
-                onChange={e => {
-                  const file = e.target.files?.[0] ?? null
-                  if (file && file.size > MAX_FOTO_SIZE_BYTES) {
-                    setErroreSrv(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
-                    e.target.value = ''
-                    return
-                  }
-                  setErroreSrv(null)
-                  setFotoFile(file)
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                Puoi scegliere una foto dalla galleria o scattarla subito.
-              </p>
-            </div>
+            {/* Pulsante fotocamera sovrapposto */}
+            <label
+              htmlFor="foto"
+              className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-amber-500 shadow-md active:bg-amber-600"
+            >
+              <Camera size={16} strokeWidth={2.2} className="text-white" />
+            </label>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="nome">
-            Nome <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="nome"
-            placeholder="Il nome del tuo animale"
-            value={valori.nome}
-            onChange={e => setValue('nome', e.target.value)}
+          <p className="text-xs text-gray-400">Tocca la fotocamera per aggiungere una foto</p>
+          <input
+            id="foto"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
             disabled={isSubmitting}
+            onChange={e => {
+              const file = e.target.files?.[0] ?? null
+              if (file && file.size > MAX_FOTO_SIZE_BYTES) {
+                setErroreSrv(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+                e.target.value = ''
+                return
+              }
+              setErroreSrv(null)
+              setFotoFile(file)
+            }}
           />
-          {erroriForm.nome && <p className="text-xs text-destructive">{erroriForm.nome}</p>}
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="specie">
-            Specie <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="specie"
-            placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
-            value={valori.specie}
-            onChange={e => setValue('specie', e.target.value)}
-            disabled={isSubmitting}
-          />
-          {erroriForm.specie && <p className="text-xs text-destructive">{erroriForm.specie}</p>}
+        {/* ── CAMPI PRINCIPALI ─────────────────────────────────────────── */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-5">
+
+          <CampoForm label="Nome" required errore={erroriForm.nome}>
+            <Input
+              id="nome"
+              placeholder="Il nome del tuo animale"
+              value={valori.nome}
+              onChange={e => setValue('nome', e.target.value)}
+              disabled={isSubmitting}
+              className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+            />
+          </CampoForm>
+
+          <CampoForm label="Specie" required errore={erroriForm.specie}>
+            <Input
+              id="specie"
+              placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
+              value={valori.specie}
+              onChange={e => setValue('specie', e.target.value)}
+              disabled={isSubmitting}
+              className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+            />
+          </CampoForm>
+
         </div>
 
-        <details className="rounded-xl border border-border bg-card p-4">
-          <summary className="cursor-pointer text-sm font-medium">
-            Altri dettagli opzionali
-          </summary>
-          <div className="mt-4 space-y-4">
-
-            <div className="space-y-1">
-              <Label htmlFor="razza">
-                Razza <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
-              <Input
-                id="razza"
-                placeholder="Razza o varietà"
-                value={valori.razza ?? ''}
-                onChange={e => setValue('razza', e.target.value)}
-                disabled={isSubmitting}
-              />
+        {/* ── DETTAGLI OPZIONALI (accordion) ───────────────────────────── */}
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setDettagliAperti(v => !v)}
+            className="flex w-full items-center justify-between px-5 py-4"
+          >
+            <span className="text-sm font-bold text-gray-700">Altri dettagli</span>
+            <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
+              <span>{dettagliAperti ? 'Nascondi' : 'Mostra'}</span>
+              {dettagliAperti
+                ? <ChevronUp size={16} strokeWidth={2.5} />
+                : <ChevronDown size={16} strokeWidth={2.5} />
+              }
             </div>
+          </button>
 
-            <div className="space-y-1">
-              <Label>Sesso</Label>
-              <Select
-                value={valori.sesso ?? 'non_specificato'}
-                onValueChange={v => setValue('sesso', v)}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="maschio">Maschio</SelectItem>
-                  <SelectItem value="femmina">Femmina</SelectItem>
-                  <SelectItem value="non_specificato">Non specificato</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {dettagliAperti && (
+            <div className="border-t border-gray-100 px-5 py-5 space-y-5">
 
-            <div className="space-y-1">
-              <Label htmlFor="data_nascita">
-                Data di nascita <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
-              <Input
-                id="data_nascita"
-                type="date"
-                value={valori.data_nascita ?? ''}
-                onChange={e => setValue('data_nascita', e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="peso">
-                Peso in kg <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
-              <Input
-                id="peso"
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="es. 4.250"
-                value={valori.peso ?? ''}
-                onChange={e => setValue('peso', e.target.value === '' ? undefined : Number(e.target.value))}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {metaCampo && (
-              <div className="space-y-1">
-                <Label htmlFor="meta">
-                  {metaCampo.label} <span className="text-xs text-muted-foreground">(opzionale)</span>
-                </Label>
+              <CampoForm label="Razza" opzionale>
                 <Input
-                  id="meta"
-                  placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
-                  value={metaValore}
-                  onChange={e => setMetaValore(e.target.value)}
+                  id="razza"
+                  placeholder="Razza o varietà"
+                  value={valori.razza ?? ''}
+                  onChange={e => setValue('razza', e.target.value)}
                   disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
                 />
-              </div>
-            )}
+              </CampoForm>
 
-            <div className="space-y-1">
-              <Label htmlFor="note">
-                Note <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
-              <Textarea
-                id="note"
-                placeholder="Informazioni aggiuntive"
-                value={valori.note ?? ''}
-                onChange={e => setValue('note', e.target.value)}
-                disabled={isSubmitting}
-                rows={3}
-              />
+              <CampoForm label="Sesso" opzionale>
+                <Select
+                  value={valori.sesso ?? 'non_specificato'}
+                  onValueChange={v => setValue('sesso', v)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="maschio">Maschio</SelectItem>
+                    <SelectItem value="femmina">Femmina</SelectItem>
+                    <SelectItem value="non_specificato">Non specificato</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CampoForm>
+
+              <CampoForm label="Data di nascita" opzionale>
+                <Input
+                  id="data_nascita"
+                  type="date"
+                  value={valori.data_nascita ?? ''}
+                  onChange={e => setValue('data_nascita', e.target.value)}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+
+              <CampoForm label="Peso in kg" opzionale>
+                <Input
+                  id="peso"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  placeholder="es. 4.250"
+                  value={valori.peso ?? ''}
+                  onChange={e => setValue('peso', e.target.value === '' ? undefined : Number(e.target.value))}
+                  disabled={isSubmitting}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+
+              {metaCampo && (
+                <CampoForm label={metaCampo.label} opzionale>
+                  <Input
+                    id="meta"
+                    placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
+                    value={metaValore}
+                    onChange={e => setMetaValore(e.target.value)}
+                    disabled={isSubmitting}
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                  />
+                </CampoForm>
+              )}
+
+              <CampoForm label="Note" opzionale>
+                <Textarea
+                  id="note"
+                  placeholder="Informazioni aggiuntive"
+                  value={valori.note ?? ''}
+                  onChange={e => setValue('note', e.target.value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                  className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+                />
+              </CampoForm>
+
             </div>
+          )}
+        </div>
 
+        {/* ── ERRORE SERVER ─────────────────────────────────────────────── */}
+        {erroreSrv && (
+          <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3">
+            <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
           </div>
-        </details>
+        )}
 
-        {erroreSrv && <p className="text-center text-sm text-destructive">{erroreSrv}</p>}
-
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvataggio...' : 'Salva animale'}
-        </Button>
+        {/* ── SUBMIT ───────────────────────────────────────────────────── */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
+        >
+          {isSubmitting ? 'Salvataggio in corso...' : `Salva ${categoriaSelezionata?.label.toLowerCase() ?? 'animale'}`}
+        </button>
 
       </form>
     </div>
