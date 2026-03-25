@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { formatData } from '@/lib/utils/date'
 import type { Database } from '@/lib/types/database.types'
+import { Pill, Clock3, Archive, CheckCircle2 } from 'lucide-react'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
 type SomministrazioneTerapia =
@@ -32,14 +32,26 @@ function getLabelFrequenza(frequenza: Terapia['frequenza'] | null) {
 
 function getBadgeClass(stato: Terapia['stato']) {
   if (stato === 'attiva') {
-    return 'border border-green-200 bg-green-50 text-green-700'
+    return 'bg-green-100 text-green-700'
   }
 
   if (stato === 'conclusa') {
-    return 'border border-amber-200 bg-amber-50 text-amber-700'
+    return 'bg-amber-100 text-amber-700'
   }
 
-  return 'border border-muted bg-muted text-muted-foreground'
+  return 'bg-gray-100 text-gray-500'
+}
+
+function getSezioneIcona(stato: Terapia['stato']) {
+  if (stato === 'attiva') {
+    return <Pill size={16} className="text-amber-500" />
+  }
+
+  if (stato === 'conclusa') {
+    return <CheckCircle2 size={16} className="text-amber-500" />
+  }
+
+  return <Archive size={16} className="text-amber-500" />
 }
 
 function formatUltimaSomministrazione(data: string | null) {
@@ -68,53 +80,70 @@ function CardTerapia({
   return (
     <Link
       href={`/terapie/${terapia.id}`}
-      className="block rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+      className="block rounded-3xl border border-gray-100 bg-white px-4 py-4 shadow-sm transition-all active:scale-[0.99]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{terapia.nome_farmaco}</p>
-
-          <p className="mt-1 text-xs text-muted-foreground">
-            {terapia.dose ? `${terapia.dose} · ` : ''}
-            {getLabelFrequenza(terapia.frequenza)}
-          </p>
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+          <Pill size={18} strokeWidth={2.2} />
         </div>
 
-        <span
-          className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-medium ${getBadgeClass(
-            terapia.stato
-          )}`}
-        >
-          {LABEL_STATO[terapia.stato]}
-        </span>
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-gray-800">
+                {terapia.nome_farmaco}
+              </p>
 
-      <div className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-3">
-        <span>
-          Inizio:{' '}
-          {terapia.data_inizio ? formatData(terapia.data_inizio) : 'Non indicata'}
-        </span>
+              <p className="mt-1 text-xs text-gray-500">
+                {terapia.dose ? `${terapia.dose} · ` : ''}
+                {getLabelFrequenza(terapia.frequenza)}
+              </p>
+            </div>
 
-        <span>
-          Fine:{' '}
-          {terapia.data_fine ? formatData(terapia.data_fine) : 'Non indicata'}
-        </span>
-      </div>
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${getBadgeClass(
+                terapia.stato
+              )}`}
+            >
+              {LABEL_STATO[terapia.stato]}
+            </span>
+          </div>
 
-      <div className="mt-2 text-xs text-muted-foreground">
-        Ultima somministrazione:{' '}
-        <span className="font-medium">
-          {formatUltimaSomministrazione(
-            terapia.ultimaSomministrazione?.somministrata_il ?? null
+          <div className="mt-3 space-y-1 text-xs text-gray-500">
+            <p>
+              Inizio:{' '}
+              <span className="font-medium text-gray-700">
+                {terapia.data_inizio ? formatData(terapia.data_inizio) : 'Non indicata'}
+              </span>
+            </p>
+
+            <p>
+              Fine:{' '}
+              <span className="font-medium text-gray-700">
+                {terapia.data_fine ? formatData(terapia.data_fine) : 'Non indicata'}
+              </span>
+            </p>
+
+            <div className="flex items-center gap-1.5 pt-1">
+              <Clock3 size={13} className="text-gray-400" />
+              <p className="text-xs text-gray-500">
+                Ultima somministrazione:{' '}
+                <span className="font-medium text-gray-700">
+                  {formatUltimaSomministrazione(
+                    terapia.ultimaSomministrazione?.somministrata_il ?? null
+                  )}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {terapia.note && (
+            <p className="mt-3 line-clamp-2 text-xs text-gray-500">
+              {terapia.note}
+            </p>
           )}
-        </span>
+        </div>
       </div>
-
-      {terapia.note && (
-        <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-          {terapia.note}
-        </p>
-      )}
     </Link>
   )
 }
@@ -123,24 +152,31 @@ function SezioneTerapie({
   titolo,
   terapie,
   emptyLabel,
+  stato,
 }: {
   titolo: string
   terapie: TerapiaConUltimaSomministrazione[]
   emptyLabel: string
+  stato: Terapia['stato']
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{titolo}</h3>
-        <span className="text-xs text-muted-foreground">{terapie.length}</span>
+        <div className="flex items-center gap-2">
+          {getSezioneIcona(stato)}
+          <h3 className="text-sm font-bold text-gray-800">{titolo}</h3>
+        </div>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-500 shadow-sm">
+          {terapie.length}
+        </span>
       </div>
 
       {terapie.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-400">
           {emptyLabel}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {terapie.map((terapia) => (
             <CardTerapia key={terapia.id} terapia={terapia} />
           ))}
@@ -171,28 +207,32 @@ export default function TabTerapie({
 
   return (
     <div className="space-y-5 px-4 py-4">
-      <Button asChild size="sm" variant="outline" className="w-full">
-        <Link href={`/animali/${animaleId}/terapie/nuova`}>
-          + Aggiungi terapia
-        </Link>
-      </Button>
+      <Link
+        href={`/animali/${animaleId}/terapie/nuova`}
+        className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+      >
+        + Aggiungi terapia
+      </Link>
 
       <SezioneTerapie
         titolo="Terapie attive"
         terapie={attive}
         emptyLabel="Nessuna terapia attiva."
+        stato="attiva"
       />
 
       <SezioneTerapie
         titolo="Terapie concluse"
         terapie={concluse}
         emptyLabel="Nessuna terapia conclusa."
+        stato="conclusa"
       />
 
       <SezioneTerapie
         titolo="Terapie archiviate"
         terapie={archiviate}
         emptyLabel="Nessuna terapia archiviata."
+        stato="archiviata"
       />
     </div>
   )
