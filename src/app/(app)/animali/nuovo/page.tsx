@@ -57,10 +57,15 @@ const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: strin
   piccoli_mammiferi: { label: 'Tipo habitat',  chiave: 'tipo_habitat' },
 }
 
+// Cani e gatti: specie implicita nella categoria, non serve chiederla
+function speciePresentate(categoria: CategoriaAnimale): boolean {
+  return categoria !== 'cani' && categoria !== 'gatti'
+}
+
 function specieSuggerita(categoria: CategoriaAnimale): string {
   const mappa: Record<CategoriaAnimale, string> = {
-    cani:              'es. Cane domestico',
-    gatti:             'es. Gatto domestico',
+    cani:              '',
+    gatti:             '',
     pesci:             'es. Betta, Carassio',
     uccelli:           'es. Canarino, Cocorita',
     rettili:           'es. Geco, Iguana',
@@ -110,8 +115,6 @@ function prossimCompleanno(dataNascita: string): string {
   return candidato.toISOString().split('T')[0]
 }
 
-// ── Componenti UI locali ──────────────────────────────────────────────────────
-
 function CampoForm({
   label,
   required,
@@ -140,19 +143,17 @@ function CampoForm({
   )
 }
 
-// ── Pagina ────────────────────────────────────────────────────────────────────
-
 export default function NuovoAnimalePage() {
   const router = useRouter()
 
-  const [step,          setStep]         = useState<'categoria' | 'form'>('categoria')
-  const [erroreSrv,     setErroreSrv]    = useState<string | null>(null)
-  const [metaValore,    setMetaValore]   = useState('')
-  const [fotoFile,      setFotoFile]     = useState<File | null>(null)
-  const [valori,        setValori]       = useState<FormValori>(valoriIniziali)
-  const [erroriForm,    setErroriForm]   = useState<Partial<Record<keyof FormValori, string>>>({})
-  const [isSubmitting,  setIsSubmitting] = useState(false)
-  const [dettagliAperti, setDettagliAperti] = useState(false)
+  const [step,             setStep]             = useState<'categoria' | 'form'>('categoria')
+  const [erroreSrv,        setErroreSrv]        = useState<string | null>(null)
+  const [metaValore,       setMetaValore]       = useState('')
+  const [fotoFile,         setFotoFile]         = useState<File | null>(null)
+  const [valori,           setValori]           = useState<FormValori>(valoriIniziali)
+  const [erroriForm,       setErroriForm]       = useState<Partial<Record<keyof FormValori, string>>>({})
+  const [isSubmitting,     setIsSubmitting]     = useState(false)
+  const [dettagliAperti,   setDettagliAperti]   = useState(false)
 
   const fotoPreview = useMemo(() => {
     if (!fotoFile) return null
@@ -169,7 +170,13 @@ export default function NuovoAnimalePage() {
   }
 
   function validate(): FormValori | null {
-    const result = animaleSchema.safeParse(valori)
+    // Per cani e gatti la specie è implicita: la impostiamo prima di validare
+    const valoriDaValidare = { ...valori }
+    if (!speciePresentate(valori.categoria as CategoriaAnimale)) {
+      valoriDaValidare.specie = valori.categoria === 'cani' ? 'Cane' : 'Gatto'
+    }
+
+    const result = animaleSchema.safeParse(valoriDaValidare)
     if (!result.success) {
       const fe: Partial<Record<keyof FormValori, string>> = {}
       result.error.issues.forEach(issue => {
@@ -257,13 +264,11 @@ export default function NuovoAnimalePage() {
     }
   }
 
-  // ── STEP 1: scelta categoria ────────────────────────────────────────────────
+  // ── STEP 1: scelta categoria ──────────────────────────────────────────────
 
   if (step === 'categoria') {
     return (
       <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
-
-        {/* Header */}
         <header className="shrink-0 px-5 pt-10 pb-4">
           <button
             onClick={() => router.back()}
@@ -275,12 +280,9 @@ export default function NuovoAnimalePage() {
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
             Che animale hai?
           </h1>
-          <p className="mt-1 text-sm text-gray-400">
-            Scegli il tipo per iniziare
-          </p>
+          <p className="mt-1 text-sm text-gray-400">Scegli il tipo per iniziare</p>
         </header>
 
-        {/* Griglia categorie */}
         <div className="px-5 pb-12">
           <div className="grid grid-cols-2 gap-4">
             {categorie.map(cat => (
@@ -297,17 +299,14 @@ export default function NuovoAnimalePage() {
             ))}
           </div>
         </div>
-
       </div>
     )
   }
 
-  // ── STEP 2: form dati animale ───────────────────────────────────────────────
+  // ── STEP 2: form dati animale ─────────────────────────────────────────────
 
   return (
     <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
-
-      {/* Header */}
       <header className="shrink-0 px-5 pt-10 pb-4">
         <button
           onClick={() => setStep('categoria')}
@@ -329,7 +328,7 @@ export default function NuovoAnimalePage() {
 
       <form onSubmit={handleSubmit} className="flex-1 px-5 pb-12 space-y-5">
 
-        {/* ── FOTO ─────────────────────────────────────────────────────── */}
+        {/* ── FOTO ───────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center gap-3 rounded-3xl bg-white border border-gray-100 shadow-sm py-6">
           <div className="relative">
             <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
@@ -338,7 +337,6 @@ export default function NuovoAnimalePage() {
                 : <span className="text-5xl leading-none">{categoriaSelezionata?.icona ?? '🐾'}</span>
               }
             </div>
-            {/* Pulsante fotocamera sovrapposto */}
             <label
               htmlFor="foto"
               className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-amber-500 shadow-md active:bg-amber-600"
@@ -367,7 +365,7 @@ export default function NuovoAnimalePage() {
           />
         </div>
 
-        {/* ── CAMPI PRINCIPALI ─────────────────────────────────────────── */}
+        {/* ── CAMPI PRINCIPALI ───────────────────────────────────────── */}
         <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-5">
 
           <CampoForm label="Nome" required errore={erroriForm.nome}>
@@ -381,20 +379,23 @@ export default function NuovoAnimalePage() {
             />
           </CampoForm>
 
-          <CampoForm label="Specie" required errore={erroriForm.specie}>
-            <Input
-              id="specie"
-              placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
-              value={valori.specie}
-              onChange={e => setValue('specie', e.target.value)}
-              disabled={isSubmitting}
-              className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
-            />
-          </CampoForm>
+          {/* Specie: visibile e obbligatoria solo per categorie che non siano cani/gatti */}
+          {speciePresentate(valori.categoria as CategoriaAnimale) && (
+            <CampoForm label="Specie" required errore={erroriForm.specie}>
+              <Input
+                id="specie"
+                placeholder={specieSuggerita(valori.categoria as CategoriaAnimale)}
+                value={valori.specie}
+                onChange={e => setValue('specie', e.target.value)}
+                disabled={isSubmitting}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+              />
+            </CampoForm>
+          )}
 
         </div>
 
-        {/* ── DETTAGLI OPZIONALI (accordion) ───────────────────────────── */}
+        {/* ── DETTAGLI OPZIONALI ─────────────────────────────────────── */}
         <div className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden">
           <button
             type="button"
@@ -496,14 +497,14 @@ export default function NuovoAnimalePage() {
           )}
         </div>
 
-        {/* ── ERRORE SERVER ─────────────────────────────────────────────── */}
+        {/* ── ERRORE SERVER ──────────────────────────────────────────── */}
         {erroreSrv && (
           <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3">
             <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
           </div>
         )}
 
-        {/* ── SUBMIT ───────────────────────────────────────────────────── */}
+        {/* ── SUBMIT ─────────────────────────────────────────────────── */}
         <button
           type="submit"
           disabled={isSubmitting}
