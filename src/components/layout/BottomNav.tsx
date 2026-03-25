@@ -2,7 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Calendar, Plus, Stethoscope, FolderOpen, X } from 'lucide-react'
+import {
+  Home, Calendar, Plus, Stethoscope, FolderOpen, X,
+  PawPrint, FileText,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
@@ -14,16 +17,17 @@ const VOCI = [
   { label: 'Documenti', href: '/documenti', icon: FolderOpen },
 ] as const
 
+// Icone coerenti con la bottom nav + stessa icona usata lì
 const SCELTE = [
-  { emoji: '🐾', label: 'Nuovo animale',   href: '/animali/nuovo' },
-  { emoji: '📅', label: 'Nuovo impegno',   href: '/impegni/nuovo' },
-  { emoji: '💊', label: 'Nuova terapia',   href: '/terapie/nuovo' },
-  { emoji: '📄', label: 'Nuovo documento', href: '/documenti/nuovo' },
+  { icon: PawPrint,    label: 'Nuovo animale',   href: '/animali/nuovo',   color: 'text-amber-500',  bg: 'bg-amber-50' },
+  { icon: Calendar,    label: 'Nuovo impegno',   href: '/impegni/nuovo',   color: 'text-blue-500',   bg: 'bg-blue-50' },
+  { icon: Stethoscope, label: 'Nuova terapia',   href: '/terapie/nuovo',   color: 'text-teal-500',   bg: 'bg-teal-50' },
+  { icon: FolderOpen,  label: 'Nuovo documento', href: '/documenti/nuovo', color: 'text-violet-500', bg: 'bg-violet-50' },
 ]
 
 export function BottomNav() {
-  const pathname  = usePathname()
-  const router    = useRouter()
+  const pathname = usePathname()
+  const router   = useRouter()
   const [aperto, setAperto] = useState(false)
 
   return (
@@ -43,26 +47,29 @@ export function BottomNav() {
             {/* Handle */}
             <div className="mx-auto mt-3 mb-6 h-1 w-12 rounded-full bg-gray-200" />
 
-            {/* Titolo */}
             <p className="mb-5 text-center text-sm font-bold uppercase tracking-widest text-gray-400">
               Cosa vuoi aggiungere?
             </p>
 
-            {/* Voci */}
             <div className="space-y-3 pb-2">
-              {SCELTE.map(scelta => (
-                <button
-                  key={scelta.href}
-                  onClick={() => { setAperto(false); router.push(scelta.href) }}
-                  className="flex w-full items-center gap-5 rounded-2xl bg-gray-50 px-5 py-5 text-left transition-colors active:bg-amber-50"
-                >
-                  <span className="text-4xl leading-none">{scelta.emoji}</span>
-                  <span className="text-lg font-bold text-gray-800">{scelta.label}</span>
-                </button>
-              ))}
+              {SCELTE.map(scelta => {
+                const Icona = scelta.icon
+                return (
+                  <button
+                    key={scelta.href}
+                    onClick={() => { setAperto(false); router.push(scelta.href) }}
+                    className="flex w-full items-center gap-4 rounded-2xl bg-white border border-gray-100 px-4 py-4 text-left shadow-sm transition-colors active:bg-gray-50"
+                  >
+                    {/* Icona colorata su sfondo pastello — stessa icona della bottom nav */}
+                    <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl', scelta.bg)}>
+                      <Icona size={24} strokeWidth={2} className={scelta.color} />
+                    </div>
+                    <span className="text-lg font-bold text-gray-800">{scelta.label}</span>
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Annulla */}
             <button
               onClick={() => setAperto(false)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 py-4 text-base font-semibold text-gray-400 active:bg-gray-50"
@@ -96,7 +103,7 @@ export function BottomNav() {
                       : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-orange-200'
                   )}>
                     <Plus
-                      size={28}
+                      size={30}
                       strokeWidth={2.5}
                       color="white"
                       className={cn('transition-transform duration-200', aperto ? 'rotate-45' : 'rotate-0')}
@@ -120,14 +127,14 @@ export function BottomNav() {
                   attiva ? 'bg-amber-50' : 'bg-transparent'
                 )}>
                   <Icona
-                    size={22}
-                    strokeWidth={attiva ? 2.5 : 1.8}
-                    className={attiva ? 'text-amber-500' : 'text-gray-400'}
+                    size={24}
+                    strokeWidth={attiva ? 2.5 : 2}
+                    className={attiva ? 'text-amber-500' : 'text-gray-500'}
                   />
                 </div>
                 <span className={cn(
                   'text-[10px] font-semibold tracking-wide transition-colors',
-                  attiva ? 'text-amber-500' : 'text-gray-400'
+                  attiva ? 'text-amber-500' : 'text-gray-500'
                 )}>
                   {voce.label}
                 </span>

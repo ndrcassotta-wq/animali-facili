@@ -171,7 +171,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <Link href="/notifiche" aria-label="Notifiche">
               <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
-                <Bell className="h-5 w-5 text-gray-500" />
+                <Bell size={22} strokeWidth={2.2} className="text-gray-600" />
                 {badge > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
                     {badge > 9 ? '9+' : badge}
@@ -181,7 +181,7 @@ export default async function HomePage() {
             </Link>
             <Link href="/profilo" aria-label="Profilo utente">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
-                <User className="h-5 w-5 text-gray-500" />
+                <User size={22} strokeWidth={2.2} className="text-gray-600" />
               </div>
             </Link>
           </div>
