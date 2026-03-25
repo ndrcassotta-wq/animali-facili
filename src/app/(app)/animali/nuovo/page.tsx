@@ -68,6 +68,14 @@ const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: strin
   piccoli_mammiferi: { label: 'Tipo habitat', chiave: 'tipo_habitat' },
 }
 
+const TAGLIE_ANIMALE = [
+  { value: 'toy', label: 'Toy' },
+  { value: 'piccola', label: 'Piccola' },
+  { value: 'media', label: 'Media' },
+  { value: 'grande', label: 'Grande' },
+  { value: 'gigante', label: 'Gigante' },
+]
+
 function metaSuggerito(categoria: CategoriaAnimale): string {
   const m: Partial<Record<CategoriaAnimale, string>> = {
     cani: 'piccola, media, grande',
@@ -463,6 +471,7 @@ export default function NuovoAnimalePage() {
                   setValue('categoria', cat.valore)
                   setValue('specie', '')
                   setValue('razza', '')
+                  setMetaValore('')
                   vaiAvanti('nome-foto')
                 }}
                 className="flex flex-col items-center gap-3 rounded-3xl border-2 border-gray-100 bg-white px-4 py-6 text-center shadow-sm transition-all active:scale-95 active:border-amber-300 active:bg-amber-50"
@@ -685,13 +694,31 @@ export default function NuovoAnimalePage() {
 
             {metaCampo && (
               <CampoForm label={metaCampo.label} opzionale>
-                <Input
-                  id="meta"
-                  placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
-                  value={metaValore}
-                  onChange={e => setMetaValore(e.target.value)}
-                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
-                />
+                {metaCampo.chiave === 'taglia' ? (
+                  <Select
+                    value={metaValore}
+                    onValueChange={(value) => setMetaValore(value ?? '')}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                      <SelectValue placeholder="Seleziona la taglia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TAGLIE_ANIMALE.map(taglia => (
+                        <SelectItem key={taglia.value} value={taglia.value}>
+                          {taglia.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="meta"
+                    placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
+                    value={metaValore}
+                    onChange={e => setMetaValore(e.target.value)}
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                  />
+                )}
               </CampoForm>
             )}
 
