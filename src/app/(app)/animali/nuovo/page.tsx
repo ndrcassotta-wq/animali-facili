@@ -1,3 +1,4 @@
+// src/app/(app)/animali/nuovo/page.tsx
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -79,6 +80,12 @@ const categorie: { valore: CategoriaAnimale; label: string; icona: string }[] = 
   { valore: 'piccoli_mammiferi', label: 'Piccolo mammifero', icona: '🐹' },
   { valore: 'altri_animali', label: 'Altro', icona: '🐾' },
 ]
+
+const labelSesso: Record<string, string> = {
+  maschio: 'Maschio',
+  femmina: 'Femmina',
+  non_specificato: 'Non specificato',
+}
 
 const metaCampi: Partial<
   Record<CategoriaAnimale, { label: string; chiave: string }>
@@ -395,7 +402,9 @@ export default function NuovoAnimalePage() {
     setErroriForm((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  const categoriaSelezionata = categorie.find((c) => c.valore === valori.categoria)
+  const categoriaSelezionata = categorie.find(
+    (c) => c.valore === valori.categoria
+  )
   const metaCampo = metaCampi[valori.categoria as CategoriaAnimale]
   const isCategoria = step === 'categoria'
 
@@ -670,9 +679,7 @@ export default function NuovoAnimalePage() {
                   <div
                     className={cn(
                       'flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border-4 shadow-xl',
-                      fotoPreview
-                        ? 'border-white'
-                        : 'border-white',
+                      fotoPreview ? 'border-white' : 'border-white',
                       !fotoPreview &&
                         colorePerCategoria(valori.categoria as CategoriaAnimale)
                     )}
@@ -830,7 +837,9 @@ export default function NuovoAnimalePage() {
                   placeholder="Anno"
                   value={annoNascita}
                   onChange={(e) => {
-                    const soloNumeri = e.target.value.replace(/\D/g, '').slice(0, 4)
+                    const soloNumeri = e.target.value
+                      .replace(/\D/g, '')
+                      .slice(0, 4)
                     setAnnoNascita(soloNumeri)
                   }}
                   className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
@@ -923,7 +932,10 @@ export default function NuovoAnimalePage() {
                 onValueChange={(v) => setValue('sesso', v)}
               >
                 <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
-                  <SelectValue />
+                  <span>
+                    {labelSesso[valori.sesso ?? 'non_specificato'] ??
+                      'Non specificato'}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="maschio">Maschio</SelectItem>

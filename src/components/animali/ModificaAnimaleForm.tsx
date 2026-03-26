@@ -1,3 +1,4 @@
+// src/components/animali/ModificaAnimaleForm.tsx
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -38,7 +39,15 @@ const STEP_LABELS: Record<Step, string> = {
   dettagli: 'Dettagli',
 }
 
-const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: string }>> = {
+const labelSesso: Record<string, string> = {
+  maschio: 'Maschio',
+  femmina: 'Femmina',
+  non_specificato: 'Non specificato',
+}
+
+const metaCampi: Partial<
+  Record<CategoriaAnimale, { label: string; chiave: string }>
+> = {
   cani: { label: 'Taglia', chiave: 'taglia' },
   pesci: { label: 'Tipo acqua', chiave: 'tipo_acqua' },
   rettili: { label: 'Tipo terrario', chiave: 'tipo_terrario' },
@@ -209,7 +218,9 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
     note: animale.note ?? '',
   })
 
-  const [erroriForm, setErroriForm] = useState<Partial<Record<keyof FormValori, string>>>({})
+  const [erroriForm, setErroriForm] = useState<
+    Partial<Record<keyof FormValori, string>>
+  >({})
   const [metaValore, setMetaValore] = useState(() => {
     const metaCampo = metaCampi[categoria]
     if (!metaCampo) return ''
@@ -236,8 +247,8 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
   }, [fotoFile, fotoPreview])
 
   function setValue(field: keyof FormValori, value: unknown) {
-    setValori(prev => ({ ...prev, [field]: value }))
-    setErroriForm(prev => ({ ...prev, [field]: undefined }))
+    setValori((prev) => ({ ...prev, [field]: value }))
+    setErroriForm((prev) => ({ ...prev, [field]: undefined }))
   }
 
   const metaCampo = metaCampi[valori.categoria as CategoriaAnimale]
@@ -269,7 +280,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
     if (!campoPrincipalePulito) nuoviErrori.specie = 'Questo campo è obbligatorio'
 
     if (Object.keys(nuoviErrori).length > 0) {
-      setErroriForm(prev => ({ ...prev, ...nuoviErrori }))
+      setErroriForm((prev) => ({ ...prev, ...nuoviErrori }))
       return
     }
 
@@ -317,7 +328,8 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
           ? valori.data_nascita
           : null
 
-      const meta = metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
+      const meta =
+        metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
 
       const payload: AnimaleUpdate = {
         nome: nomePulito,
@@ -361,7 +373,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
         <CropFoto
           imageSrc={cropSrc}
           fileName={cropNome}
-          onConfirm={file => {
+          onConfirm={(file) => {
             setFotoFile(file)
             URL.revokeObjectURL(cropSrc)
             setCropSrc(null)
@@ -387,7 +399,9 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
 
           {(step === 'nascita' || step === 'dettagli') && (
             <button
-              onClick={() => (step === 'nascita' ? vaiAvanti('dettagli') : handleSubmit())}
+              onClick={() =>
+                step === 'nascita' ? vaiAvanti('dettagli') : handleSubmit()
+              }
               className="text-sm font-semibold text-amber-500 active:opacity-70"
             >
               {step === 'dettagli' ? 'Salva' : 'Salta'}
@@ -416,7 +430,9 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             <div className="relative">
               <div
                 className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl ${
-                  fotoPreview ? '' : colorePerCategoria(valori.categoria as CategoriaAnimale)
+                  fotoPreview
+                    ? ''
+                    : colorePerCategoria(valori.categoria as CategoriaAnimale)
                 }`}
               >
                 {fotoPreview ? (
@@ -439,7 +455,9 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             </div>
 
             <p className="text-xs text-gray-400">
-              {fotoPreview ? 'Tocca per cambiare foto' : 'Aggiungi una foto (opzionale)'}
+              {fotoPreview
+                ? 'Tocca per cambiare foto'
+                : 'Aggiungi una foto (opzionale)'}
             </p>
 
             <input
@@ -448,7 +466,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={e => {
+              onChange={(e) => {
                 const file = e.target.files?.[0] ?? null
 
                 if (file && file.size > MAX_FOTO_SIZE_BYTES) {
@@ -475,7 +493,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 id="nome"
                 placeholder={`Il nome del tuo ${categoriaLabel.toLowerCase()}`}
                 value={valori.nome}
-                onChange={e => setValue('nome', e.target.value)}
+                onChange={(e) => setValue('nome', e.target.value)}
                 autoFocus
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
@@ -486,7 +504,10 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             onClick={() => {
               const nomePulito = valori.nome.trim()
               if (!nomePulito) {
-                setErroriForm(prev => ({ ...prev, nome: 'Il nome è obbligatorio' }))
+                setErroriForm((prev) => ({
+                  ...prev,
+                  nome: 'Il nome è obbligatorio',
+                }))
                 return
               }
               vaiAvanti('nascita')
@@ -515,7 +536,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 id="data_nascita"
                 type="date"
                 value={valori.data_nascita ?? ''}
-                onChange={e => setValue('data_nascita', e.target.value)}
+                onChange={(e) => setValue('data_nascita', e.target.value)}
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
             </CampoForm>
@@ -549,9 +570,11 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             >
               <AutocompleteInput
                 id="specie"
-                placeholder={placeholderCampoPrincipale(valori.categoria as CategoriaAnimale)}
+                placeholder={placeholderCampoPrincipale(
+                  valori.categoria as CategoriaAnimale
+                )}
                 value={valori.specie}
-                onChange={v => setValue('specie', v)}
+                onChange={(v) => setValue('specie', v)}
                 suggerimenti={
                   SUGGERIMENTI_ANIMALE_PER_CATEGORIA[
                     valori.categoria as CategoriaAnimale
@@ -565,15 +588,20 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
             <CampoForm label="Sesso" opzionale>
               <Select
                 value={valori.sesso ?? 'non_specificato'}
-                onValueChange={v => setValue('sesso', v)}
+                onValueChange={(v) => setValue('sesso', v)}
               >
                 <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
-                  <SelectValue />
+                  <span>
+                    {labelSesso[valori.sesso ?? 'non_specificato'] ??
+                      'Non specificato'}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="maschio">Maschio</SelectItem>
                   <SelectItem value="femmina">Femmina</SelectItem>
-                  <SelectItem value="non_specificato">Non specificato</SelectItem>
+                  <SelectItem value="non_specificato">
+                    Non specificato
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </CampoForm>
@@ -586,7 +614,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 min="0"
                 placeholder="es. 4.250"
                 value={valori.peso ?? ''}
-                onChange={e =>
+                onChange={(e) =>
                   setValue(
                     'peso',
                     e.target.value === '' ? undefined : Number(e.target.value)
@@ -601,13 +629,15 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 {metaCampo.chiave === 'taglia' ? (
                   <Select
                     value={metaValore}
-                    onValueChange={(value: string | null) => setMetaValore(value ?? '')}
+                    onValueChange={(value: string | null) =>
+                      setMetaValore(value ?? '')
+                    }
                   >
                     <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                       <SelectValue placeholder="Seleziona la taglia" />
                     </SelectTrigger>
                     <SelectContent>
-                      {TAGLIE_ANIMALE.map(taglia => (
+                      {TAGLIE_ANIMALE.map((taglia) => (
                         <SelectItem key={taglia.value} value={taglia.value}>
                           {taglia.label}
                         </SelectItem>
@@ -617,9 +647,11 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 ) : (
                   <Input
                     id="meta"
-                    placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
+                    placeholder={`es. ${metaSuggerito(
+                      valori.categoria as CategoriaAnimale
+                    )}`}
                     value={metaValore}
-                    onChange={e => setMetaValore(e.target.value)}
+                    onChange={(e) => setMetaValore(e.target.value)}
                     className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
                   />
                 )}
@@ -631,7 +663,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
                 id="note"
                 placeholder="Informazioni aggiuntive"
                 value={valori.note ?? ''}
-                onChange={e => setValue('note', e.target.value)}
+                onChange={(e) => setValue('note', e.target.value)}
                 rows={3}
                 className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
               />
