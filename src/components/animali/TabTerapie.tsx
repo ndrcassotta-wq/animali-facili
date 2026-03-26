@@ -1,4 +1,8 @@
+'use client'
+
 import type { ReactNode } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatData } from '@/lib/utils/date'
 import type { Database } from '@/lib/types/database.types'
@@ -11,12 +15,16 @@ import {
   Plus,
   CalendarDays,
   NotebookText,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
 type SomministrazioneTerapia =
   Database['public']['Tables']['somministrazioni_terapia']['Row']
+type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
+type ImpegnoRow = Database['public']['Tables']['impegni']['Row']
 
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
@@ -98,6 +106,43 @@ function formatUltimaSomministrazione(data: string | null) {
   }).format(new Date(data))
 }
 
+function formatDateOnlyIso(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function getAutoTerapiaMarker(terapiaId: string) {
+  return `[AUTO_TERAPIA:${terapiaId}]`
+}
+
+function buildAutoImpegnoNote(terapia: Terapia) {
+  return `${getAutoTerapiaMarker(terapia.id)}
+Promemoria automatico terapia: ${terapia.nome_farmaco}
+Dose: ${terapia.dose || 'Non indicata'}
+Frequenza: ${terapia.frequenza || 'Non indicata'}`
+}
+
+function calcolaProssimaDataImpegno(
+  terapia: Terapia,
+  riferimento: Date
+): string | null {
+  if (terapia.stato !== 'attiva') return null
+
+  if (terapia.frequenza !== 'una_volta_giorno') {
+    return null
+  }
+
+  const prossima = new Date(riferimento)
+  prossima.setDate(prossima.getDate() + 1)
+
+  const prossimaData = formatDateOnlyIso(prossima)
+
+  if (terapia.data_fine && prossimaData > terapia.data_fine) {
+    return null
+  }
+
+  return prossimaData
+}
+
 function ordinaPerDataInizioDesc(
   a: TerapiaConUltimaSomministrazione,
   b: TerapiaConUltimaSomministrazione
@@ -150,104 +195,230 @@ function DetailPill({
 
 function CardTerapia({
   terapia,
+  ultimaSomministrazioneOverride,
+  onSomministrata,
 }: {
   terapia: TerapiaConUltimaSomministrazione
+  ultimaSomministrazioneOverride?: string
+  onSomministrata: (id: string, dataIso: string) => void
 }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const tone = getToneByState(terapia.stato)
 
+  async function segnaSomministrataRapida() {
+    const supabase = createClient()
+    const adesso = new Date()
+    const adessoIso = adesso.toISOString()
+    const oggi = formatDateOnlyIso(adesso)
+    const autoMarker = getAutoTerapiaMarker(terapia.id)
+
+    onSomministrata(terapia.id, adessoIso)
+
+    startTransition(async () => {
+      const { error: insertSomministrazioneError } = await supabase
+        .from('somministrazioni_terapia')
+        .insert({
+          terapia_id: terapia.id,
+          somministrata_il: adessoIso,
+          nota: null,
+        })
+
+      if (insertSomministrazioneError) {
+        router.refresh()
+        return
+      }
+
+      const { data: autoImpegniRows, error: autoImpegniError } = await supabase
+        .from('impegni')
+        .select('*')
+        .eq('animale_id', terapia.animale_id)
+        .eq('tipo', 'terapia')
+        .ilike('note', `%${autoMarker}%`)
+        .order('data', { ascending: true })
+
+      if (autoImpegniError) {
+        router.refresh()
+        return
+      }
+
+      const autoImpegni = (autoImpegniRows ?? []) as ImpegnoRow[]
+
+      const idsDaCompletare = autoImpegni
+        .filter((i) => i.stato === 'programmato' && i.data <= oggi)
+        .map((i) => i.id)
+
+      if (idsDaCompletare.length > 0) {
+        const { error: completaError } = await supabase
+          .from('impegni')
+          .update({ stato: 'completato' })
+          .in('id', idsDaCompletare)
+
+        if (completaError) {
+          router.refresh()
+          return
+        }
+      }
+
+      const idsFuturiDaEliminare = autoImpegni
+        .filter((i) => i.stato === 'programmato' && i.data > oggi)
+        .map((i) => i.id)
+
+      if (idsFuturiDaEliminare.length > 0) {
+        const { error: deleteFuturiError } = await supabase
+          .from('impegni')
+          .delete()
+          .in('id', idsFuturiDaEliminare)
+
+        if (deleteFuturiError) {
+          router.refresh()
+          return
+        }
+      }
+
+      const prossimaDataImpegno = calcolaProssimaDataImpegno(terapia, adesso)
+
+      if (prossimaDataImpegno) {
+        const payloadImpegno: ImpegnoInsert = {
+          animale_id: terapia.animale_id,
+          titolo: `Terapia: ${terapia.nome_farmaco}`,
+          tipo: 'terapia',
+          data: prossimaDataImpegno,
+          ora: terapia.ora_somministrazione ?? null,
+          frequenza: 'nessuna',
+          notifiche_attive: false,
+          stato: 'programmato',
+          note: buildAutoImpegnoNote(terapia),
+        }
+
+        const { error: insertImpegnoError } = await supabase
+          .from('impegni')
+          .insert(payloadImpegno)
+
+        if (insertImpegnoError) {
+          router.refresh()
+          return
+        }
+      }
+
+      router.refresh()
+    })
+  }
+
+  const ultimaDaMostrare =
+    ultimaSomministrazioneOverride ??
+    terapia.ultimaSomministrazione?.somministrata_il ??
+    null
+
   return (
-    <Link
-      href={`/terapie/${terapia.id}`}
+    <div
       className={cn(
-        'block rounded-[28px] border p-4 shadow-sm transition-all active:scale-[0.99]',
+        'rounded-[28px] border p-4 shadow-sm transition-all',
         tone.card
       )}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
-            tone.iconWrap
-          )}
-        >
-          <Stethoscope size={20} strokeWidth={2.2} />
-        </div>
+      <Link
+        href={`/terapie/${terapia.id}`}
+        className="block transition-all active:scale-[0.99]"
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
+              tone.iconWrap
+            )}
+          >
+            <Stethoscope size={20} strokeWidth={2.2} />
+          </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-base font-extrabold text-gray-900">
-                {terapia.nome_farmaco}
-              </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-base font-extrabold text-gray-900">
+                  {terapia.nome_farmaco}
+                </p>
 
-              <p className="mt-1 text-sm text-gray-500">
-                {getLabelFrequenza(terapia.frequenza)}
-              </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {getLabelFrequenza(terapia.frequenza)}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold',
+                    getBadgeClass(terapia.stato)
+                  )}
+                >
+                  {LABEL_STATO[terapia.stato]}
+                </span>
+                <ChevronRight
+                  size={18}
+                  strokeWidth={2.4}
+                  className="shrink-0 text-gray-300"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold',
-                  getBadgeClass(terapia.stato)
-                )}
-              >
-                {LABEL_STATO[terapia.stato]}
-              </span>
-              <ChevronRight
-                size={18}
-                strokeWidth={2.4}
-                className="shrink-0 text-gray-300"
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <DetailPill
+                icon={<NotebookText size={14} strokeWidth={2.1} />}
+                label="Dose"
+                value={terapia.dose || 'Non indicata'}
+              />
+              <DetailPill
+                icon={<Clock3 size={14} strokeWidth={2.1} />}
+                label="Ultima"
+                value={formatUltimaSomministrazione(ultimaDaMostrare)}
+              />
+              <DetailPill
+                icon={<CalendarDays size={14} strokeWidth={2.1} />}
+                label="Inizio"
+                value={
+                  terapia.data_inizio
+                    ? formatData(terapia.data_inizio)
+                    : 'Non indicata'
+                }
+              />
+              <DetailPill
+                icon={<CalendarDays size={14} strokeWidth={2.1} />}
+                label="Fine"
+                value={
+                  terapia.data_fine
+                    ? formatData(terapia.data_fine)
+                    : 'Non indicata'
+                }
               />
             </div>
-          </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <DetailPill
-              icon={<NotebookText size={14} strokeWidth={2.1} />}
-              label="Dose"
-              value={terapia.dose || 'Non indicata'}
-            />
-            <DetailPill
-              icon={<Clock3 size={14} strokeWidth={2.1} />}
-              label="Ultima"
-              value={formatUltimaSomministrazione(
-                terapia.ultimaSomministrazione?.somministrata_il ?? null
-              )}
-            />
-            <DetailPill
-              icon={<CalendarDays size={14} strokeWidth={2.1} />}
-              label="Inizio"
-              value={
-                terapia.data_inizio
-                  ? formatData(terapia.data_inizio)
-                  : 'Non indicata'
-              }
-            />
-            <DetailPill
-              icon={<CalendarDays size={14} strokeWidth={2.1} />}
-              label="Fine"
-              value={
-                terapia.data_fine
-                  ? formatData(terapia.data_fine)
-                  : 'Non indicata'
-              }
-            />
+            {terapia.note && (
+              <div className="mt-3 rounded-2xl bg-[#FCF8F3] px-3 py-3">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+                  Note
+                </p>
+                <p className="line-clamp-2 text-sm leading-5 text-gray-600">
+                  {terapia.note}
+                </p>
+              </div>
+            )}
           </div>
-
-          {terapia.note && (
-            <div className="mt-3 rounded-2xl bg-[#FCF8F3] px-3 py-3">
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-                Note
-              </p>
-              <p className="line-clamp-2 text-sm leading-5 text-gray-600">
-                {terapia.note}
-              </p>
-            </div>
-          )}
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {terapia.stato === 'attiva' && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={segnaSomministrataRapida}
+            disabled={isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 active:scale-[0.98] transition-all disabled:opacity-70"
+          >
+            <Check size={16} strokeWidth={2.5} />
+            {isPending ? 'Aggiornamento...' : 'Somministrato'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -256,11 +427,15 @@ function SezioneTerapie({
   terapie,
   emptyLabel,
   stato,
+  ultimaSomministrazioneOverrides,
+  onSomministrata,
 }: {
   titolo: string
   terapie: TerapiaConUltimaSomministrazione[]
   emptyLabel: string
   stato: Terapia['stato']
+  ultimaSomministrazioneOverrides: Record<string, string>
+  onSomministrata: (id: string, dataIso: string) => void
 }) {
   const tone = getToneByState(stato)
 
@@ -293,7 +468,14 @@ function SezioneTerapie({
       ) : (
         <div className="space-y-3">
           {terapie.map((terapia) => (
-            <CardTerapia key={terapia.id} terapia={terapia} />
+            <CardTerapia
+              key={terapia.id}
+              terapia={terapia}
+              ultimaSomministrazioneOverride={
+                ultimaSomministrazioneOverrides[terapia.id]
+              }
+              onSomministrata={onSomministrata}
+            />
           ))}
         </div>
       )}
@@ -308,17 +490,39 @@ export default function TabTerapie({
   animaleId: string
   terapie: TerapiaConUltimaSomministrazione[]
 }) {
-  const attive = terapie
-    .filter((terapia) => terapia.stato === 'attiva')
-    .sort(ordinaPerDataInizioDesc)
+  const [ultimaSomministrazioneOverrides, setUltimaSomministrazioneOverrides] =
+    useState<Record<string, string>>({})
 
-  const concluse = terapie
-    .filter((terapia) => terapia.stato === 'conclusa')
-    .sort(ordinaPerDataInizioDesc)
+  function handleSomministrata(id: string, dataIso: string) {
+    setUltimaSomministrazioneOverrides((prev) => ({
+      ...prev,
+      [id]: dataIso,
+    }))
+  }
 
-  const archiviate = terapie
-    .filter((terapia) => terapia.stato === 'archiviata')
-    .sort(ordinaPerDataInizioDesc)
+  const attive = useMemo(
+    () =>
+      terapie
+        .filter((terapia) => terapia.stato === 'attiva')
+        .sort(ordinaPerDataInizioDesc),
+    [terapie]
+  )
+
+  const concluse = useMemo(
+    () =>
+      terapie
+        .filter((terapia) => terapia.stato === 'conclusa')
+        .sort(ordinaPerDataInizioDesc),
+    [terapie]
+  )
+
+  const archiviate = useMemo(
+    () =>
+      terapie
+        .filter((terapia) => terapia.stato === 'archiviata')
+        .sort(ordinaPerDataInizioDesc),
+    [terapie]
+  )
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -343,6 +547,8 @@ export default function TabTerapie({
         terapie={attive}
         emptyLabel="Nessuna terapia attiva."
         stato="attiva"
+        ultimaSomministrazioneOverrides={ultimaSomministrazioneOverrides}
+        onSomministrata={handleSomministrata}
       />
 
       <SezioneTerapie
@@ -350,6 +556,8 @@ export default function TabTerapie({
         terapie={concluse}
         emptyLabel="Nessuna terapia conclusa."
         stato="conclusa"
+        ultimaSomministrazioneOverrides={ultimaSomministrazioneOverrides}
+        onSomministrata={handleSomministrata}
       />
 
       <SezioneTerapie
@@ -357,6 +565,8 @@ export default function TabTerapie({
         terapie={archiviate}
         emptyLabel="Nessuna terapia archiviata."
         stato="archiviata"
+        ultimaSomministrazioneOverrides={ultimaSomministrazioneOverrides}
+        onSomministrata={handleSomministrata}
       />
     </div>
   )
