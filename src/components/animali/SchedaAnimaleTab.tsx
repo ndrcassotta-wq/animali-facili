@@ -3,17 +3,27 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, FolderOpen, Stethoscope, User, ArrowLeft, Pencil } from 'lucide-react'
-import { TabProfilo }   from '@/components/animali/TabProfilo'
-import { TabImpegni }   from '@/components/animali/TabImpegni'
+import {
+  Calendar,
+  FolderOpen,
+  Stethoscope,
+  User,
+  ArrowLeft,
+  Pencil,
+  ChevronRight,
+  PawPrint,
+} from 'lucide-react'
+import { TabProfilo } from '@/components/animali/TabProfilo'
+import { TabImpegni } from '@/components/animali/TabImpegni'
 import { TabDocumenti } from '@/components/animali/TabDocumenti'
-import TabTerapie       from '@/components/animali/TabTerapie'
+import TabTerapie from '@/components/animali/TabTerapie'
 import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
 import { cn } from '@/lib/utils'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
-type SomministrazioneTerapia = Database['public']['Tables']['somministrazioni_terapia']['Row']
+type SomministrazioneTerapia =
+  Database['public']['Tables']['somministrazioni_terapia']['Row']
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
@@ -21,30 +31,98 @@ type TerapiaConUltimaSomministrazione = Terapia & {
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie'
 
 const iconaCategoria: Record<string, string> = {
-  cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
-  rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
+  cani: '🐕',
+  gatti: '🐈',
+  pesci: '🐟',
+  uccelli: '🦜',
+  rettili: '🦎',
+  piccoli_mammiferi: '🐹',
+  altri_animali: '🐾',
 }
 
 const coloreCategoria: Record<string, string> = {
-  cani: 'bg-amber-100', gatti: 'bg-orange-100', pesci: 'bg-sky-100',
-  uccelli: 'bg-lime-100', rettili: 'bg-green-100',
-  piccoli_mammiferi: 'bg-rose-100', altri_animali: 'bg-violet-100',
+  cani: 'bg-amber-100',
+  gatti: 'bg-orange-100',
+  pesci: 'bg-sky-100',
+  uccelli: 'bg-lime-100',
+  rettili: 'bg-green-100',
+  piccoli_mammiferi: 'bg-rose-100',
+  altri_animali: 'bg-violet-100',
+}
+
+const labelCategoria: Record<string, string> = {
+  cani: 'Cane',
+  gatti: 'Gatto',
+  pesci: 'Pesce',
+  uccelli: 'Uccello',
+  rettili: 'Rettile',
+  piccoli_mammiferi: 'Piccolo mammifero',
+  altri_animali: 'Altro animale',
 }
 
 interface Props {
-  animale:     Animale
-  impegni:     Impegno[]
-  documenti:   Documento[]
-  terapie:     TerapiaConUltimaSomministrazione[]
+  animale: Animale
+  impegni: Impegno[]
+  documenti: Documento[]
+  terapie: TerapiaConUltimaSomministrazione[]
   tabIniziale: TabId
 }
 
-export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniziale }: Props) {
+function QuickCard({
+  title,
+  subtitle,
+  icon,
+  onClick,
+  tone,
+}: {
+  title: string
+  subtitle: string
+  icon: React.ReactNode
+  onClick: () => void
+  tone: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'group flex min-h-[150px] flex-col justify-between rounded-[28px] border p-5 text-left shadow-sm active:scale-[0.98] transition-all',
+        tone
+      )}
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
+        {icon}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-base font-extrabold">{title}</p>
+          <ChevronRight
+            size={18}
+            strokeWidth={2.4}
+            className="opacity-60 transition-transform group-active:translate-x-0.5"
+          />
+        </div>
+        <p className="mt-1 text-xs leading-5 opacity-75">{subtitle}</p>
+      </div>
+    </button>
+  )
+}
+
+export function SchedaAnimaleTab({
+  animale,
+  impegni,
+  documenti,
+  terapie,
+  tabIniziale,
+}: Props) {
   const router = useRouter()
   const [tabAttivo, setTabAttivo] = useState<TabId>(
-    tabIniziale === 'profilo' || tabIniziale === 'impegni' ||
-    tabIniziale === 'documenti' || tabIniziale === 'terapie'
-      ? tabIniziale : 'home'
+    tabIniziale === 'profilo' ||
+      tabIniziale === 'impegni' ||
+      tabIniziale === 'documenti' ||
+      tabIniziale === 'terapie'
+      ? tabIniziale
+      : 'home'
   )
 
   function cambiaTab(tab: TabId) {
@@ -58,182 +136,262 @@ export function SchedaAnimaleTab({ animale, impegni, documenti, terapie, tabIniz
     window.history.replaceState(null, '', url.toString())
   }
 
-  const impegniProssimi = impegni.filter(i => i.stato === 'programmato').length
-  const terapieAttive   = terapie.filter(t => t.stato === 'attiva').length
+  const impegniProssimi = impegni.filter((i) => i.stato === 'programmato').length
+  const terapieAttive = terapie.filter((t) => t.stato === 'attiva').length
+  const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
 
-  // ── TAB CONTENT ────────────────────────────────────────────────────────────
   if (tabAttivo !== 'home') {
     return (
-      <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+      <div
+        className="flex flex-col bg-[#F7F1EA]"
+        style={{ minHeight: '100dvh' }}
+      >
+        <header className="rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
+          <button
+            onClick={() => cambiaTab('home')}
+            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-[#EEE4D9] active:opacity-70"
+          >
+            <ArrowLeft
+              size={20}
+              strokeWidth={2.2}
+              className="text-gray-600"
+            />
+          </button>
 
-        {/* Header — solo freccia + nome animale, niente matita niente menu */}
-        <header className="shrink-0 bg-[#FDF8F3] px-5 pt-10 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => cambiaTab('home')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 active:opacity-70"
-            >
-              <ArrowLeft size={20} strokeWidth={2.2} className="text-gray-600" />
-            </button>
-            <div className="flex flex-1 items-center gap-2.5 min-w-0">
-              <div className={cn(
-                'h-9 w-9 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center',
-                !animale.foto_url && (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
-              )}>
-                {animale.foto_url
-                  ? <img src={animale.foto_url} alt={animale.nome} className="h-full w-full object-cover" />
-                  : <span className="text-base leading-none">{iconaCategoria[animale.categoria] ?? '🐾'}</span>
-                }
+          <div className="rounded-[28px] border border-[#F1E4D7] bg-white/90 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm',
+                  !animale.foto_url &&
+                    (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
+                )}
+              >
+                {animale.foto_url ? (
+                  <img
+                    src={animale.foto_url}
+                    alt={animale.nome}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xl leading-none">
+                    {iconaCategoria[animale.categoria] ?? '🐾'}
+                  </span>
+                )}
               </div>
-              <span className="text-base font-extrabold text-gray-900 truncate">
-                {animale.nome}
-              </span>
+
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[#EEE4D9] bg-[#FCF8F3] px-2.5 py-1 text-[11px] font-semibold text-gray-500">
+                    {categoriaLabel}
+                  </span>
+                </div>
+                <p className="truncate text-lg font-extrabold text-gray-900">
+                  {animale.nome}
+                </p>
+                <p className="truncate text-sm text-gray-500">
+                  {animale.specie}
+                  {animale.razza ? ` · ${animale.razza}` : ''}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="mt-4 border-b border-gray-100" />
         </header>
 
-        {/* Contenuto tab */}
         <div className="flex-1 overflow-y-auto">
-          {tabAttivo === 'profilo'   && <TabProfilo   animale={animale} />}
-          {tabAttivo === 'impegni'   && <TabImpegni   animaleId={animale.id} impegni={impegni} />}
-          {tabAttivo === 'documenti' && <TabDocumenti animaleId={animale.id} documenti={documenti} />}
-          {tabAttivo === 'terapie'   && <TabTerapie   animaleId={animale.id} terapie={terapie} />}
+          {tabAttivo === 'profilo' && <TabProfilo animale={animale} />}
+          {tabAttivo === 'impegni' && (
+            <TabImpegni animaleId={animale.id} impegni={impegni} />
+          )}
+          {tabAttivo === 'documenti' && (
+            <TabDocumenti animaleId={animale.id} documenti={documenti} />
+          )}
+          {tabAttivo === 'terapie' && (
+            <TabTerapie animaleId={animale.id} terapie={terapie} />
+          )}
         </div>
-
       </div>
     )
   }
 
-  // ── HOME ANIMALE ───────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+    <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
+      <div className="relative w-full overflow-hidden rounded-b-[36px]">
+        <div className="relative h-[300px] w-full">
+          {animale.foto_url ? (
+            <img
+              src={animale.foto_url}
+              alt={animale.nome}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div
+              className={cn(
+                'flex h-full w-full items-center justify-center',
+                coloreCategoria[animale.categoria] ?? 'bg-gray-100'
+              )}
+            >
+              <span style={{ fontSize: '7rem', lineHeight: 1 }}>
+                {iconaCategoria[animale.categoria] ?? '🐾'}
+              </span>
+            </div>
+          )}
 
-      {/* Hero */}
-      <div className="relative w-full" style={{ height: '300px' }}>
-        {animale.foto_url ? (
-          <img
-            src={animale.foto_url}
-            alt={animale.nome}
-            className="h-full w-full object-cover"
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+
+          <button
+            onClick={() => router.back()}
+            className="absolute left-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
+          </button>
+
+          <Link
+            href={`/animali/${animale.id}/modifica`}
+            className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
+          >
+            <Pencil size={16} strokeWidth={2.2} className="text-white" />
+          </Link>
+
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                {categoriaLabel}
+              </span>
+              {animale.sesso && animale.sesso !== 'non_specificato' ? (
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold capitalize text-white backdrop-blur-sm">
+                  {animale.sesso}
+                </span>
+              ) : null}
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-tight leading-tight text-white">
+              {animale.nome}
+            </h1>
+
+            <p className="mt-1 text-sm text-white/85">
+              {animale.specie}
+              {animale.razza ? ` · ${animale.razza}` : ''}
+            </p>
+
+            {animale.data_nascita && (
+              <p className="mt-1 text-xs text-white/70">
+                🎂{' '}
+                {new Date(animale.data_nascita).toLocaleDateString('it-IT', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="-mt-6 px-5 pt-0 pb-32">
+        <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
+              <p className="text-lg font-extrabold text-gray-900">
+                {impegniProssimi}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Impegni
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
+              <p className="text-lg font-extrabold text-gray-900">
+                {terapieAttive}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Terapie attive
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
+              <p className="text-lg font-extrabold text-gray-900">
+                {documenti.length}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Documenti
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <QuickCard
+            title="Impegni"
+            subtitle={
+              impegniProssimi > 0
+                ? `${impegniProssimi} programmati`
+                : 'Nessuno in arrivo'
+            }
+            onClick={() => cambiaTab('impegni')}
+            tone="bg-blue-50 border-blue-100 text-blue-900"
+            icon={<Calendar size={24} strokeWidth={2} className="text-blue-600" />}
           />
-        ) : (
-          <div className={cn(
-            'h-full w-full flex items-center justify-center',
-            coloreCategoria[animale.categoria] ?? 'bg-gray-100'
-          )}>
-            <span style={{ fontSize: '7rem', lineHeight: 1 }}>
-              {iconaCategoria[animale.categoria] ?? '🐾'}
-            </span>
+
+          <QuickCard
+            title="Terapie"
+            subtitle={
+              terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'
+            }
+            onClick={() => cambiaTab('terapie')}
+            tone="bg-teal-50 border-teal-100 text-teal-900"
+            icon={
+              <Stethoscope
+                size={24}
+                strokeWidth={2}
+                className="text-teal-600"
+              />
+            }
+          />
+
+          <QuickCard
+            title="Documenti"
+            subtitle={
+              documenti.length > 0
+                ? `${documenti.length} salvati`
+                : 'Nessun documento'
+            }
+            onClick={() => cambiaTab('documenti')}
+            tone="bg-slate-100 border-slate-200 text-slate-800"
+            icon={
+              <FolderOpen
+                size={24}
+                strokeWidth={2}
+                className="text-slate-600"
+              />
+            }
+          />
+
+          <QuickCard
+            title="Profilo"
+            subtitle="Info e dettagli"
+            onClick={() => cambiaTab('profilo')}
+            tone="bg-violet-50 border-violet-100 text-violet-900"
+            icon={<User size={24} strokeWidth={2} className="text-violet-600" />}
+          />
+        </div>
+
+        {animale.note && (
+          <div className="mt-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+            <div className="mb-3 flex items-center gap-2 text-gray-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#EEE4D9] bg-[#FCF8F3]">
+                <PawPrint size={18} strokeWidth={2.1} />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em]">
+                Note
+              </p>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-gray-600">
+              {animale.note}
+            </p>
           </div>
         )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-
-        <button
-          onClick={() => router.back()}
-          className="absolute left-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
-        >
-          <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
-        </button>
-
-        <Link
-          href={`/animali/${animale.id}/modifica`}
-          className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm"
-        >
-          <Pencil size={16} strokeWidth={2.2} className="text-white" />
-        </Link>
-
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">
-            {animale.nome}
-          </h1>
-          <p className="mt-0.5 text-sm text-white/80">
-            {animale.specie}
-            {animale.razza ? ` · ${animale.razza}` : ''}
-            {animale.sesso && animale.sesso !== 'non_specificato' ? ` · ${animale.sesso}` : ''}
-          </p>
-          {animale.data_nascita && (
-            <p className="mt-0.5 text-xs text-white/70">
-              🎂 {new Date(animale.data_nascita).toLocaleDateString('it-IT', {
-                day: 'numeric', month: 'long', year: 'numeric'
-              })}
-            </p>
-          )}
-        </div>
       </div>
-
-      {/* Card 2x2 centrate */}
-      <div className="px-5 pt-5 pb-32 grid grid-cols-2 gap-4">
-
-        <button
-          onClick={() => cambiaTab('impegni')}
-          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-blue-50 border border-blue-100 text-center active:scale-95 transition-transform"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
-            <Calendar size={24} strokeWidth={2} className="text-blue-600" />
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-blue-900">Impegni</p>
-            <p className="text-xs text-blue-500 mt-0.5">
-              {impegniProssimi > 0 ? `${impegniProssimi} programmati` : 'Nessuno in arrivo'}
-            </p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => cambiaTab('terapie')}
-          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-teal-50 border border-teal-100 text-center active:scale-95 transition-transform"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-teal-100 flex items-center justify-center">
-            <Stethoscope size={24} strokeWidth={2} className="text-teal-600" />
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-teal-900">Terapie</p>
-            <p className="text-xs text-teal-500 mt-0.5">
-              {terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'}
-            </p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => cambiaTab('documenti')}
-          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-slate-100 border border-slate-200 text-center active:scale-95 transition-transform"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center">
-            <FolderOpen size={24} strokeWidth={2} className="text-slate-600" />
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-slate-800">Documenti</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {documenti.length > 0 ? `${documenti.length} salvati` : 'Nessun documento'}
-            </p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => cambiaTab('profilo')}
-          className="flex flex-col items-center justify-center gap-3 p-5 rounded-3xl bg-violet-50 border border-violet-100 text-center active:scale-95 transition-transform"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center">
-            <User size={24} strokeWidth={2} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-violet-900">Profilo</p>
-            <p className="text-xs text-violet-500 mt-0.5">Info e dettagli</p>
-          </div>
-        </button>
-
-      </div>
-
-      {/* Note */}
-      {animale.note && (
-        <div className="mx-5 mb-6 rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Note</p>
-          <p className="text-sm text-gray-600">{animale.note}</p>
-        </div>
-      )}
-
     </div>
   )
 }
