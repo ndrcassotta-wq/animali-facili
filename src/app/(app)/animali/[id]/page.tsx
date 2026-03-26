@@ -1,3 +1,4 @@
+// src/app/(app)/animali/[id]/page.tsx
 export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
@@ -12,6 +13,7 @@ type SomministrazioneTerapia =
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
+type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
 
 type TabId =
   | 'home'
@@ -53,6 +55,7 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
     { data: impegniData, error: impegniError },
     { data: documentiData, error: documentiError },
     { data: terapieData, error: terapieError },
+    { data: diarioData, error: diarioError },
   ] = await Promise.all([
     supabase.from('animali').select('*').eq('id', id).single(),
     supabase
@@ -66,19 +69,28 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
       .eq('animale_id', id)
       .order('created_at', { ascending: false }),
     supabase.from('terapie').select('*').eq('animale_id', id),
+    supabase
+      .from('diario_voci')
+      .select('*')
+      .eq('animale_id', id)
+      .order('data', { ascending: false })
+      .order('created_at', { ascending: false }),
   ])
 
   if (animaleError || !animaleData) notFound()
 
   if (impegniError) console.error('Errore caricamento impegni:', impegniError)
-  if (documentiError)
+  if (documentiError) {
     console.error('Errore caricamento documenti:', documentiError)
+  }
   if (terapieError) console.error('Errore caricamento terapie:', terapieError)
+  if (diarioError) console.error('Errore caricamento diario:', diarioError)
 
   const animale = animaleData as Animale
   const impegni = (impegniData ?? []) as Impegno[]
   const documenti = (documentiData ?? []) as Documento[]
   const terapieBase = (terapieData ?? []) as Terapia[]
+  const diarioVoci = (diarioData ?? []) as DiarioVoce[]
 
   const terapiaIds = terapieBase.map((t) => t.id)
   let tutteLeSomministrazioni: SomministrazioneTerapia[] = []
@@ -120,6 +132,7 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
       impegni={impegni}
       documenti={documenti}
       terapie={terapie}
+      diarioVoci={diarioVoci}
       tabIniziale={tabIniziale}
     />
   )

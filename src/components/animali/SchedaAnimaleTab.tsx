@@ -1,6 +1,7 @@
+// src/components/animali/SchedaAnimaleTab.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -30,16 +31,9 @@ type SomministrazioneTerapia =
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
+type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
 
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
-
-type DiarioEntry = {
-  id: string
-  data: string
-  titolo: string
-  nota: string
-  createdAt: string
-}
 
 const iconaCategoria: Record<string, string> = {
   cani: '🐕',
@@ -76,6 +70,7 @@ interface Props {
   impegni: Impegno[]
   documenti: Documento[]
   terapie: TerapiaConUltimaSomministrazione[]
+  diarioVoci: DiarioVoce[]
   tabIniziale: TabId
 }
 
@@ -119,10 +114,6 @@ function QuickCard({
   )
 }
 
-function getDiarioStorageKey(animaleId: string) {
-  return `animali-facili-diario-${animaleId}`
-}
-
 function formatDataDiario(data: string) {
   if (!data) return ''
   return new Date(`${data}T12:00:00`).toLocaleDateString('it-IT', {
@@ -146,13 +137,15 @@ function generaId() {
 function TabDiario({
   animaleId,
   animaleNome,
+  vociIniziali,
 }: {
   animaleId: string
   animaleNome: string
+  vociIniziali: DiarioVoce[]
 }) {
   const oggi = new Date().toISOString().split('T')[0]
 
-  const [voci, setVoci] = useState<DiarioEntry[]>([])
+  const [voci, setVoci] = useState<DiarioVoce[]>(vociIniziali)
   const [mostraForm, setMostraForm] = useState(false)
   const [data, setData] = useState(oggi)
   const [titolo, setTitolo] = useState('')
@@ -160,31 +153,7 @@ function TabDiario({
   const [erroreTitolo, setErroreTitolo] = useState('')
   const [erroreNota, setErroreNota] = useState('')
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(getDiarioStorageKey(animaleId))
-      if (!raw) {
-        setVoci([])
-        return
-      }
-
-      const parsed = JSON.parse(raw) as DiarioEntry[]
-      if (Array.isArray(parsed)) {
-        setVoci(parsed)
-      } else {
-        setVoci([])
-      }
-    } catch {
-      setVoci([])
-    }
-  }, [animaleId])
-
-  function salvaVoci(next: DiarioEntry[]) {
-    setVoci(next)
-    localStorage.setItem(getDiarioStorageKey(animaleId), JSON.stringify(next))
-  }
-
-  function aggiungiVoce() {
+  function aggiungiVoceLocale() {
     const titoloPulito = titolo.trim()
     const notaPulita = nota.trim()
 
@@ -205,33 +174,30 @@ function TabDiario({
 
     if (hasError) return
 
-    const nuovaVoce: DiarioEntry = {
+    const nowIso = new Date().toISOString()
+
+    const nuovaVoce: DiarioVoce = {
       id: generaId(),
+      animale_id: animaleId,
       data,
       titolo: titoloPulito,
       nota: notaPulita,
-      createdAt: new Date().toISOString(),
+      created_at: nowIso,
+      updated_at: nowIso,
     }
 
-    const next = [nuovaVoce, ...voci].sort((a, b) =>
-      b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt)
+    const next = [nuovaVoce, ...voci].sort(
+      (a, b) =>
+        b.data.localeCompare(a.data) ||
+        b.created_at.localeCompare(a.created_at)
     )
 
-    salvaVoci(next)
+    setVoci(next)
     setData(oggi)
     setTitolo('')
     setNota('')
     setMostraForm(false)
   }
-
-  const vociOrdinate = useMemo(
-    () =>
-      [...voci].sort(
-        (a, b) =>
-          b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt)
-      ),
-    [voci]
-  )
 
   return (
     <div className="px-5 py-5 pb-32">
@@ -316,7 +282,7 @@ function TabDiario({
 
             <button
               type="button"
-              onClick={aggiungiVoce}
+              onClick={aggiungiVoceLocale}
               className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98]"
             >
               Salva voce
@@ -325,7 +291,7 @@ function TabDiario({
         </div>
       )}
 
-      {vociOrdinate.length === 0 ? (
+      {voci.length === 0 ? (
         <div className="rounded-[28px] border border-dashed border-[#EADFD3] bg-white px-6 py-10 text-center shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-amber-600">
             <BookOpen size={24} strokeWidth={2.2} />
@@ -340,7 +306,7 @@ function TabDiario({
         </div>
       ) : (
         <div className="space-y-4">
-          {vociOrdinate.map((voce) => (
+          {voci.map((voce) => (
             <div
               key={voce.id}
               className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
@@ -370,6 +336,7 @@ export function SchedaAnimaleTab({
   impegni,
   documenti,
   terapie,
+  diarioVoci,
   tabIniziale,
 }: Props) {
   const router = useRouter()
@@ -468,7 +435,11 @@ export function SchedaAnimaleTab({
             <TabTerapie animaleId={animale.id} terapie={terapie} />
           )}
           {tabAttivo === 'diario' && (
-            <TabDiario animaleId={animale.id} animaleNome={animale.nome} />
+            <TabDiario
+              animaleId={animale.id}
+              animaleNome={animale.nome}
+              vociIniziali={diarioVoci}
+            />
           )}
         </div>
       </div>
