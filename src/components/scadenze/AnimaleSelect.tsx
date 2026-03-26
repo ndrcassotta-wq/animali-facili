@@ -1,31 +1,54 @@
+// src/components/scadenze/AnimaleSelect.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Label } from '@/components/ui/label'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
 } from '@/components/ui/select'
 
-type AnimaleBase = { id: string; nome: string; categoria: string; foto_url: string | null }
-
-const iconaCategoria: Record<string, string> = {
-  cani: '🐕', gatti: '🐈', pesci: '🐟', uccelli: '🦜',
-  rettili: '🦎', piccoli_mammiferi: '🐹', altri_animali: '🐾',
+type AnimaleBase = {
+  id: string
+  nome: string
+  categoria: string
+  foto_url: string | null
 }
 
-function FotoAnimale({ foto_url, nome, categoria }: { foto_url: string | null; nome: string; categoria: string }) {
+const iconaCategoria: Record<string, string> = {
+  cani: '🐕',
+  gatti: '🐈',
+  pesci: '🐟',
+  uccelli: '🦜',
+  rettili: '🦎',
+  piccoli_mammiferi: '🐹',
+  altri_animali: '🐾',
+}
+
+function FotoAnimale({
+  foto_url,
+  nome,
+  categoria,
+}: {
+  foto_url: string | null
+  nome: string
+  categoria: string
+}) {
   if (foto_url) {
     return (
       <img
         src={foto_url}
         alt={nome}
-        className="w-6 h-6 rounded-full object-cover shrink-0"
+        className="h-6 w-6 shrink-0 rounded-full object-cover"
       />
     )
   }
+
   return (
-    <span className="text-base leading-none shrink-0">
+    <span className="shrink-0 text-base leading-none">
       {iconaCategoria[categoria] ?? '🐾'}
     </span>
   )
@@ -35,15 +58,18 @@ export function AnimaleSelect({
   valore,
   onChange,
   disabled,
+  mostraLabel = true,
 }: {
   valore: string
   onChange: (id: string) => void
   disabled?: boolean
+  mostraLabel?: boolean
 }) {
   const [animali, setAnimali] = useState<AnimaleBase[]>([])
 
   useEffect(() => {
     const supabase = createClient()
+
     supabase
       .from('animali')
       .select('id, nome, categoria, foto_url')
@@ -55,13 +81,16 @@ export function AnimaleSelect({
     if (value) onChange(value)
   }
 
-  const animaleSelezionato = animali.find(a => a.id === valore)
+  const animaleSelezionato = animali.find((a) => a.id === valore)
 
   return (
     <div className="space-y-1">
-      <Label>
-        Animale <span className="text-destructive">*</span>
-      </Label>
+      {mostraLabel && (
+        <Label>
+          Animale <span className="text-destructive">*</span>
+        </Label>
+      )}
+
       <Select value={valore} onValueChange={handleChange} disabled={disabled}>
         <SelectTrigger>
           {animaleSelezionato ? (
@@ -79,8 +108,9 @@ export function AnimaleSelect({
             </span>
           )}
         </SelectTrigger>
+
         <SelectContent>
-          {animali.map(a => (
+          {animali.map((a) => (
             <SelectItem key={a.id} value={a.id}>
               <div className="flex items-center gap-2">
                 <FotoAnimale

@@ -1,3 +1,4 @@
+// src/app/(app)/impegni/nuovo/page.tsx
 'use client'
 
 import Link from 'next/link'
@@ -196,10 +197,12 @@ export default function NuovoImpegnoPage() {
 
   async function handleSubmit() {
     setErroreSrv(null)
+
     if (!animaleId) {
       setErroreAnimale('Seleziona un animale.')
       return
     }
+
     if (!data) {
       setErroreData('La data è obbligatoria.')
       return
@@ -214,12 +217,14 @@ export default function NuovoImpegnoPage() {
       } = await supabase.auth.getUser()
 
       let preferenze: PreferenzeNotifiche = PREFERENZE_DEFAULT
+
       if (user) {
         const { data: profilo } = await supabase
           .from('profili')
           .select('preferenze_notifiche')
           .eq('id', user.id)
           .single()
+
         if (profilo?.preferenze_notifiche) {
           preferenze = profilo.preferenze_notifiche as PreferenzeNotifiche
         }
@@ -230,6 +235,7 @@ export default function NuovoImpegnoPage() {
         .select('nome')
         .eq('id', animaleId)
         .single()
+
       const animaleNome = animaleData?.nome ?? ''
 
       const payload: ImpegnoInsert = {
@@ -261,6 +267,7 @@ export default function NuovoImpegnoPage() {
 
       try {
         const permesso = await richiediPermessoNotifiche()
+
         if (
           permesso &&
           preferenze.attive &&
@@ -390,6 +397,7 @@ export default function NuovoImpegnoPage() {
               {step === 'tipo' ? 'Annulla' : 'Indietro'}
             </span>
           </button>
+
           {step === 'dettagli' && (
             <button
               onClick={handleSubmit}
@@ -399,6 +407,7 @@ export default function NuovoImpegnoPage() {
             </button>
           )}
         </div>
+
         <ProgressBar step={step} />
       </header>
 
@@ -456,6 +465,7 @@ export default function NuovoImpegnoPage() {
                     setErroreAnimale('')
                   }}
                   disabled={isSubmitting}
+                  mostraLabel={false}
                 />
                 {erroreAnimale && (
                   <p className="text-xs font-medium text-red-500">
@@ -493,10 +503,12 @@ export default function NuovoImpegnoPage() {
                 setErroreAnimale('Seleziona un animale.')
                 return
               }
+
               if (!data) {
                 setErroreData('La data è obbligatoria.')
                 return
               }
+
               vaiAvanti('dettagli')
             }}
             className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
