@@ -49,6 +49,27 @@ function getAutoTerapiaId(note?: string | null) {
   return match?.[1] ?? null
 }
 
+function getPreviewNote(impegno: ImpegnoConAnimale) {
+  const noteOriginali = impegno.note?.trim()
+
+  if (!noteOriginali) return null
+
+  const autoTerapiaId = getAutoTerapiaId(noteOriginali)
+  if (impegno.tipo === 'terapia' && autoTerapiaId) return null
+
+  const notePulite = noteOriginali
+    .replace(/\[AUTO_TERAPIA:[^[\]]+\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!notePulite) return null
+
+  const LIMITE = 90
+  if (notePulite.length <= LIMITE) return notePulite
+
+  return `${notePulite.slice(0, LIMITE).trimEnd()}…`
+}
+
 function CardImpegno({
   impegno,
   statoAttivo,
@@ -65,8 +86,8 @@ function CardImpegno({
   const imminente = statoAttivo === 'programmato' && isImminente(impegno.data)
   const isTerapia = impegno.tipo === 'terapia'
 
-  const autoTerapiaId =
-    isTerapia ? getAutoTerapiaId(impegno.note) : null
+  const autoTerapiaId = isTerapia ? getAutoTerapiaId(impegno.note) : null
+  const previewNota = getPreviewNote(impegno)
 
   const hrefDettaglio = autoTerapiaId
     ? `/terapie/${autoTerapiaId}`
@@ -144,12 +165,19 @@ function CardImpegno({
               </div>
 
               <p className="mt-0.5 text-xs text-gray-400">
-                {impegno.animali?.nome ?? '—'} · {labelTipo[impegno.tipo] ?? impegno.tipo}
+                {impegno.animali?.nome ?? '—'} ·{' '}
+                {labelTipo[impegno.tipo] ?? impegno.tipo}
               </p>
 
               {isTerapia && (
                 <p className="mt-1 text-[11px] font-medium text-teal-700">
                   Collegato alla scheda terapia
+                </p>
+              )}
+
+              {previewNota && (
+                <p className="mt-1 truncate text-[11px] leading-5 text-gray-500">
+                  {previewNota}
                 </p>
               )}
             </div>
