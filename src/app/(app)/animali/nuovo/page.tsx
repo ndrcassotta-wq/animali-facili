@@ -40,6 +40,25 @@ const STEP_LABELS: Record<Step, string> = {
   dettagli: 'Dettagli',
 }
 
+const MESI = [
+  { value: '01', label: 'Gennaio' },
+  { value: '02', label: 'Febbraio' },
+  { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Aprile' },
+  { value: '05', label: 'Maggio' },
+  { value: '06', label: 'Giugno' },
+  { value: '07', label: 'Luglio' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Settembre' },
+  { value: '10', label: 'Ottobre' },
+  { value: '11', label: 'Novembre' },
+  { value: '12', label: 'Dicembre' },
+] as const
+
+const GIORNI = Array.from({ length: 31 }, (_, i) =>
+  String(i + 1).padStart(2, '0')
+)
+
 const valoriIniziali: FormValori = {
   nome: '',
   categoria: 'cani',
@@ -194,6 +213,64 @@ function placeholderCampoPrincipale(categoria: CategoriaAnimale): string {
   return mappa[categoria] ?? ''
 }
 
+function parseDataParts(data?: string | null) {
+  if (!data) {
+    return { giorno: '', mese: '', anno: '' }
+  }
+
+  const [anno = '', mese = '', giorno = ''] = data.split('-')
+
+  return { giorno, mese, anno }
+}
+
+function isValidBirthDateParts(
+  giorno: string,
+  mese: string,
+  anno: string
+): boolean {
+  if (!giorno || !mese || anno.length !== 4) return false
+
+  const y = Number(anno)
+  const m = Number(mese)
+  const d = Number(giorno)
+
+  if (
+    !Number.isInteger(y) ||
+    !Number.isInteger(m) ||
+    !Number.isInteger(d) ||
+    y < 1900 ||
+    y > new Date().getFullYear() ||
+    m < 1 ||
+    m > 12 ||
+    d < 1 ||
+    d > 31
+  ) {
+    return false
+  }
+
+  const data = new Date(y, m - 1, d)
+  return (
+    data.getFullYear() === y &&
+    data.getMonth() === m - 1 &&
+    data.getDate() === d
+  )
+}
+
+function buildBirthDateIso(giorno: string, mese: string, anno: string) {
+  if (!isValidBirthDateParts(giorno, mese, anno)) return ''
+  return `${anno}-${mese}-${giorno}`
+}
+
+function formatBirthDatePreview(dataIso: string) {
+  if (!dataIso) return ''
+
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${dataIso}T12:00:00`))
+}
+
 function ProgressBar({ step }: { step: Step }) {
   const idx = STEPS.indexOf(step)
   const percent = (idx / (STEPS.length - 1)) * 100
@@ -284,6 +361,15 @@ export default function NuovoAnimalePage() {
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const dataNascitaParts = useMemo(
+    () => parseDataParts(valori.data_nascita),
+    [valori.data_nascita]
+  )
+
+  const [giornoNascita, setGiornoNascita] = useState(dataNascitaParts.giorno)
+  const [meseNascita, setMeseNascita] = useState(dataNascitaParts.mese)
+  const [annoNascita, setAnnoNascita] = useState(dataNascitaParts.anno)
+
   const fotoPreview = useMemo(() => {
     if (!fotoFile) return null
     return URL.createObjectURL(fotoFile)
@@ -294,6 +380,15 @@ export default function NuovoAnimalePage() {
       if (fotoPreview) URL.revokeObjectURL(fotoPreview)
     }
   }, [fotoPreview])
+
+  useEffect(() => {
+    const nuovaDataIso = buildBirthDateIso(
+      giornoNascita,
+      meseNascita,
+      annoNascita
+    )
+    setValori((prev) => ({ ...prev, data_nascita: nuovaDataIso }))
+  }, [giornoNascita, meseNascita, annoNascita])
 
   function setValue(field: keyof FormValori, value: unknown) {
     setValori((prev) => ({ ...prev, [field]: value }))
@@ -642,14 +737,82 @@ export default function NuovoAnimalePage() {
           </div>
 
           <div className="mb-4 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-            <CampoForm label="Data di nascita" opzionale>
-              <Input
-                id="data_nascita"
-                type="date"
-                value={valori.data_nascita ?? ''}
-                onChange={(e) => setValue('data_nascita', e.target.value)}
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
-              />
+            <CampoForm
+              label="Data di nascita"
+              opzionale
+              errore={
+                giornoNascita || meseNascita || annoNascita
+                  ? !valori.data_nascita &&
+                    annoNascita.length === 4 &&
+                    giornoNascita &&
+                    meseNascita
+                    ? 'Data non valida'
+                    : undefined
+                  : undefined
+              }
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <Select
+                  value={giornoNascita}
+                  onValueChange={(value) => setGiornoNascita(value ?? '')}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                    <SelectValue placeholder="Giorno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GIORNI.map((giorno) => (
+                      <SelectItem key={giorno} value={giorno}>
+                        {Number(giorno)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={meseNascita}
+                  onValueChange={(value) => setMeseNascita(value ?? '')}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                    <SelectValue placeholder="Mese" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MESI.map((mese) => (
+                      <SelectItem key={mese.value} value={mese.value}>
+                        {mese.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="Anno"
+                  value={annoNascita}
+                  onChange={(e) => {
+                    const soloNumeri = e.target.value.replace(/\D/g, '').slice(0, 4)
+                    setAnnoNascita(soloNumeri)
+                  }}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </div>
+
+              <p className="text-xs text-gray-400">
+                Più comodo per date lontane: scegli giorno e mese, poi scrivi
+                direttamente l’anno.
+              </p>
+
+              {valori.data_nascita && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                    Data selezionata
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-amber-900">
+                    {formatBirthDatePreview(valori.data_nascita)}
+                  </p>
+                </div>
+              )}
             </CampoForm>
           </div>
 
@@ -770,7 +933,7 @@ export default function NuovoAnimalePage() {
                         </SelectItem>
                       ))}
                     </SelectContent>
-                    </Select>
+                  </Select>
                 ) : (
                   <Input
                     id="meta"
