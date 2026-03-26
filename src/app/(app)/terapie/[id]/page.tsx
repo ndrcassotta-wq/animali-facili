@@ -2,8 +2,16 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import { formatData } from '@/lib/utils/date'
+import { cn } from '@/lib/utils'
+import {
+  ArrowLeft,
+  Check,
+  Pencil,
+  Archive,
+  CircleStop,
+  Stethoscope,
+} from 'lucide-react'
 import type { Database } from '@/lib/types/database.types'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
@@ -50,6 +58,12 @@ function formatDateOnlyIso(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
+function buildDateWithTime(dataIso: string, ora: string | null) {
+  const orario = ora && ora.length >= 5 ? ora.slice(0, 5) : '09:00'
+  const date = new Date(`${dataIso}T${orario}:00`)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 function getAutoTerapiaMarker(terapiaId: string) {
   return `[AUTO_TERAPIA:${terapiaId}]`
 }
@@ -70,8 +84,11 @@ function calcolaProssimaSomministrazione(
   if (!ultimaSomministrazione?.somministrata_il) {
     if (!terapia.data_inizio) return null
 
-    const primaData = new Date(`${terapia.data_inizio}T09:00:00`)
-    if (Number.isNaN(primaData.getTime())) return null
+    const primaData = buildDateWithTime(
+      terapia.data_inizio,
+      terapia.ora_somministrazione
+    )
+    if (!primaData) return null
 
     if (terapia.data_fine) {
       const dataFine = new Date(`${terapia.data_fine}T23:59:59`)
@@ -142,8 +159,6 @@ function calcolaProssimaDataImpegno(
 ): string | null {
   if (terapia.stato !== 'attiva') return null
 
-  // Prima versione affidabile con schema impegni attuale:
-  // gestiamo automatico davvero bene il caso 1× al giorno.
   if (terapia.frequenza !== 'una_volta_giorno') {
     return null
   }
@@ -160,6 +175,46 @@ function calcolaProssimaDataImpegno(
   return prossimaData
 }
 
+function RigaInfo({ label, valore }: { label: string; valore: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-right text-sm font-semibold text-gray-800">
+        {valore}
+      </span>
+    </div>
+  )
+}
+
+function getStatoBadge(stato: string | null) {
+  switch (stato) {
+    case 'attiva':
+      return {
+        label: 'Attiva',
+        cls: 'bg-green-100 text-green-700',
+        box: 'bg-green-100',
+      }
+    case 'conclusa':
+      return {
+        label: 'Conclusa',
+        cls: 'bg-amber-100 text-amber-700',
+        box: 'bg-amber-100',
+      }
+    case 'archiviata':
+      return {
+        label: 'Archiviata',
+        cls: 'bg-gray-100 text-gray-600',
+        box: 'bg-gray-100',
+      }
+    default:
+      return {
+        label: getLabelStato(stato),
+        cls: 'bg-blue-100 text-blue-700',
+        box: 'bg-blue-100',
+      }
+  }
+}
+
 type PageProps = {
   params: Promise<{ id: string }>
 }
@@ -167,6 +222,12 @@ type PageProps = {
 export default async function DettaglioTerapiaPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
 
   const { data: terapiaRow, error: terapiaError } = await supabase
     .from('terapie')
@@ -254,6 +315,7 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
         titolo: `Terapia: ${terapia.nome_farmaco}`,
         tipo: 'terapia',
         data: prossimaDataImpegno,
+        ora: terapia.ora_somministrazione ?? null,
         frequenza: 'nessuna',
         notifiche_attive: false,
         stato: 'programmato',
@@ -377,8 +439,7 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
     ])
 
   const animale = (animaleRow ?? null) as Animale | null
-  const somministrazioni = (somministrazioniRows ??
-    []) as Somministrazione[]
+  const somministrazioni = (somministrazioniRows ?? []) as Somministrazione[]
 
   const ultimaSomministrazione = somministrazioni[0] ?? null
   const prossimaSomministrazione = calcolaProssimaSomministrazione(
@@ -386,143 +447,129 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
     ultimaSomministrazione
   )
 
+  const statoBadge = getStatoBadge(terapia.stato)
+
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-      <div className="space-y-2">
-        <Link
-          href={`/animali/${terapia.animale_id}?tab=terapie`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Torna alle terapie
-        </Link>
-
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {terapia.nome_farmaco}
-          </h1>
-
-          <p className="text-sm text-muted-foreground">
-            {animale ? `Terapia di ${animale.nome}` : 'Dettaglio terapia'}
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Farmaco
-            </p>
-            <p className="text-sm font-medium">{terapia.nome_farmaco}</p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Dose
-            </p>
-            <p className="text-sm font-medium">
-              {terapia.dose || 'Non indicata'}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Frequenza
-            </p>
-            <p className="text-sm font-medium">
-              {getLabelFrequenza(terapia.frequenza)}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Stato
-            </p>
-            <p className="text-sm font-medium">
-              {getLabelStato(terapia.stato)}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Data inizio
-            </p>
-            <p className="text-sm font-medium">
-              {terapia.data_inizio
-                ? formatData(terapia.data_inizio)
-                : 'Non indicata'}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Data fine
-            </p>
-            <p className="text-sm font-medium">
-              {terapia.data_fine
-                ? formatData(terapia.data_fine)
-                : 'Non indicata'}
-            </p>
-          </div>
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+      <header className="shrink-0 px-5 pt-10 pb-4">
+        <div className="mb-5">
+          <Link
+            href={`/animali/${terapia.animale_id}?tab=terapie`}
+            className="flex items-center gap-2 text-gray-500 active:opacity-70"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+            <span className="text-sm font-semibold">Indietro</span>
+          </Link>
         </div>
 
-        <div className="mt-5 space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Note
-          </p>
-          <p className="whitespace-pre-wrap text-sm">
-            {terapia.note || 'Nessuna nota'}
-          </p>
-        </div>
-      </div>
+        <div className="flex items-center gap-4">
+          <div
+            className={cn(
+              'flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl',
+              statoBadge.box
+            )}
+          >
+            <Stethoscope size={28} className="text-gray-700" strokeWidth={2.2} />
+          </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-3">
           <div>
-            <h2 className="text-base font-semibold">Somministrazione</h2>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              {terapia.nome_farmaco}
+            </h1>
+            <div className="mt-1 flex items-center gap-2">
+              <span
+                className={cn(
+                  'rounded-full px-2.5 py-0.5 text-xs font-bold',
+                  statoBadge.cls
+                )}
+              >
+                {statoBadge.label}
+              </span>
+              {animale && (
+                <span className="text-xs text-gray-400">{animale.nome}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 px-5 pb-32 space-y-4">
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-2">
+          <RigaInfo label="Farmaco" valore={terapia.nome_farmaco} />
+          <RigaInfo label="Dose" valore={terapia.dose || 'Non indicata'} />
+          <RigaInfo
+            label="Frequenza"
+            valore={getLabelFrequenza(terapia.frequenza)}
+          />
+          <RigaInfo
+            label="Orario"
+            valore={terapia.ora_somministrazione?.slice(0, 5) || 'Non indicato'}
+          />
+          <RigaInfo label="Stato" valore={getLabelStato(terapia.stato)} />
+          <RigaInfo
+            label="Data inizio"
+            valore={
+              terapia.data_inizio ? formatData(terapia.data_inizio) : 'Non indicata'
+            }
+          />
+          <RigaInfo
+            label="Data fine"
+            valore={
+              terapia.data_fine ? formatData(terapia.data_fine) : 'Non indicata'
+            }
+          />
+          {terapia.note && <RigaInfo label="Note" valore={terapia.note} />}
+        </div>
+
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-4">
+          <div>
+            <h2 className="text-base font-extrabold text-gray-900">
+              Somministrazione
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">
               Registra quando hai dato il farmaco e controlla la prossima
               somministrazione prevista.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Ultima somministrazione
-              </p>
-              <p className="text-sm font-medium">
+          <div className="rounded-2xl bg-[#FDF8F3] border border-gray-100 px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-400">Ultima</span>
+              <span className="text-right text-sm font-semibold text-gray-800">
                 {ultimaSomministrazione
                   ? formatDataOra(ultimaSomministrazione.somministrata_il)
                   : 'Nessuna registrazione'}
-              </p>
+              </span>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Prossima prevista
-              </p>
-              <p className="text-sm font-medium">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-400">Prossima</span>
+              <span className="text-right text-sm font-semibold text-gray-800">
                 {getTestoProssimaSomministrazione(
                   terapia,
                   prossimaSomministrazione
                 )}
-              </p>
+              </span>
             </div>
           </div>
 
           {terapia.frequenza !== 'una_volta_giorno' &&
             terapia.stato === 'attiva' && (
-              <p className="text-xs text-muted-foreground">
-                Per ora il promemoria automatico negli impegni si aggiorna in
-                automatico soprattutto per le terapie 1× al giorno.
-              </p>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-medium text-amber-700">
+                  Per ora il promemoria automatico negli impegni si aggiorna bene
+                  soprattutto per le terapie 1× al giorno.
+                </p>
+              </div>
             )}
 
           {terapia.stato === 'attiva' ? (
             <form action={segnaSomministrata} className="space-y-3">
-              <div className="space-y-2">
-                <label htmlFor="nota" className="text-sm font-medium">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="nota"
+                  className="text-sm font-semibold text-gray-700"
+                >
                   Nota somministrazione
                 </label>
                 <textarea
@@ -530,102 +577,124 @@ export default async function DettaglioTerapiaPage({ params }: PageProps) {
                   name="nota"
                   rows={3}
                   placeholder="Es. presa dopo pasto, mezza compressa, nessun problema..."
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none placeholder:text-gray-400"
                 />
               </div>
 
-              <Button type="submit" className="w-full sm:w-auto">
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
+              >
                 Segna somministrata
-              </Button>
+              </button>
             </form>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              La terapia non è attiva, quindi non può essere registrata una
-              nuova somministrazione.
-            </p>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <p className="text-sm font-medium text-gray-600">
+                La terapia non è attiva, quindi non può essere registrata una
+                nuova somministrazione.
+              </p>
+            </div>
           )}
         </div>
-      </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-3">
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-3">
           <div>
-            <h2 className="text-base font-semibold">Gestione terapia</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-base font-extrabold text-gray-900">
+              Gestione terapia
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">
               Modifica i dati o aggiorna lo stato della terapia.
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href={`/terapie/${terapia.id}/modifica`}>
-                Modifica terapia
-              </Link>
-            </Button>
+          <Link
+            href={`/terapie/${terapia.id}/modifica`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-4 text-sm font-bold text-gray-600 shadow-sm active:scale-[0.98] transition-all"
+          >
+            <Pencil size={16} strokeWidth={2.2} />
+            Modifica terapia
+          </Link>
 
-            {terapia.stato === 'attiva' && (
-              <form action={concludiTerapia} className="w-full sm:w-auto">
-                <Button type="submit" variant="outline" className="w-full">
-                  Concludi terapia
-                </Button>
-              </form>
-            )}
-
-            {(terapia.stato === 'attiva' || terapia.stato === 'conclusa') && (
-              <form action={archiviaTerapia} className="w-full sm:w-auto">
-                <Button type="submit" variant="outline" className="w-full">
-                  Archivia terapia
-                </Button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold">Storico somministrazioni</h2>
-          <p className="text-sm text-muted-foreground">
-            Ultime registrazioni effettuate per questa terapia.
-          </p>
-        </div>
-
-        {somministrazioni.length === 0 ? (
-          <p className="pt-4 text-sm text-muted-foreground">
-            Nessuna somministrazione registrata.
-          </p>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {somministrazioni.map((somministrazione) => (
-              <div
-                key={somministrazione.id}
-                className="rounded-xl border border-border px-3 py-3"
+          {terapia.stato === 'attiva' && (
+            <form action={concludiTerapia}>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-700 active:scale-[0.98] transition-all"
               >
-                <p className="text-sm font-medium">
-                  {formatDataOra(somministrazione.somministrata_il)}
-                </p>
+                <CircleStop size={16} strokeWidth={2.2} />
+                Concludi terapia
+              </button>
+            </form>
+          )}
 
-                <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">
-                  {somministrazione.nota || 'Nessuna nota'}
-                </p>
-              </div>
-            ))}
+          {(terapia.stato === 'attiva' || terapia.stato === 'conclusa') && (
+            <form action={archiviaTerapia}>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-4 text-sm font-bold text-gray-600 shadow-sm active:scale-[0.98] transition-all"
+              >
+                <Archive size={16} strokeWidth={2.2} />
+                Archivia terapia
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm px-5 py-5 space-y-3">
+          <div>
+            <h2 className="text-base font-extrabold text-gray-900">
+              Storico somministrazioni
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">
+              Ultime registrazioni effettuate per questa terapia.
+            </p>
           </div>
-        )}
-      </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild className="w-full sm:w-auto">
-          <Link href={`/animali/${terapia.animale_id}?tab=terapie`}>
+          {somministrazioni.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-[#FDF8F3] px-4 py-6 text-center">
+              <p className="text-sm font-medium text-gray-500">
+                Nessuna somministrazione registrata.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {somministrazioni.map((somministrazione) => (
+                <div
+                  key={somministrazione.id}
+                  className="rounded-2xl border border-gray-100 bg-[#FDF8F3] px-4 py-4"
+                >
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <Check size={16} strokeWidth={2.6} />
+                    <p className="text-sm font-bold">
+                      {formatDataOra(somministrazione.somministrata_il)}
+                    </p>
+                  </div>
+
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-gray-500">
+                    {somministrazione.nota || 'Nessuna nota'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <Link
+            href={`/animali/${terapia.animale_id}?tab=terapie`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
+          >
             Torna alla scheda animale
           </Link>
-        </Button>
 
-        <Button asChild variant="outline" className="w-full sm:w-auto">
-          <Link href={`/animali/${terapia.animale_id}/terapie/nuova`}>
+          <Link
+            href={`/animali/${terapia.animale_id}/terapie/nuova`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white py-4 text-sm font-bold text-gray-600 shadow-sm active:scale-[0.98] transition-all"
+          >
             Nuova terapia
           </Link>
-        </Button>
+        </div>
       </div>
     </div>
   )

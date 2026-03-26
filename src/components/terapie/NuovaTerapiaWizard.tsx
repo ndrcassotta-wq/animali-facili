@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   CalendarDays,
   ChevronRight,
+  Clock3,
   FileText,
   PawPrint,
   Stethoscope,
@@ -27,15 +28,15 @@ const FREQUENZE = [
 ] as const
 
 const STEP_LABELS: Record<Step, string> = {
-  animale:   'Animale',
-  farmaco:   'Farmaco',
+  animale: 'Animale',
+  farmaco: 'Farmaco',
   frequenza: 'Frequenza',
-  date:      'Date',
-  note:      'Conferma',
+  date: 'Date',
+  note: 'Conferma',
 }
 
 function ProgressBar({ step, steps }: { step: Step; steps: Step[] }) {
-  const idx     = steps.indexOf(step)
+  const idx = steps.indexOf(step)
   const percent = (idx / (steps.length - 1)) * 100
 
   return (
@@ -63,7 +64,11 @@ function ProgressBar({ step, steps }: { step: Step; steps: Step[] }) {
 }
 
 function Campo({
-  label, required, children, helper, error,
+  label,
+  required,
+  children,
+  helper,
+  error,
 }: {
   label: string
   required?: boolean
@@ -79,7 +84,7 @@ function Campo({
       </label>
       {children}
       {helper && <p className="text-xs text-gray-400">{helper}</p>}
-      {error  && <p className="text-xs font-medium text-red-500">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   )
 }
@@ -106,6 +111,7 @@ export function NuovaTerapiaWizard({
     frequenzaCustom?: string
     dataInizio?: string
     dataFine?: string
+    oraSomministrazione?: string
     note?: string
   }
 }) {
@@ -119,26 +125,33 @@ export function NuovaTerapiaWizard({
     [hasAnimalStep]
   )
 
-  const [step,           setStep]           = useState<Step>(hasAnimalStep ? 'animale' : 'farmaco')
-  const [animaleId,      setAnimaleId]      = useState(preselectedAnimalId ?? '')
-  const [nomeFarmaco,    setNomeFarmaco]    = useState(valoriIniziali?.nomeFarmaco ?? '')
-  const [dose,           setDose]           = useState(valoriIniziali?.dose ?? '')
-  const [frequenza,      setFrequenza]      = useState(valoriIniziali?.frequenza ?? 'una_volta_giorno')
-  const [frequenzaCustom,setFrequenzaCustom]= useState(valoriIniziali?.frequenzaCustom ?? '')
-  const [dataInizio,     setDataInizio]     = useState(() => {
+  const [step, setStep] = useState<Step>(hasAnimalStep ? 'animale' : 'farmaco')
+  const [animaleId, setAnimaleId] = useState(preselectedAnimalId ?? '')
+  const [nomeFarmaco, setNomeFarmaco] = useState(valoriIniziali?.nomeFarmaco ?? '')
+  const [dose, setDose] = useState(valoriIniziali?.dose ?? '')
+  const [frequenza, setFrequenza] = useState<string>(
+    valoriIniziali?.frequenza ?? 'una_volta_giorno'
+  )
+  const [frequenzaCustom, setFrequenzaCustom] = useState(
+    valoriIniziali?.frequenzaCustom ?? ''
+  )
+  const [dataInizio, setDataInizio] = useState(() => {
     if (valoriIniziali?.dataInizio) return valoriIniziali.dataInizio
-    const oggi  = new Date()
-    const year  = oggi.getFullYear()
+    const oggi = new Date()
+    const year = oggi.getFullYear()
     const month = String(oggi.getMonth() + 1).padStart(2, '0')
-    const day   = String(oggi.getDate()).padStart(2, '0')
+    const day = String(oggi.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   })
-  const [dataFine,       setDataFine]       = useState(valoriIniziali?.dataFine ?? '')
-  const [note,           setNote]           = useState(valoriIniziali?.note ?? '')
-  const [errori,         setErrori]         = useState<Partial<Record<Step, string>>>({})
+  const [dataFine, setDataFine] = useState(valoriIniziali?.dataFine ?? '')
+  const [oraSomministrazione, setOraSomministrazione] = useState(
+    valoriIniziali?.oraSomministrazione ?? ''
+  )
+  const [note, setNote] = useState(valoriIniziali?.note ?? '')
+  const [errori, setErrori] = useState<Partial<Record<Step, string>>>({})
 
   const animaleSelezionato = animali.find((a) => a.id === animaleId) ?? null
-  const indice             = steps.indexOf(step)
+  const indice = steps.indexOf(step)
 
   function vaiAvanti() {
     const erroriNuovi: Partial<Record<Step, string>> = {}
@@ -146,9 +159,11 @@ export function NuovaTerapiaWizard({
     if (step === 'animale' && !animaleId) {
       erroriNuovi.animale = 'Seleziona un animale'
     }
+
     if (step === 'farmaco' && (!nomeFarmaco.trim() || !dose.trim())) {
       erroriNuovi.farmaco = 'Compila nome farmaco e dose'
     }
+
     if (step === 'frequenza') {
       if (!frequenza) {
         erroriNuovi.frequenza = 'Seleziona una frequenza'
@@ -156,8 +171,13 @@ export function NuovaTerapiaWizard({
         erroriNuovi.frequenza = 'Inserisci la frequenza personalizzata'
       }
     }
-    if (step === 'date' && !dataInizio) {
-      erroriNuovi.date = 'La data di inizio è obbligatoria'
+
+    if (step === 'date') {
+      if (!dataInizio) {
+        erroriNuovi.date = 'La data di inizio è obbligatoria'
+      } else if (frequenza !== 'al_bisogno' && !oraSomministrazione) {
+        erroriNuovi.date = 'Indica anche l’orario della somministrazione'
+      }
     }
 
     if (Object.keys(erroriNuovi).length > 0) {
@@ -212,16 +232,20 @@ export function NuovaTerapiaWizard({
       </header>
 
       <form action={onSubmit} className="flex-1 px-5 pb-12">
-        <input type="hidden" name="animale_id"       value={animaleId} />
-        <input type="hidden" name="nome_farmaco"     value={nomeFarmaco} />
-        <input type="hidden" name="dose"             value={dose} />
-        <input type="hidden" name="frequenza"        value={frequenza} />
+        <input type="hidden" name="animale_id" value={animaleId} />
+        <input type="hidden" name="nome_farmaco" value={nomeFarmaco} />
+        <input type="hidden" name="dose" value={dose} />
+        <input type="hidden" name="frequenza" value={frequenza} />
         <input type="hidden" name="frequenza_custom" value={frequenzaCustom} />
-        <input type="hidden" name="data_inizio"      value={dataInizio} />
-        <input type="hidden" name="data_fine"        value={dataFine} />
-        <input type="hidden" name="note"             value={note} />
+        <input type="hidden" name="data_inizio" value={dataInizio} />
+        <input type="hidden" name="data_fine" value={dataFine} />
+        <input
+          type="hidden"
+          name="ora_somministrazione"
+          value={oraSomministrazione}
+        />
+        <input type="hidden" name="note" value={note} />
 
-        {/* ── STEP: ANIMALE ───────────────────────────────────────────── */}
         {step === 'animale' && (
           <div className="pt-4">
             <div className="mb-6">
@@ -250,7 +274,9 @@ export function NuovaTerapiaWizard({
                 >
                   <option value="">Seleziona un animale</option>
                   {animali.map((a) => (
-                    <option key={a.id} value={a.id}>{a.nome}</option>
+                    <option key={a.id} value={a.id}>
+                      {a.nome}
+                    </option>
                   ))}
                 </select>
               </Campo>
@@ -266,7 +292,6 @@ export function NuovaTerapiaWizard({
           </div>
         )}
 
-        {/* ── STEP: FARMACO ───────────────────────────────────────────── */}
         {step === 'farmaco' && (
           <div className="pt-4">
             <div className="mb-6">
@@ -319,7 +344,6 @@ export function NuovaTerapiaWizard({
           </div>
         )}
 
-        {/* ── STEP: FREQUENZA ─────────────────────────────────────────── */}
         {step === 'frequenza' && (
           <div className="pt-4">
             <div className="mb-6">
@@ -347,13 +371,19 @@ export function NuovaTerapiaWizard({
                   className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
                 >
                   {FREQUENZE.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
                   ))}
                 </select>
               </Campo>
 
               {frequenza === 'personalizzata' && (
-                <Campo label="Frequenza personalizzata" required helper="Es. ogni 8 ore">
+                <Campo
+                  label="Frequenza personalizzata"
+                  required
+                  helper="Es. ogni 8 ore"
+                >
                   <input
                     value={frequenzaCustom}
                     onChange={(e) => {
@@ -377,20 +407,20 @@ export function NuovaTerapiaWizard({
           </div>
         )}
 
-        {/* ── STEP: DATE ──────────────────────────────────────────────── */}
         {step === 'date' && (
           <div className="pt-4">
             <div className="mb-6">
               <div className="mb-1 flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <CalendarDays size={22} strokeWidth={2.2} />
+                  <Clock3 size={22} strokeWidth={2.2} />
                 </div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  Date terapia
+                  Date e orario
                 </h1>
               </div>
               <p className="text-sm text-gray-400">
-                Inserisci almeno la data di inizio
+                Inserisci almeno la data di inizio e, se prevista, l’ora della
+                somministrazione
               </p>
             </div>
 
@@ -415,6 +445,26 @@ export function NuovaTerapiaWizard({
                   className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
                 />
               </Campo>
+
+              <Campo
+                label="Orario somministrazione"
+                required={frequenza !== 'al_bisogno'}
+                helper={
+                  frequenza === 'al_bisogno'
+                    ? 'Per le terapie al bisogno puoi lasciarlo vuoto'
+                    : 'Es. 09:00'
+                }
+              >
+                <input
+                  type="time"
+                  value={oraSomministrazione}
+                  onChange={(e) => {
+                    setOraSomministrazione(e.target.value)
+                    setErrori((prev) => ({ ...prev, date: undefined }))
+                  }}
+                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
+                />
+              </Campo>
             </div>
 
             <button
@@ -427,7 +477,6 @@ export function NuovaTerapiaWizard({
           </div>
         )}
 
-        {/* ── STEP: NOTE + RIEPILOGO ──────────────────────────────────── */}
         {step === 'note' && (
           <div className="pt-4">
             <div className="mb-6">
@@ -440,7 +489,9 @@ export function NuovaTerapiaWizard({
                 </h1>
               </div>
               <p className="text-sm text-gray-400">
-                {valoriIniziali ? 'Controlla i dati e salva' : 'Aggiungi note opzionali e conferma'}
+                {valoriIniziali
+                  ? 'Controlla i dati e salva'
+                  : 'Aggiungi note opzionali e conferma'}
               </p>
             </div>
 
@@ -451,7 +502,7 @@ export function NuovaTerapiaWizard({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     rows={4}
-                    placeholder="Indicazioni, orari, osservazioni..."
+                    placeholder="Indicazioni, osservazioni, dettagli utili..."
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none placeholder:text-gray-400"
                   />
                 </Campo>
@@ -461,19 +512,40 @@ export function NuovaTerapiaWizard({
                 <h2 className="mb-3 text-sm font-bold text-amber-900">Riepilogo</h2>
                 <div className="space-y-2 text-sm text-amber-900">
                   {animaleSelezionato && (
-                    <p><span className="font-semibold">Animale:</span> {animaleSelezionato.nome}</p>
+                    <p>
+                      <span className="font-semibold">Animale:</span>{' '}
+                      {animaleSelezionato.nome}
+                    </p>
                   )}
-                  <p><span className="font-semibold">Farmaco:</span> {nomeFarmaco || '—'}</p>
-                  <p><span className="font-semibold">Dose:</span> {dose || '—'}</p>
+                  <p>
+                    <span className="font-semibold">Farmaco:</span>{' '}
+                    {nomeFarmaco || '—'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Dose:</span> {dose || '—'}
+                  </p>
                   <p>
                     <span className="font-semibold">Frequenza:</span>{' '}
                     {FREQUENZE.find((f) => f.value === frequenza)?.label ?? frequenza}
                   </p>
                   {frequenza === 'personalizzata' && frequenzaCustom.trim() && (
-                    <p><span className="font-semibold">Dettaglio:</span> {frequenzaCustom}</p>
+                    <p>
+                      <span className="font-semibold">Dettaglio:</span>{' '}
+                      {frequenzaCustom}
+                    </p>
                   )}
-                  <p><span className="font-semibold">Data inizio:</span> {dataInizio || '—'}</p>
-                  <p><span className="font-semibold">Data fine:</span> {dataFine || 'Non indicata'}</p>
+                  <p>
+                    <span className="font-semibold">Data inizio:</span>{' '}
+                    {dataInizio || '—'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Data fine:</span>{' '}
+                    {dataFine || 'Non indicata'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Orario:</span>{' '}
+                    {oraSomministrazione || 'Non indicato'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -486,7 +558,6 @@ export function NuovaTerapiaWizard({
             </button>
           </div>
         )}
-
       </form>
     </div>
   )

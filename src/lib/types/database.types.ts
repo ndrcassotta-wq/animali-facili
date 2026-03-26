@@ -228,6 +228,7 @@ export type Database = {
           stato: 'attiva' | 'conclusa' | 'archiviata'
           created_at: string
           updated_at: string
+          ora_somministrazione: string | null
         }
         Insert: {
           id?: string
@@ -242,6 +243,7 @@ export type Database = {
           stato?: 'attiva' | 'conclusa' | 'archiviata'
           created_at?: string
           updated_at?: string
+          ora_somministrazione?: string | null
         }
         Update: {
           id?: string
@@ -256,6 +258,7 @@ export type Database = {
           stato?: 'attiva' | 'conclusa' | 'archiviata'
           created_at?: string
           updated_at?: string
+          ora_somministrazione?: string | null
         }
         Relationships: [
           {

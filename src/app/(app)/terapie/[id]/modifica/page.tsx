@@ -14,7 +14,9 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: terapiaRow, error } = await supabase
@@ -27,7 +29,6 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
 
   const terapia = terapiaRow as Terapia
 
-  // Carica animale per mostrare il nome
   const { data: animaleRow } = await supabase
     .from('animali')
     .select('id, nome')
@@ -41,13 +42,14 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
 
     const supabase = await createClient()
 
-    const nomeFarmaco     = String(formData.get('nome_farmaco') ?? '').trim()
-    const dose            = String(formData.get('dose') ?? '').trim()
-    const frequenza       = String(formData.get('frequenza') ?? '').trim()
+    const nomeFarmaco = String(formData.get('nome_farmaco') ?? '').trim()
+    const dose = String(formData.get('dose') ?? '').trim()
+    const frequenza = String(formData.get('frequenza') ?? '').trim()
     const frequenzaCustom = String(formData.get('frequenza_custom') ?? '').trim()
-    const dataInizio      = String(formData.get('data_inizio') ?? '').trim()
-    const dataFineRaw     = String(formData.get('data_fine') ?? '').trim()
-    const noteRaw         = String(formData.get('note') ?? '').trim()
+    const dataInizio = String(formData.get('data_inizio') ?? '').trim()
+    const dataFineRaw = String(formData.get('data_fine') ?? '').trim()
+    const noteRaw = String(formData.get('note') ?? '').trim()
+    const oraSomministrazioneRaw = String(formData.get('ora_somministrazione') ?? '').trim()
 
     if (!nomeFarmaco || !dose || !frequenza || !dataInizio) {
       throw new Error('Compila tutti i campi obbligatori.')
@@ -56,13 +58,19 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
     const { error } = await supabase
       .from('terapie')
       .update({
-        nome_farmaco:     nomeFarmaco,
+        nome_farmaco: nomeFarmaco,
         dose,
-        frequenza: frequenza as 'una_volta_giorno' | 'due_volte_giorno' | 'tre_volte_giorno' | 'al_bisogno' | 'personalizzata',
+        frequenza: frequenza as
+          | 'una_volta_giorno'
+          | 'due_volte_giorno'
+          | 'tre_volte_giorno'
+          | 'al_bisogno'
+          | 'personalizzata',
         frequenza_custom: frequenza === 'personalizzata' ? frequenzaCustom || null : null,
-        data_inizio:      dataInizio,
-        data_fine:        dataFineRaw || null,
-        note:             noteRaw || null,
+        data_inizio: dataInizio,
+        data_fine: dataFineRaw || null,
+        note: noteRaw || null,
+        ora_somministrazione: oraSomministrazioneRaw || null,
       })
       .eq('id', id)
 
@@ -71,6 +79,9 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
     revalidatePath(`/terapie/${id}`)
     revalidatePath(`/animali/${terapia.animale_id}`)
     revalidatePath(`/animali/${terapia.animale_id}?tab=terapie`)
+    revalidatePath(`/animali/${terapia.animale_id}?tab=impegni`)
+    revalidatePath('/impegni')
+    revalidatePath('/home')
 
     redirect(`/terapie/${id}`)
   }
@@ -84,13 +95,14 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
       animali={[animale]}
       preselectedAnimalId={animale.id}
       valoriIniziali={{
-        nomeFarmaco:     terapia.nome_farmaco,
-        dose:            terapia.dose ?? '',
-        frequenza:       terapia.frequenza ?? 'una_volta_giorno',
+        nomeFarmaco: terapia.nome_farmaco,
+        dose: terapia.dose ?? '',
+        frequenza: terapia.frequenza ?? 'una_volta_giorno',
         frequenzaCustom: terapia.frequenza_custom ?? '',
-        dataInizio:      terapia.data_inizio ?? '',
-        dataFine:        terapia.data_fine ?? '',
-        note:            terapia.note ?? '',
+        dataInizio: terapia.data_inizio ?? '',
+        dataFine: terapia.data_fine ?? '',
+        note: terapia.note ?? '',
+        oraSomministrazione: terapia.ora_somministrazione ?? '',
       }}
     />
   )

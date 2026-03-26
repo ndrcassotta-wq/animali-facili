@@ -78,6 +78,9 @@ export default async function NuovaTerapiaGenericaPage() {
     ).trim()
     const dataInizio = String(formData.get('data_inizio') ?? '').trim()
     const dataFineRaw = String(formData.get('data_fine') ?? '').trim()
+    const oraSomministrazioneRaw = String(
+      formData.get('ora_somministrazione') ?? ''
+    ).trim()
     const noteRaw = String(formData.get('note') ?? '').trim()
 
     if (!animaleId || !nomeFarmaco || !dose || !frequenza || !dataInizio) {
@@ -104,6 +107,7 @@ export default async function NuovaTerapiaGenericaPage() {
         frequenza === 'personalizzata' ? frequenzaCustomRaw || null : null,
       data_inizio: dataInizio,
       data_fine: dataFineRaw || null,
+      ora_somministrazione: oraSomministrazioneRaw || null,
       note: noteRaw || null,
       stato: 'attiva',
     }
