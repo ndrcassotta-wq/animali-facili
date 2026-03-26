@@ -7,13 +7,28 @@ import type { Database } from '@/lib/types/database.types'
 import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 
 type Terapia = Database['public']['Tables']['terapie']['Row']
-type SomministrazioneTerapia = Database['public']['Tables']['somministrazioni_terapia']['Row']
+type SomministrazioneTerapia =
+  Database['public']['Tables']['somministrazioni_terapia']['Row']
 type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 
-type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie'
-const TAB_VALIDE: TabId[] = ['home', 'profilo', 'impegni', 'documenti', 'terapie']
+type TabId =
+  | 'home'
+  | 'profilo'
+  | 'impegni'
+  | 'documenti'
+  | 'terapie'
+  | 'diario'
+
+const TAB_VALIDE: TabId[] = [
+  'home',
+  'profilo',
+  'impegni',
+  'documenti',
+  'terapie',
+  'diario',
+]
 
 function getTabValida(tab?: string | string[]): TabId {
   const valore = Array.isArray(tab) ? tab[0] : tab
@@ -27,36 +42,45 @@ type PageProps = {
 }
 
 export default async function AnimalePage({ params, searchParams }: PageProps) {
-  const { id }  = await params
+  const { id } = await params
   const { tab } = await searchParams
   const tabIniziale = getTabValida(tab)
 
   const supabase = await createClient()
 
   const [
-    { data: animaleData,   error: animaleError },
-    { data: impegniData,   error: impegniError },
+    { data: animaleData, error: animaleError },
+    { data: impegniData, error: impegniError },
     { data: documentiData, error: documentiError },
-    { data: terapieData,   error: terapieError },
+    { data: terapieData, error: terapieError },
   ] = await Promise.all([
     supabase.from('animali').select('*').eq('id', id).single(),
-    supabase.from('impegni').select('*').eq('animale_id', id).order('data', { ascending: true }),
-    supabase.from('documenti').select('*').eq('animale_id', id).order('created_at', { ascending: false }),
+    supabase
+      .from('impegni')
+      .select('*')
+      .eq('animale_id', id)
+      .order('data', { ascending: true }),
+    supabase
+      .from('documenti')
+      .select('*')
+      .eq('animale_id', id)
+      .order('created_at', { ascending: false }),
     supabase.from('terapie').select('*').eq('animale_id', id),
   ])
 
   if (animaleError || !animaleData) notFound()
 
-  if (impegniError)   console.error('Errore caricamento impegni:', impegniError)
-  if (documentiError) console.error('Errore caricamento documenti:', documentiError)
-  if (terapieError)   console.error('Errore caricamento terapie:', terapieError)
+  if (impegniError) console.error('Errore caricamento impegni:', impegniError)
+  if (documentiError)
+    console.error('Errore caricamento documenti:', documentiError)
+  if (terapieError) console.error('Errore caricamento terapie:', terapieError)
 
-  const animale   = animaleData as Animale
-  const impegni   = (impegniData   ?? []) as Impegno[]
+  const animale = animaleData as Animale
+  const impegni = (impegniData ?? []) as Impegno[]
   const documenti = (documentiData ?? []) as Documento[]
   const terapieBase = (terapieData ?? []) as Terapia[]
 
-  const terapiaIds = terapieBase.map(t => t.id)
+  const terapiaIds = terapieBase.map((t) => t.id)
   let tutteLeSomministrazioni: SomministrazioneTerapia[] = []
 
   if (terapiaIds.length > 0) {
@@ -68,9 +92,13 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
         .order('somministrata_il', { ascending: false })
 
     if (somministrazioniError) {
-      console.error('Errore caricamento somministrazioni:', somministrazioniError)
+      console.error(
+        'Errore caricamento somministrazioni:',
+        somministrazioniError
+      )
     } else {
-      tutteLeSomministrazioni = (somministrazioniData ?? []) as SomministrazioneTerapia[]
+      tutteLeSomministrazioni = (somministrazioniData ??
+        []) as SomministrazioneTerapia[]
     }
   }
 
@@ -81,7 +109,7 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
     }
   }
 
-  const terapie: TerapiaConUltimaSomministrazione[] = terapieBase.map(t => ({
+  const terapie: TerapiaConUltimaSomministrazione[] = terapieBase.map((t) => ({
     ...t,
     ultimaSomministrazione: somministrazioniPerTerapia.get(t.id) ?? null,
   }))

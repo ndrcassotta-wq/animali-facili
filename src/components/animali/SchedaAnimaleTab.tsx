@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   ChevronRight,
   PawPrint,
+  BookOpen,
 } from 'lucide-react'
 import { TabProfilo } from '@/components/animali/TabProfilo'
 import { TabImpegni } from '@/components/animali/TabImpegni'
@@ -26,7 +27,7 @@ type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 
-type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie'
+type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
 
 const iconaCategoria: Record<string, string> = {
   cani: '🐕',
@@ -83,7 +84,7 @@ function QuickCard({
     <button
       onClick={onClick}
       className={cn(
-        'group flex min-h-[150px] flex-col justify-between rounded-[28px] border p-5 text-left shadow-sm active:scale-[0.98] transition-all',
+        'group flex min-h-[150px] flex-col justify-between rounded-[28px] border p-5 text-left shadow-sm transition-all active:scale-[0.98]',
         tone
       )}
     >
@@ -106,6 +107,38 @@ function QuickCard({
   )
 }
 
+function TabDiarioPlaceholder({ animaleNome }: { animaleNome: string }) {
+  return (
+    <div className="px-5 py-5 pb-32">
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+          <BookOpen size={24} strokeWidth={2.2} />
+        </div>
+
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+          Diario
+        </p>
+
+        <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+          Una nuova sezione per seguire {animaleNome}
+        </h2>
+
+        <p className="mt-3 text-sm leading-6 text-gray-500">
+          Qui potrai annotare peso, sintomi, cambiamenti, progressi e note utili
+          nel tempo, in modo semplice e ordinato.
+        </p>
+
+        <div className="mt-5 rounded-2xl bg-[#FCF8F3] px-4 py-4">
+          <p className="text-sm leading-6 text-gray-600">
+            Per ora questa è la base iniziale della sezione. Nel prossimo passo
+            aggiungeremo la prima vera struttura del diario.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function SchedaAnimaleTab({
   animale,
   impegni,
@@ -118,7 +151,8 @@ export function SchedaAnimaleTab({
     tabIniziale === 'profilo' ||
       tabIniziale === 'impegni' ||
       tabIniziale === 'documenti' ||
-      tabIniziale === 'terapie'
+      tabIniziale === 'terapie' ||
+      tabIniziale === 'diario'
       ? tabIniziale
       : 'home'
   )
@@ -147,7 +181,7 @@ export function SchedaAnimaleTab({
         <header className="rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
           <button
             onClick={() => cambiaTab('home')}
-            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-[#EEE4D9] active:opacity-70"
+            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white shadow-sm active:opacity-70"
           >
             <ArrowLeft
               size={20}
@@ -207,6 +241,9 @@ export function SchedaAnimaleTab({
           {tabAttivo === 'terapie' && (
             <TabTerapie animaleId={animale.id} terapie={terapie} />
           )}
+          {tabAttivo === 'diario' && (
+            <TabDiarioPlaceholder animaleNome={animale.nome} />
+          )}
         </div>
       </div>
     )
@@ -256,7 +293,7 @@ export function SchedaAnimaleTab({
               ) : null}
             </div>
 
-            <h1 className="text-3xl font-extrabold tracking-tight leading-tight text-white">
+            <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-white">
               {animale.nome}
             </h1>
 
@@ -320,7 +357,7 @@ export function SchedaAnimaleTab({
                 : 'Nessuno in arrivo'
             }
             onClick={() => cambiaTab('impegni')}
-            tone="bg-blue-50 border-blue-100 text-blue-900"
+            tone="border-blue-100 bg-blue-50 text-blue-900"
             icon={<Calendar size={24} strokeWidth={2} className="text-blue-600" />}
           />
 
@@ -330,7 +367,7 @@ export function SchedaAnimaleTab({
               terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'
             }
             onClick={() => cambiaTab('terapie')}
-            tone="bg-teal-50 border-teal-100 text-teal-900"
+            tone="border-teal-100 bg-teal-50 text-teal-900"
             icon={
               <Stethoscope
                 size={24}
@@ -348,7 +385,7 @@ export function SchedaAnimaleTab({
                 : 'Nessun documento'
             }
             onClick={() => cambiaTab('documenti')}
-            tone="bg-slate-100 border-slate-200 text-slate-800"
+            tone="border-slate-200 bg-slate-100 text-slate-800"
             icon={
               <FolderOpen
                 size={24}
@@ -362,8 +399,18 @@ export function SchedaAnimaleTab({
             title="Profilo"
             subtitle="Info e dettagli"
             onClick={() => cambiaTab('profilo')}
-            tone="bg-violet-50 border-violet-100 text-violet-900"
+            tone="border-violet-100 bg-violet-50 text-violet-900"
             icon={<User size={24} strokeWidth={2} className="text-violet-600" />}
+          />
+
+          <QuickCard
+            title="Diario"
+            subtitle="Peso, sintomi e note"
+            onClick={() => cambiaTab('diario')}
+            tone="border-amber-100 bg-amber-50 text-amber-900"
+            icon={
+              <BookOpen size={24} strokeWidth={2} className="text-amber-600" />
+            }
           />
         </div>
 
