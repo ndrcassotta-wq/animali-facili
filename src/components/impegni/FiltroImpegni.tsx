@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { formatData, isScaduta, isImminente } from '@/lib/utils/date'
-import { ChevronRight, Check } from 'lucide-react'
+import { ChevronRight, Check, Stethoscope } from 'lucide-react'
 import type { ImpegnoConAnimale } from '@/lib/types/query.types'
 import { createClient } from '@/lib/supabase/client'
 
@@ -63,9 +63,10 @@ function CardImpegno({
 
   const scaduto = statoAttivo === 'programmato' && isScaduta(impegno.data)
   const imminente = statoAttivo === 'programmato' && isImminente(impegno.data)
+  const isTerapia = impegno.tipo === 'terapia'
 
   const autoTerapiaId =
-    impegno.tipo === 'terapia' ? getAutoTerapiaId(impegno.note) : null
+    isTerapia ? getAutoTerapiaId(impegno.note) : null
 
   const hrefDettaglio = autoTerapiaId
     ? `/terapie/${autoTerapiaId}`
@@ -99,7 +100,9 @@ function CardImpegno({
           ? 'border-red-200 bg-red-50'
           : imminente
             ? 'border-amber-200 bg-amber-50'
-            : 'border-[#EADFD3] bg-white'
+            : isTerapia
+              ? 'border-teal-200 bg-teal-50/50'
+              : 'border-[#EADFD3] bg-white'
       )}
     >
       <Link
@@ -109,23 +112,48 @@ function CardImpegno({
         <div
           className={cn(
             'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl',
-            scaduto
-              ? 'bg-red-100'
-              : imminente
-                ? 'bg-amber-100'
-                : 'bg-[#FCF8F3]'
+            isTerapia
+              ? 'bg-teal-100 text-teal-700'
+              : scaduto
+                ? 'bg-red-100'
+                : imminente
+                  ? 'bg-amber-100'
+                  : 'bg-[#FCF8F3]'
           )}
         >
-          {iconaTipo[impegno.tipo] ?? '📌'}
+          {isTerapia ? (
+            <Stethoscope size={20} strokeWidth={2.2} />
+          ) : (
+            iconaTipo[impegno.tipo] ?? '📌'
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-gray-800">
-            {impegno.titolo}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-400">
-            {impegno.animali?.nome ?? '—'} · {labelTipo[impegno.tipo] ?? impegno.tipo}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-bold text-gray-800">
+                  {impegno.titolo}
+                </p>
+
+                {isTerapia && (
+                  <span className="shrink-0 rounded-full border border-teal-200 bg-teal-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-teal-700">
+                    Terapia
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-0.5 text-xs text-gray-400">
+                {impegno.animali?.nome ?? '—'} · {labelTipo[impegno.tipo] ?? impegno.tipo}
+              </p>
+
+              {isTerapia && (
+                <p className="mt-1 text-[11px] font-medium text-teal-700">
+                  Collegato alla scheda terapia
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1">
@@ -136,7 +164,9 @@ function CardImpegno({
                 ? 'text-red-500'
                 : imminente
                   ? 'text-amber-600'
-                  : 'text-gray-400'
+                  : isTerapia
+                    ? 'text-teal-700'
+                    : 'text-gray-400'
             )}
           >
             {formatData(impegno.data)}
@@ -151,6 +181,12 @@ function CardImpegno({
           {!scaduto && imminente && (
             <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white">
               Urgente
+            </span>
+          )}
+
+          {!scaduto && !imminente && isTerapia && (
+            <span className="rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white">
+              Terapia
             </span>
           )}
         </div>
