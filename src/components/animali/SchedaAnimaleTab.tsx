@@ -1,7 +1,7 @@
 // src/components/animali/SchedaAnimaleTab.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -21,6 +21,7 @@ import TabTerapie from '@/components/animali/TabTerapie'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { createClient } from '@/lib/supabase/client'
 import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,7 @@ type TerapiaConUltimaSomministrazione = Terapia & {
   ultimaSomministrazione: SomministrazioneTerapia | null
 }
 type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
+type DiarioVoceInsert = Database['public']['Tables']['diario_voci']['Insert']
 
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
 
@@ -123,17 +125,6 @@ function formatDataDiario(data: string) {
   })
 }
 
-function generaId() {
-  if (
-    typeof globalThis.crypto !== 'undefined' &&
-    typeof globalThis.crypto.randomUUID === 'function'
-  ) {
-    return globalThis.crypto.randomUUID()
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
 function TabDiario({
   animaleId,
   animaleNome,
@@ -143,6 +134,7 @@ function TabDiario({
   animaleNome: string
   vociIniziali: DiarioVoce[]
 }) {
+  const router = useRouter()
   const oggi = new Date().toISOString().split('T')[0]
 
   const [voci, setVoci] = useState<DiarioVoce[]>(vociIniziali)
@@ -152,13 +144,20 @@ function TabDiario({
   const [nota, setNota] = useState('')
   const [erroreTitolo, setErroreTitolo] = useState('')
   const [erroreNota, setErroreNota] = useState('')
+  const [erroreSrv, setErroreSrv] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
-  function aggiungiVoceLocale() {
+  useEffect(() => {
+    setVoci(vociIniziali)
+  }, [vociIniziali])
+
+  async function aggiungiVoce() {
     const titoloPulito = titolo.trim()
     const notaPulita = nota.trim()
 
     setErroreTitolo('')
     setErroreNota('')
+    setErroreSrv(null)
 
     let hasError = false
 
@@ -174,29 +173,53 @@ function TabDiario({
 
     if (hasError) return
 
-    const nowIso = new Date().toISOString()
+    setIsSaving(true)
 
-    const nuovaVoce: DiarioVoce = {
-      id: generaId(),
-      animale_id: animaleId,
-      data,
-      titolo: titoloPulito,
-      nota: notaPulita,
-      created_at: nowIso,
-      updated_at: nowIso,
+    try {
+      const supabase = createClient()
+
+      const payload: DiarioVoceInsert = {
+        animale_id: animaleId,
+        data,
+        titolo: titoloPulito,
+        nota: notaPulita,
+      }
+
+      const response = await supabase
+        .from('diario_voci')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      const nuovaVoce = (response.data ?? null) as DiarioVoce | null
+      const error = response.error
+
+      if (error || !nuovaVoce) {
+        setErroreSrv(
+          `Errore durante il salvataggio: ${error?.message ?? 'sconosciuto'}`
+        )
+        setIsSaving(false)
+        return
+      }
+
+      const next: DiarioVoce[] = [nuovaVoce, ...voci].sort(
+        (a, b) =>
+          b.data.localeCompare(a.data) ||
+          b.created_at.localeCompare(a.created_at)
+      )
+
+      setVoci(next)
+      setData(oggi)
+      setTitolo('')
+      setNota('')
+      setMostraForm(false)
+      router.refresh()
+    } catch (error) {
+      console.error(error)
+      setErroreSrv('Errore durante il salvataggio. Riprova.')
+    } finally {
+      setIsSaving(false)
     }
-
-    const next = [nuovaVoce, ...voci].sort(
-      (a, b) =>
-        b.data.localeCompare(a.data) ||
-        b.created_at.localeCompare(a.created_at)
-    )
-
-    setVoci(next)
-    setData(oggi)
-    setTitolo('')
-    setNota('')
-    setMostraForm(false)
   }
 
   return (
@@ -222,7 +245,10 @@ function TabDiario({
 
         <button
           type="button"
-          onClick={() => setMostraForm((prev) => !prev)}
+          onClick={() => {
+            setMostraForm((prev) => !prev)
+            setErroreSrv(null)
+          }}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
         >
           <Plus size={16} strokeWidth={2.5} />
@@ -239,6 +265,7 @@ function TabDiario({
                 type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
+                disabled={isSaving}
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
             </div>
@@ -254,6 +281,7 @@ function TabDiario({
                   setTitolo(e.target.value)
                   setErroreTitolo('')
                 }}
+                disabled={isSaving}
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
               {erroreTitolo && (
@@ -273,6 +301,7 @@ function TabDiario({
                   setNota(e.target.value)
                   setErroreNota('')
                 }}
+                disabled={isSaving}
                 className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
               />
               {erroreNota && (
@@ -280,12 +309,19 @@ function TabDiario({
               )}
             </div>
 
+            {erroreSrv && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+              </div>
+            )}
+
             <button
               type="button"
-              onClick={aggiungiVoceLocale}
-              className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98]"
+              onClick={aggiungiVoce}
+              disabled={isSaving}
+              className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60"
             >
-              Salva voce
+              {isSaving ? 'Salvataggio in corso...' : 'Salva voce'}
             </button>
           </div>
         </div>
@@ -555,7 +591,9 @@ export function SchedaAnimaleTab({
             }
             onClick={() => cambiaTab('impegni')}
             tone="border-blue-100 bg-blue-50 text-blue-900"
-            icon={<Calendar size={24} strokeWidth={2} className="text-blue-600" />}
+            icon={
+              <Calendar size={24} strokeWidth={2} className="text-blue-600" />
+            }
           />
 
           <QuickCard
