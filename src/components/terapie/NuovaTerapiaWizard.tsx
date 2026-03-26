@@ -14,6 +14,7 @@ import {
   Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
 
 type AnimaleOption = {
   id: string
@@ -32,6 +33,31 @@ const FREQUENZE = [
   { value: 'tre_volte_giorno', label: '3× al giorno' },
   { value: 'al_bisogno', label: 'Al bisogno' },
   { value: 'personalizzata', label: 'Personalizzata' },
+] as const
+
+const FARMACI_SUGGERITI = [
+  'Antibiotico',
+  'Antinfiammatorio',
+  'Antidolorifico',
+  'Collirio',
+  'Integratore',
+  'Antiparassitario',
+  'Cortisone',
+  'Probiotico',
+  'Pomata',
+  'Sciroppo',
+  'Gocce auricolari',
+  'Gocce oculari',
+] as const
+
+const DOSI_RAPIDE = [
+  'compressa',
+  'pasticca',
+  'puntura',
+  'gocce',
+  'sciroppo',
+  'crema',
+  'spray',
 ] as const
 
 const STEP_LABELS: Record<Step, string> = {
@@ -419,6 +445,11 @@ export function NuovaTerapiaWizard({
     }
   }
 
+  function applicaDoseRapida(suggerimento: string) {
+    setDose(suggerimento)
+    setErrori((prev) => ({ ...prev, farmaco: undefined }))
+  }
+
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
       <header className="shrink-0 rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
@@ -532,29 +563,58 @@ export function NuovaTerapiaWizard({
         {step === 'farmaco' && (
           <>
             <SectionCard>
-              <div className="space-y-4">
-                <Campo label="Nome farmaco" required error={errori.farmaco}>
-                  <input
+              <div className="space-y-5">
+                <Campo
+                  label="Nome farmaco"
+                  required
+                  error={errori.farmaco}
+                  helper="Puoi scegliere un suggerimento oppure scrivere liberamente."
+                >
+                  <AutocompleteInput
+                    id="nome_farmaco"
+                    placeholder="Es. Antibiotico, Collirio, Integratore..."
                     value={nomeFarmaco}
-                    onChange={(e) => {
-                      setNomeFarmaco(e.target.value)
+                    onChange={(value) => {
+                      setNomeFarmaco(value)
                       setErrori((prev) => ({ ...prev, farmaco: undefined }))
                     }}
-                    placeholder="Es. Antibiotico X"
-                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
+                    suggerimenti={[...FARMACI_SUGGERITI]}
+                    className="h-12 rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base"
                   />
                 </Campo>
 
-                <Campo label="Dose" required>
+                <Campo
+                  label="Dose / formato"
+                  required
+                  helper="Tocca un suggerimento rapido oppure scrivi il tuo valore."
+                >
                   <input
                     value={dose}
                     onChange={(e) => {
                       setDose(e.target.value)
                       setErrori((prev) => ({ ...prev, farmaco: undefined }))
                     }}
-                    placeholder="Es. 1 compressa"
+                    placeholder="Es. 1 compressa, 5 gocce, crema..."
                     className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
                   />
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {DOSI_RAPIDE.map((suggerimento) => (
+                      <button
+                        key={suggerimento}
+                        type="button"
+                        onClick={() => applicaDoseRapida(suggerimento)}
+                        className={cn(
+                          'rounded-full border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]',
+                          dose === suggerimento
+                            ? 'border-amber-300 bg-amber-100 text-amber-700'
+                            : 'border-[#E7DBCF] bg-[#FCF8F3] text-gray-600'
+                        )}
+                      >
+                        {suggerimento}
+                      </button>
+                    ))}
+                  </div>
                 </Campo>
               </div>
             </SectionCard>
