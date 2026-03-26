@@ -51,8 +51,14 @@ export type Database = {
           id: string
           user_id: string
           nome: string
-          categoria: 'cani' | 'gatti' | 'pesci' | 'uccelli' |
-                     'rettili' | 'piccoli_mammiferi' | 'altri_animali'
+          categoria:
+            | 'cani'
+            | 'gatti'
+            | 'pesci'
+            | 'uccelli'
+            | 'rettili'
+            | 'piccoli_mammiferi'
+            | 'altri_animali'
           specie: string
           razza: string | null
           sesso: 'maschio' | 'femmina' | 'non_specificato' | null
@@ -68,8 +74,14 @@ export type Database = {
           id?: string
           user_id: string
           nome: string
-          categoria: 'cani' | 'gatti' | 'pesci' | 'uccelli' |
-                     'rettili' | 'piccoli_mammiferi' | 'altri_animali'
+          categoria:
+            | 'cani'
+            | 'gatti'
+            | 'pesci'
+            | 'uccelli'
+            | 'rettili'
+            | 'piccoli_mammiferi'
+            | 'altri_animali'
           specie: string
           razza?: string | null
           sesso?: 'maschio' | 'femmina' | 'non_specificato' | null
@@ -85,8 +97,14 @@ export type Database = {
           id?: string
           user_id?: string
           nome?: string
-          categoria?: 'cani' | 'gatti' | 'pesci' | 'uccelli' |
-                      'rettili' | 'piccoli_mammiferi' | 'altri_animali'
+          categoria?:
+            | 'cani'
+            | 'gatti'
+            | 'pesci'
+            | 'uccelli'
+            | 'rettili'
+            | 'piccoli_mammiferi'
+            | 'altri_animali'
           specie?: string
           razza?: string | null
           sesso?: 'maschio' | 'femmina' | 'non_specificato' | null
@@ -112,13 +130,25 @@ export type Database = {
         Row: {
           id: string
           animale_id: string
-          tipo: 'visita' | 'controllo' | 'vaccinazione' | 'toelettatura' |
-                'terapia' | 'addestramento' | 'compleanno' | 'altro'
+          tipo:
+            | 'visita'
+            | 'controllo'
+            | 'vaccinazione'
+            | 'toelettatura'
+            | 'terapia'
+            | 'addestramento'
+            | 'compleanno'
+            | 'altro'
           titolo: string
           data: string
           ora: string | null
-          frequenza: 'nessuna' | 'settimanale' | 'mensile' |
-                     'trimestrale' | 'semestrale' | 'annuale'
+          frequenza:
+            | 'nessuna'
+            | 'settimanale'
+            | 'mensile'
+            | 'trimestrale'
+            | 'semestrale'
+            | 'annuale'
           notifiche_attive: boolean
           stato: 'programmato' | 'completato' | 'annullato'
           note: string | null
@@ -128,13 +158,25 @@ export type Database = {
         Insert: {
           id?: string
           animale_id: string
-          tipo?: 'visita' | 'controllo' | 'vaccinazione' | 'toelettatura' |
-                  'terapia' | 'addestramento' | 'compleanno' | 'altro'
+          tipo?:
+            | 'visita'
+            | 'controllo'
+            | 'vaccinazione'
+            | 'toelettatura'
+            | 'terapia'
+            | 'addestramento'
+            | 'compleanno'
+            | 'altro'
           titolo: string
           data: string
           ora?: string | null
-          frequenza?: 'nessuna' | 'settimanale' | 'mensile' |
-                      'trimestrale' | 'semestrale' | 'annuale'
+          frequenza?:
+            | 'nessuna'
+            | 'settimanale'
+            | 'mensile'
+            | 'trimestrale'
+            | 'semestrale'
+            | 'annuale'
           notifiche_attive?: boolean
           stato?: 'programmato' | 'completato' | 'annullato'
           note?: string | null
@@ -144,13 +186,25 @@ export type Database = {
         Update: {
           id?: string
           animale_id?: string
-          tipo?: 'visita' | 'controllo' | 'vaccinazione' | 'toelettatura' |
-                'terapia' | 'addestramento' | 'compleanno' | 'altro'
+          tipo?:
+            | 'visita'
+            | 'controllo'
+            | 'vaccinazione'
+            | 'toelettatura'
+            | 'terapia'
+            | 'addestramento'
+            | 'compleanno'
+            | 'altro'
           titolo?: string
           data?: string
           ora?: string | null
-          frequenza?: 'nessuna' | 'settimanale' | 'mensile' |
-                      'trimestrale' | 'semestrale' | 'annuale'
+          frequenza?:
+            | 'nessuna'
+            | 'settimanale'
+            | 'mensile'
+            | 'trimestrale'
+            | 'semestrale'
+            | 'annuale'
           notifiche_attive?: boolean
           stato?: 'programmato' | 'completato' | 'annullato'
           note?: string | null
@@ -171,8 +225,14 @@ export type Database = {
         Row: {
           id: string
           animale_id: string
-          categoria: 'ricetta' | 'referto' | 'analisi' | 'certificato' |
-                     'documento_sanitario' | 'ricevuta' | 'altro'
+          categoria:
+            | 'ricetta'
+            | 'referto'
+            | 'analisi'
+            | 'certificato'
+            | 'documento_sanitario'
+            | 'ricevuta'
+            | 'altro'
           titolo: string
           data_documento: string | null
           file_url: string
@@ -183,8 +243,14 @@ export type Database = {
         Insert: {
           id?: string
           animale_id: string
-          categoria?: 'ricetta' | 'referto' | 'analisi' | 'certificato' |
-                      'documento_sanitario' | 'ricevuta' | 'altro'
+          categoria?:
+            | 'ricetta'
+            | 'referto'
+            | 'analisi'
+            | 'certificato'
+            | 'documento_sanitario'
+            | 'ricevuta'
+            | 'altro'
           titolo: string
           data_documento?: string | null
           file_url: string
@@ -195,8 +261,14 @@ export type Database = {
         Update: {
           id?: string
           animale_id?: string
-          categoria?: 'ricetta' | 'referto' | 'analisi' | 'certificato' |
-                      'documento_sanitario' | 'ricevuta' | 'altro'
+          categoria?:
+            | 'ricetta'
+            | 'referto'
+            | 'analisi'
+            | 'certificato'
+            | 'documento_sanitario'
+            | 'ricevuta'
+            | 'altro'
           titolo?: string
           data_documento?: string | null
           file_url?: string
@@ -214,13 +286,56 @@ export type Database = {
           }
         ]
       }
+      diario_voci: {
+        Row: {
+          id: string
+          animale_id: string
+          data: string
+          titolo: string
+          nota: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          animale_id: string
+          data?: string
+          titolo: string
+          nota: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          animale_id?: string
+          data?: string
+          titolo?: string
+          nota?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'diario_voci_animale_id_fkey'
+            columns: ['animale_id']
+            isOneToOne: false
+            referencedRelation: 'animali'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       terapie: {
         Row: {
           id: string
           animale_id: string
           nome_farmaco: string
           dose: string
-          frequenza: 'una_volta_giorno' | 'due_volte_giorno' | 'tre_volte_giorno' | 'al_bisogno' | 'personalizzata'
+          frequenza:
+            | 'una_volta_giorno'
+            | 'due_volte_giorno'
+            | 'tre_volte_giorno'
+            | 'al_bisogno'
+            | 'personalizzata'
           frequenza_custom: string | null
           data_inizio: string
           data_fine: string | null
@@ -235,7 +350,12 @@ export type Database = {
           animale_id: string
           nome_farmaco: string
           dose: string
-          frequenza?: 'una_volta_giorno' | 'due_volte_giorno' | 'tre_volte_giorno' | 'al_bisogno' | 'personalizzata'
+          frequenza?:
+            | 'una_volta_giorno'
+            | 'due_volte_giorno'
+            | 'tre_volte_giorno'
+            | 'al_bisogno'
+            | 'personalizzata'
           frequenza_custom?: string | null
           data_inizio?: string
           data_fine?: string | null
@@ -250,7 +370,12 @@ export type Database = {
           animale_id?: string
           nome_farmaco?: string
           dose?: string
-          frequenza?: 'una_volta_giorno' | 'due_volte_giorno' | 'tre_volte_giorno' | 'al_bisogno' | 'personalizzata'
+          frequenza?:
+            | 'una_volta_giorno'
+            | 'due_volte_giorno'
+            | 'tre_volte_giorno'
+            | 'al_bisogno'
+            | 'personalizzata'
           frequenza_custom?: string | null
           data_inizio?: string
           data_fine?: string | null
@@ -347,19 +472,47 @@ export type Database = {
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
-      categoria_animale: 'cani' | 'gatti' | 'pesci' | 'uccelli' |
-                         'rettili' | 'piccoli_mammiferi' | 'altri_animali'
+      categoria_animale:
+        | 'cani'
+        | 'gatti'
+        | 'pesci'
+        | 'uccelli'
+        | 'rettili'
+        | 'piccoli_mammiferi'
+        | 'altri_animali'
       sesso_animale: 'maschio' | 'femmina' | 'non_specificato'
-      tipo_impegno: 'visita' | 'controllo' | 'vaccinazione' | 'toelettatura' |
-                    'terapia' | 'addestramento' | 'compleanno' | 'altro'
+      tipo_impegno:
+        | 'visita'
+        | 'controllo'
+        | 'vaccinazione'
+        | 'toelettatura'
+        | 'terapia'
+        | 'addestramento'
+        | 'compleanno'
+        | 'altro'
       stato_impegno: 'programmato' | 'completato' | 'annullato'
-      frequenza_impegno: 'nessuna' | 'settimanale' | 'mensile' |
-                         'trimestrale' | 'semestrale' | 'annuale'
+      frequenza_impegno:
+        | 'nessuna'
+        | 'settimanale'
+        | 'mensile'
+        | 'trimestrale'
+        | 'semestrale'
+        | 'annuale'
       stato_terapia: 'attiva' | 'conclusa' | 'archiviata'
-      frequenza_terapia: 'una_volta_giorno' | 'due_volte_giorno' |
-                         'tre_volte_giorno' | 'al_bisogno' | 'personalizzata'
-      categoria_documento: 'ricetta' | 'referto' | 'analisi' | 'certificato' |
-                           'documento_sanitario' | 'ricevuta' | 'altro'
+      frequenza_terapia:
+        | 'una_volta_giorno'
+        | 'due_volte_giorno'
+        | 'tre_volte_giorno'
+        | 'al_bisogno'
+        | 'personalizzata'
+      categoria_documento:
+        | 'ricetta'
+        | 'referto'
+        | 'analisi'
+        | 'certificato'
+        | 'documento_sanitario'
+        | 'ricevuta'
+        | 'altro'
     }
     CompositeTypes: Record<string, never>
   }
