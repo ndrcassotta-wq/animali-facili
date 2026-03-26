@@ -21,6 +21,7 @@ import { ArrowLeft, Camera } from 'lucide-react'
 import { CropFoto } from '@/components/ui/CropFoto'
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
 import { SUGGERIMENTI_ANIMALE_PER_CATEGORIA } from '@/lib/utils/specieSuggerimenti'
+import { cn } from '@/lib/utils'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
@@ -60,7 +61,9 @@ const categorie: { valore: CategoriaAnimale; label: string; icona: string }[] = 
   { valore: 'altri_animali', label: 'Altro', icona: '🐾' },
 ]
 
-const metaCampi: Partial<Record<CategoriaAnimale, { label: string; chiave: string }>> = {
+const metaCampi: Partial<
+  Record<CategoriaAnimale, { label: string; chiave: string }>
+> = {
   cani: { label: 'Taglia', chiave: 'taglia' },
   pesci: { label: 'Tipo acqua', chiave: 'tipo_acqua' },
   rettili: { label: 'Tipo terrario', chiave: 'tipo_terrario' },
@@ -117,7 +120,7 @@ function generaUuidCompatibile() {
   globalThis.crypto.getRandomValues(bytes)
   bytes[6] = (bytes[6] & 0x0f) | 0x40
   bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0'))
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
 
   return [
     hex.slice(0, 4).join(''),
@@ -156,15 +159,7 @@ function prossimoCompleanno(dataNascita: string): string {
     0
   )
 
-  const candidato = new Date(
-    oggi.getFullYear(),
-    mese,
-    giorno,
-    12,
-    0,
-    0,
-    0
-  )
+  const candidato = new Date(oggi.getFullYear(), mese, giorno, 12, 0, 0, 0)
 
   if (candidato < oggiLocale) {
     candidato.setFullYear(candidato.getFullYear() + 1)
@@ -256,12 +251,32 @@ function CampoForm({
   )
 }
 
+function StepLayout({
+  children,
+  action,
+}: {
+  children: React.ReactNode
+  action: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto px-5 pt-4">
+      <div className="pb-6">{children}</div>
+
+      <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-transparent px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+        {action}
+      </div>
+    </div>
+  )
+}
+
 export default function NuovoAnimalePage() {
   const router = useRouter()
 
   const [step, setStep] = useState<Step>('categoria')
   const [valori, setValori] = useState<FormValori>(valoriIniziali)
-  const [erroriForm, setErroriForm] = useState<Partial<Record<keyof FormValori, string>>>({})
+  const [erroriForm, setErroriForm] = useState<
+    Partial<Record<keyof FormValori, string>>
+  >({})
   const [metaValore, setMetaValore] = useState('')
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -281,11 +296,11 @@ export default function NuovoAnimalePage() {
   }, [fotoPreview])
 
   function setValue(field: keyof FormValori, value: unknown) {
-    setValori(prev => ({ ...prev, [field]: value }))
-    setErroriForm(prev => ({ ...prev, [field]: undefined }))
+    setValori((prev) => ({ ...prev, [field]: value }))
+    setErroriForm((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  const categoriaSelezionata = categorie.find(c => c.valore === valori.categoria)
+  const categoriaSelezionata = categorie.find((c) => c.valore === valori.categoria)
   const metaCampo = metaCampi[valori.categoria as CategoriaAnimale]
   const isCategoria = step === 'categoria'
 
@@ -313,7 +328,7 @@ export default function NuovoAnimalePage() {
     if (!campoPrincipalePulito) nuoviErrori.specie = 'Questo campo è obbligatorio'
 
     if (Object.keys(nuoviErrori).length > 0) {
-      setErroriForm(prev => ({ ...prev, ...nuoviErrori }))
+      setErroriForm((prev) => ({ ...prev, ...nuoviErrori }))
       return
     }
 
@@ -363,7 +378,8 @@ export default function NuovoAnimalePage() {
           ? valori.data_nascita
           : null
 
-      const meta = metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
+      const meta =
+        metaCampo && metaValore ? { [metaCampo.chiave]: metaValore } : null
 
       const payload: AnimaleInsert = {
         id: nuovoId,
@@ -419,7 +435,7 @@ export default function NuovoAnimalePage() {
         <CropFoto
           imageSrc={cropSrc}
           fileName={cropNome}
-          onConfirm={file => {
+          onConfirm={(file) => {
             setFotoFile(file)
             URL.revokeObjectURL(cropSrc)
             setCropSrc(null)
@@ -445,7 +461,9 @@ export default function NuovoAnimalePage() {
 
           {(step === 'nascita' || step === 'dettagli') && (
             <button
-              onClick={() => (step === 'nascita' ? vaiAvanti('dettagli') : handleSubmit())}
+              onClick={() =>
+                step === 'nascita' ? vaiAvanti('dettagli') : handleSubmit()
+              }
               className="text-sm font-semibold text-amber-500 active:opacity-70"
             >
               {step === 'dettagli' ? 'Salta e crea' : 'Salta'}
@@ -457,14 +475,16 @@ export default function NuovoAnimalePage() {
       </header>
 
       {step === 'categoria' && (
-        <div className="flex-1 px-5 pt-6 pb-12">
+        <div className="flex-1 overflow-y-auto px-5 pt-6 pb-12">
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
             Che animale hai?
           </h1>
-          <p className="mt-1 mb-6 text-sm text-gray-400">Scegli il tipo per iniziare</p>
+          <p className="mt-1 mb-6 text-sm text-gray-400">
+            Scegli il tipo per iniziare
+          </p>
 
           <div className="grid grid-cols-2 gap-4">
-            {categorie.map(cat => (
+            {categorie.map((cat) => (
               <button
                 key={cat.valore}
                 onClick={() => {
@@ -477,7 +497,9 @@ export default function NuovoAnimalePage() {
                 className="flex flex-col items-center gap-3 rounded-3xl border-2 border-gray-100 bg-white px-4 py-6 text-center shadow-sm transition-all active:scale-95 active:border-amber-300 active:bg-amber-50"
               >
                 <span className="text-5xl leading-none">{cat.icona}</span>
-                <span className="text-lg font-extrabold text-gray-800">{cat.label}</span>
+                <span className="text-lg font-extrabold text-gray-800">
+                  {cat.label}
+                </span>
               </button>
             ))}
           </div>
@@ -485,7 +507,26 @@ export default function NuovoAnimalePage() {
       )}
 
       {step === 'nome-foto' && (
-        <div className="flex flex-1 flex-col px-5 pt-4 pb-12">
+        <StepLayout
+          action={
+            <button
+              onClick={() => {
+                const nomePulito = valori.nome.trim()
+                if (!nomePulito) {
+                  setErroriForm((prev) => ({
+                    ...prev,
+                    nome: 'Il nome è obbligatorio',
+                  }))
+                  return
+                }
+                vaiAvanti('nascita')
+              }}
+              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+            >
+              Continua →
+            </button>
+          }
+        >
           <div className="mb-6">
             <div className="mb-1 flex items-center gap-3">
               <span className="text-3xl">{categoriaSelezionata?.icona}</span>
@@ -502,7 +543,9 @@ export default function NuovoAnimalePage() {
             <div className="relative">
               <div
                 className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl ${
-                  fotoPreview ? '' : colorePerCategoria(valori.categoria as CategoriaAnimale)
+                  fotoPreview
+                    ? ''
+                    : colorePerCategoria(valori.categoria as CategoriaAnimale)
                 }`}
               >
                 {fotoPreview ? (
@@ -527,7 +570,9 @@ export default function NuovoAnimalePage() {
             </div>
 
             <p className="text-xs text-gray-400">
-              {fotoPreview ? 'Tocca per cambiare foto' : 'Aggiungi una foto (opzionale)'}
+              {fotoPreview
+                ? 'Tocca per cambiare foto'
+                : 'Aggiungi una foto (opzionale)'}
             </p>
 
             <input
@@ -536,7 +581,7 @@ export default function NuovoAnimalePage() {
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={e => {
+              onChange={(e) => {
                 const file = e.target.files?.[0] ?? null
 
                 if (file && file.size > MAX_FOTO_SIZE_BYTES) {
@@ -563,35 +608,30 @@ export default function NuovoAnimalePage() {
                 id="nome"
                 placeholder={`Il nome del tuo ${categoriaSelezionata?.label.toLowerCase()}`}
                 value={valori.nome}
-                onChange={e => setValue('nome', e.target.value)}
+                onChange={(e) => setValue('nome', e.target.value)}
                 autoFocus
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
             </CampoForm>
           </div>
 
-          <p className="mb-6 text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-gray-400">
             Potrai completare tutto anche dopo 🐾
           </p>
-
-          <button
-            onClick={() => {
-              const nomePulito = valori.nome.trim()
-              if (!nomePulito) {
-                setErroriForm(prev => ({ ...prev, nome: 'Il nome è obbligatorio' }))
-                return
-              }
-              vaiAvanti('nascita')
-            }}
-            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-          >
-            Continua →
-          </button>
-        </div>
+        </StepLayout>
       )}
 
       {step === 'nascita' && (
-        <div className="flex flex-1 flex-col px-5 pt-4 pb-12">
+        <StepLayout
+          action={
+            <button
+              onClick={() => vaiAvanti('dettagli')}
+              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+            >
+              Continua →
+            </button>
+          }
+        >
           <div className="mb-8">
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
               Quando è nato {valori.nome}?
@@ -607,27 +647,42 @@ export default function NuovoAnimalePage() {
                 id="data_nascita"
                 type="date"
                 value={valori.data_nascita ?? ''}
-                onChange={e => setValue('data_nascita', e.target.value)}
+                onChange={(e) => setValue('data_nascita', e.target.value)}
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
             </CampoForm>
           </div>
 
-          <p className="mb-6 text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-gray-400">
             Puoi saltare questo passaggio e aggiungerlo dopo
           </p>
-
-          <button
-            onClick={() => vaiAvanti('dettagli')}
-            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-          >
-            Continua →
-          </button>
-        </div>
+        </StepLayout>
       )}
 
       {step === 'dettagli' && (
-        <div className="flex flex-1 flex-col px-5 pt-4 pb-12">
+        <StepLayout
+          action={
+            <div className="space-y-4">
+              {erroreSrv && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? 'Creazione in corso...'
+                  : `Crea ${
+                      categoriaSelezionata?.label.toLowerCase() ?? 'animale'
+                    } 🐾`}
+              </button>
+            </div>
+          }
+        >
           <div className="mb-6">
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
               Ultimi dettagli
@@ -637,7 +692,7 @@ export default function NuovoAnimalePage() {
             </p>
           </div>
 
-          <div className="mb-4 space-y-5 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+          <div className="space-y-5 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
             <CampoForm
               label={labelCampoPrincipale(valori.categoria as CategoriaAnimale)}
               required
@@ -645,9 +700,11 @@ export default function NuovoAnimalePage() {
             >
               <AutocompleteInput
                 id="specie"
-                placeholder={placeholderCampoPrincipale(valori.categoria as CategoriaAnimale)}
+                placeholder={placeholderCampoPrincipale(
+                  valori.categoria as CategoriaAnimale
+                )}
                 value={valori.specie}
-                onChange={v => setValue('specie', v)}
+                onChange={(v) => setValue('specie', v)}
                 suggerimenti={
                   SUGGERIMENTI_ANIMALE_PER_CATEGORIA[
                     valori.categoria as CategoriaAnimale
@@ -661,7 +718,7 @@ export default function NuovoAnimalePage() {
             <CampoForm label="Sesso" opzionale>
               <Select
                 value={valori.sesso ?? 'non_specificato'}
-                onValueChange={v => setValue('sesso', v)}
+                onValueChange={(v) => setValue('sesso', v)}
               >
                 <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                   <SelectValue />
@@ -669,7 +726,9 @@ export default function NuovoAnimalePage() {
                 <SelectContent>
                   <SelectItem value="maschio">Maschio</SelectItem>
                   <SelectItem value="femmina">Femmina</SelectItem>
-                  <SelectItem value="non_specificato">Non specificato</SelectItem>
+                  <SelectItem value="non_specificato">
+                    Non specificato
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </CampoForm>
@@ -682,7 +741,7 @@ export default function NuovoAnimalePage() {
                 min="0"
                 placeholder="es. 4.250"
                 value={valori.peso ?? ''}
-                onChange={e =>
+                onChange={(e) =>
                   setValue(
                     'peso',
                     e.target.value === '' ? undefined : Number(e.target.value)
@@ -697,25 +756,29 @@ export default function NuovoAnimalePage() {
                 {metaCampo.chiave === 'taglia' ? (
                   <Select
                     value={metaValore}
-                    onValueChange={(value: string | null) => setMetaValore(value ?? '')}
+                    onValueChange={(value: string | null) =>
+                      setMetaValore(value ?? '')
+                    }
                   >
                     <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                       <SelectValue placeholder="Seleziona la taglia" />
                     </SelectTrigger>
                     <SelectContent>
-                      {TAGLIE_ANIMALE.map(taglia => (
+                      {TAGLIE_ANIMALE.map((taglia) => (
                         <SelectItem key={taglia.value} value={taglia.value}>
                           {taglia.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                    </Select>
                 ) : (
                   <Input
                     id="meta"
-                    placeholder={`es. ${metaSuggerito(valori.categoria as CategoriaAnimale)}`}
+                    placeholder={`es. ${metaSuggerito(
+                      valori.categoria as CategoriaAnimale
+                    )}`}
                     value={metaValore}
-                    onChange={e => setMetaValore(e.target.value)}
+                    onChange={(e) => setMetaValore(e.target.value)}
                     className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
                   />
                 )}
@@ -727,29 +790,13 @@ export default function NuovoAnimalePage() {
                 id="note"
                 placeholder="Informazioni aggiuntive"
                 value={valori.note ?? ''}
-                onChange={e => setValue('note', e.target.value)}
+                onChange={(e) => setValue('note', e.target.value)}
                 rows={3}
                 className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
               />
             </CampoForm>
           </div>
-
-          {erroreSrv && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-              <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
-            </div>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
-          >
-            {isSubmitting
-              ? 'Creazione in corso...'
-              : `Crea ${categoriaSelezionata?.label.toLowerCase() ?? 'animale'} 🐾`}
-          </button>
-        </div>
+        </StepLayout>
       )}
     </div>
   )
