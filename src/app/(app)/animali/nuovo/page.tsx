@@ -634,41 +634,80 @@ export default function NuovoAnimalePage() {
             </p>
           </div>
 
-          <div className="mb-6 flex flex-col items-center gap-3">
-            <div className="relative">
-              <div
-                className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl ${
-                  fotoPreview
-                    ? ''
-                    : colorePerCategoria(valori.categoria as CategoriaAnimale)
-                }`}
-              >
-                {fotoPreview ? (
-                  <img
-                    src={fotoPreview}
-                    alt="Anteprima"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-6xl leading-none">
-                    {categoriaSelezionata?.icona ?? '🐾'}
+          <div className="mb-5 rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <div className="mb-1 flex items-center gap-2">
+                  <h2 className="text-lg font-extrabold text-gray-900">
+                    Aggiungi una foto
+                  </h2>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                    Consigliata
                   </span>
-                )}
+                </div>
+                <p className="text-sm leading-5 text-gray-500">
+                  Ti aiuta a riconoscere subito il tuo animale nelle schede e
+                  nelle liste dell’app.
+                </p>
               </div>
 
-              <label
-                htmlFor="foto"
-                className="absolute right-0 bottom-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-amber-500 shadow-md active:bg-amber-600"
-              >
-                <Camera size={18} strokeWidth={2.2} className="text-white" />
-              </label>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 shadow-sm">
+                <Camera size={20} strokeWidth={2.2} />
+              </div>
             </div>
 
-            <p className="text-xs text-gray-400">
-              {fotoPreview
-                ? 'Tocca per cambiare foto'
-                : 'Aggiungi una foto (opzionale)'}
-            </p>
+            <label
+              htmlFor="foto"
+              className={cn(
+                'block cursor-pointer rounded-[24px] border-2 border-dashed p-5 text-center transition-all active:scale-[0.99]',
+                fotoPreview
+                  ? 'border-amber-300 bg-white shadow-sm'
+                  : 'border-amber-300 bg-white/90 hover:bg-white'
+              )}
+            >
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div
+                    className={cn(
+                      'flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border-4 shadow-xl',
+                      fotoPreview
+                        ? 'border-white'
+                        : 'border-white',
+                      !fotoPreview &&
+                        colorePerCategoria(valori.categoria as CategoriaAnimale)
+                    )}
+                  >
+                    {fotoPreview ? (
+                      <img
+                        src={fotoPreview}
+                        alt="Anteprima"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-7xl leading-none">
+                        {categoriaSelezionata?.icona ?? '🐾'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-bold text-white shadow-lg">
+                    <Camera size={16} strokeWidth={2.2} />
+                    {fotoPreview ? 'Cambia foto' : 'Aggiungi foto'}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-sm font-bold text-gray-800">
+                    {fotoPreview
+                      ? 'Tocca qui per sostituire la foto'
+                      : 'Tocca qui per scattare o scegliere una foto'}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Puoi usare la fotocamera oppure selezionarla dal telefono
+                  </p>
+                </div>
+              </div>
+            </label>
 
             <input
               id="foto"
