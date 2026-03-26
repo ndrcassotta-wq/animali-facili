@@ -70,9 +70,9 @@ function getStepInfo(step: Step, isEditMode: boolean) {
   if (step === 'date') {
     return {
       icon: <Clock3 size={22} strokeWidth={2.2} />,
-      title: 'Date e orario',
+      title: 'Date e durata',
       description:
-        'Inserisci almeno la data di inizio e, se prevista, l’orario della somministrazione.',
+        'Scegli la data di inizio, opzionalmente una durata in giorni e, se vuoi, anche un orario.',
     }
   }
 
@@ -255,6 +255,41 @@ function CardSelezioneAnimale({
   )
 }
 
+function parseDateIso(dateIso: string) {
+  const [year, month, day] = dateIso.split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1, 12, 0, 0, 0)
+}
+
+function addDaysToIsoDate(dateIso: string, daysToAdd: number) {
+  const base = parseDateIso(dateIso)
+  base.setDate(base.getDate() + daysToAdd)
+  const year = base.getFullYear()
+  const month = String(base.getMonth() + 1).padStart(2, '0')
+  const day = String(base.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getDurationDaysFromDates(dataInizio: string, dataFine: string) {
+  if (!dataInizio || !dataFine) return ''
+  const start = parseDateIso(dataInizio)
+  const end = parseDateIso(dataFine)
+  const diffMs = end.getTime() - start.getTime()
+  const diffDays = Math.floor(diffMs / 86400000) + 1
+
+  if (diffDays <= 0 || Number.isNaN(diffDays)) return ''
+  return String(diffDays)
+}
+
+function formatDateLabel(dateIso: string) {
+  if (!dateIso) return 'Non indicata'
+
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parseDateIso(dateIso))
+}
+
 export function NuovaTerapiaWizard({
   title,
   subtitle,
@@ -310,12 +345,28 @@ export function NuovaTerapiaWizard({
     const day = String(oggi.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
   })
-  const [dataFine, setDataFine] = useState(valoriIniziali?.dataFine ?? '')
+  const [durataGiorni, setDurataGiorni] = useState(() =>
+    getDurationDaysFromDates(
+      valoriIniziali?.dataInizio ?? '',
+      valoriIniziali?.dataFine ?? ''
+    )
+  )
   const [oraSomministrazione, setOraSomministrazione] = useState(
     valoriIniziali?.oraSomministrazione ?? ''
   )
   const [note, setNote] = useState(valoriIniziali?.note ?? '')
   const [errori, setErrori] = useState<Partial<Record<Step, string>>>({})
+
+  const dataFineCalcolata = useMemo(() => {
+    const durataNumero = Number(durataGiorni)
+
+    if (!dataInizio || !durataGiorni || !Number.isInteger(durataNumero)) {
+      return ''
+    }
+
+    if (durataNumero <= 0) return ''
+    return addDaysToIsoDate(dataInizio, durataNumero - 1)
+  }, [dataInizio, durataGiorni])
 
   const animaleSelezionato = animali.find((a) => a.id === animaleId) ?? null
   const indice = steps.indexOf(step)
@@ -343,8 +394,8 @@ export function NuovaTerapiaWizard({
     if (step === 'date') {
       if (!dataInizio) {
         erroriNuovi.date = 'La data di inizio è obbligatoria'
-      } else if (frequenza !== 'al_bisogno' && !oraSomministrazione) {
-        erroriNuovi.date = 'Indica anche l’orario della somministrazione'
+      } else if (durataGiorni && !dataFineCalcolata) {
+        erroriNuovi.date = 'Inserisci una durata valida in giorni'
       }
     }
 
@@ -426,7 +477,7 @@ export function NuovaTerapiaWizard({
         <input type="hidden" name="frequenza" value={frequenza} />
         <input type="hidden" name="frequenza_custom" value={frequenzaCustom} />
         <input type="hidden" name="data_inizio" value={dataInizio} />
-        <input type="hidden" name="data_fine" value={dataFine} />
+        <input type="hidden" name="data_fine" value={dataFineCalcolata} />
         <input
           type="hidden"
           name="ora_somministrazione"
@@ -586,23 +637,45 @@ export function NuovaTerapiaWizard({
                   />
                 </Campo>
 
-                <Campo label="Data fine">
+                <Campo
+                  label="Durata in giorni"
+                  helper="Facoltativa. Se la lasci vuota, la terapia resta senza una data fine."
+                  error={errori.date}
+                >
                   <input
-                    type="date"
-                    value={dataFine}
-                    onChange={(e) => setDataFine(e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    step="1"
+                    value={durataGiorni}
+                    onChange={(e) => {
+                      const soloNumeri = e.target.value.replace(/\D/g, '')
+                      setDurataGiorni(soloNumeri)
+                      setErrori((prev) => ({ ...prev, date: undefined }))
+                    }}
+                    placeholder="Es. 7"
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
                   />
                 </Campo>
 
                 <Campo
-                  label="Orario somministrazione"
-                  required={frequenza !== 'al_bisogno'}
+                  label="Data fine calcolata"
                   helper={
-                    frequenza === 'al_bisogno'
-                      ? 'Per le terapie al bisogno puoi lasciarlo vuoto'
-                      : 'Es. 09:00'
+                    dataFineCalcolata
+                      ? 'Calcolata automaticamente da data inizio + durata.'
+                      : 'Comparirà automaticamente quando inserisci la durata.'
                   }
+                >
+                  <div className="flex h-12 items-center rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 text-sm font-semibold text-gray-700">
+                    {dataFineCalcolata
+                      ? formatDateLabel(dataFineCalcolata)
+                      : 'Non impostata'}
+                  </div>
+                </Campo>
+
+                <Campo
+                  label="Orario somministrazione"
+                  helper="Facoltativo. Puoi aggiungerlo ora oppure in seguito."
                 >
                   <input
                     type="time"
@@ -671,18 +744,24 @@ export function NuovaTerapiaWizard({
                       frequenza
                     }
                   />
-
                   {frequenza === 'personalizzata' && frequenzaCustom.trim() ? (
                     <SummaryItem
                       label="Dettaglio frequenza"
                       value={frequenzaCustom}
                     />
                   ) : null}
-
                   <SummaryItem label="Data inizio" value={dataInizio || '—'} />
                   <SummaryItem
+                    label="Durata"
+                    value={durataGiorni ? `${durataGiorni} giorni` : 'Non indicata'}
+                  />
+                  <SummaryItem
                     label="Data fine"
-                    value={dataFine || 'Non indicata'}
+                    value={
+                      dataFineCalcolata
+                        ? formatDateLabel(dataFineCalcolata)
+                        : 'Non indicata'
+                    }
                   />
                   <SummaryItem
                     label="Orario"
