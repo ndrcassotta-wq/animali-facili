@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import {
@@ -11,6 +12,7 @@ import {
   PawPrint,
   Stethoscope,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type AnimaleOption = {
   id: string
@@ -35,25 +37,70 @@ const STEP_LABELS: Record<Step, string> = {
   note: 'Conferma',
 }
 
+function getStepInfo(step: Step, isEditMode: boolean) {
+  if (step === 'animale') {
+    return {
+      icon: <PawPrint size={22} strokeWidth={2.2} />,
+      title: "Scegli l'animale",
+      description: 'Per quale animale vuoi creare la terapia?',
+    }
+  }
+
+  if (step === 'farmaco') {
+    return {
+      icon: <Stethoscope size={22} strokeWidth={2.2} />,
+      title: 'Farmaco e dose',
+      description: 'Inserisci i dati principali della terapia.',
+    }
+  }
+
+  if (step === 'frequenza') {
+    return {
+      icon: <CalendarDays size={22} strokeWidth={2.2} />,
+      title: 'Frequenza',
+      description: 'Ogni quanto va somministrata?',
+    }
+  }
+
+  if (step === 'date') {
+    return {
+      icon: <Clock3 size={22} strokeWidth={2.2} />,
+      title: 'Date e orario',
+      description:
+        'Inserisci almeno la data di inizio e, se prevista, l’orario della somministrazione.',
+    }
+  }
+
+  return {
+    icon: <FileText size={22} strokeWidth={2.2} />,
+    title: isEditMode ? 'Conferma modifiche' : 'Ultimo step',
+    description: isEditMode
+      ? 'Controlla i dati e salva.'
+      : 'Aggiungi note opzionali e conferma.',
+  }
+}
+
 function ProgressBar({ step, steps }: { step: Step; steps: Step[] }) {
   const idx = steps.indexOf(step)
   const percent = (idx / (steps.length - 1)) * 100
 
   return (
-    <div className="px-5 pt-4 pb-2">
-      <div className="h-1 w-full overflow-hidden rounded-full bg-gray-200">
+    <div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFE4D8]">
         <div
           className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
-          style={{ width: `${percent === 0 ? 8 : percent}%` }}
+          style={{ width: `${percent === 0 ? 10 : percent}%` }}
         />
       </div>
-      <div className="mt-2 flex justify-between">
+
+      <div className="mt-3 flex justify-between gap-2">
         {steps.map((s, i) => (
           <span
             key={s}
-            className={`text-[10px] font-semibold transition-colors ${
+            className={cn(
+              'text-[10px] font-semibold transition-colors',
               i <= idx ? 'text-amber-500' : 'text-gray-300'
-            }`}
+            )}
           >
             {STEP_LABELS[s]}
           </span>
@@ -72,7 +119,7 @@ function Campo({
 }: {
   label: string
   required?: boolean
-  children: React.ReactNode
+  children: ReactNode
   helper?: string
   error?: string
 }) {
@@ -83,8 +130,33 @@ function Campo({
         {required && <span className="ml-1 text-red-400">*</span>}
       </label>
       {children}
-      {helper && <p className="text-xs text-gray-400">{helper}</p>}
-      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+      {helper ? <p className="text-xs text-gray-400">{helper}</p> : null}
+      {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+    </div>
+  )
+}
+
+function SectionCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+      {children}
+    </div>
+  )
+}
+
+function SummaryItem({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-2xl border border-[#EEE4D9] bg-[#FCF8F3] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-bold leading-5 text-gray-800">{value}</p>
     </div>
   )
 }
@@ -115,6 +187,7 @@ export function NuovaTerapiaWizard({
     note?: string
   }
 }) {
+  const isEditMode = Boolean(valoriIniziali)
   const hasAnimalStep = !preselectedAnimalId
 
   const steps = useMemo<Step[]>(
@@ -152,6 +225,7 @@ export function NuovaTerapiaWizard({
 
   const animaleSelezionato = animali.find((a) => a.id === animaleId) ?? null
   const indice = steps.indexOf(step)
+  const stepInfo = getStepInfo(step, isEditMode)
 
   function vaiAvanti() {
     const erroriNuovi: Partial<Record<Step, string>> = {}
@@ -201,9 +275,9 @@ export function NuovaTerapiaWizard({
   }
 
   return (
-    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
-      <header className="shrink-0 px-5 pt-10 pb-0">
-        <div className="mb-3 flex items-center justify-between">
+    <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
+      <header className="shrink-0 rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
+        <div className="mb-4 flex items-center justify-between">
           {indice === 0 ? (
             <Link
               href={backHref}
@@ -222,16 +296,36 @@ export function NuovaTerapiaWizard({
               <span className="text-sm font-semibold">Indietro</span>
             </button>
           )}
-          {step === 'note' && (
-            <span className="text-sm font-semibold text-amber-500">
-              Ultimo step
-            </span>
-          )}
+
+          <span className="rounded-full border border-[#EEE4D9] bg-white/80 px-3 py-1 text-xs font-semibold text-gray-500">
+            Step {indice + 1} di {steps.length}
+          </span>
         </div>
-        <ProgressBar step={step} steps={steps} />
+
+        <div className="rounded-[28px] border border-[#F1E4D7] bg-white/90 p-5 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+          <div className="mb-4 flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              {stepInfo.icon}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                {title}
+              </p>
+              <h1 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+                {stepInfo.title}
+              </h1>
+              <p className="mt-1 text-sm leading-5 text-gray-500">
+                {subtitle}
+              </p>
+            </div>
+          </div>
+
+          <ProgressBar step={step} steps={steps} />
+        </div>
       </header>
 
-      <form action={onSubmit} className="flex-1 px-5 pb-12">
+      <form action={onSubmit} className="flex-1 px-5 pb-12 pt-4">
         <input type="hidden" name="animale_id" value={animaleId} />
         <input type="hidden" name="nome_farmaco" value={nomeFarmaco} />
         <input type="hidden" name="dose" value={dose} />
@@ -246,23 +340,18 @@ export function NuovaTerapiaWizard({
         />
         <input type="hidden" name="note" value={note} />
 
-        {step === 'animale' && (
-          <div className="pt-4">
-            <div className="mb-6">
-              <div className="mb-1 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <PawPrint size={22} strokeWidth={2.2} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  Scegli l'animale
-                </h1>
-              </div>
-              <p className="text-sm text-gray-400">
-                Per quale animale vuoi creare la terapia?
-              </p>
-            </div>
+        <div className="mb-5">
+          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">
+            {stepInfo.title}
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-gray-400">
+            {stepInfo.description}
+          </p>
+        </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+        {step === 'animale' && (
+          <>
+            <SectionCard>
               <Campo label="Animale" required error={errori.animale}>
                 <select
                   value={animaleId}
@@ -270,7 +359,7 @@ export function NuovaTerapiaWizard({
                     setAnimaleId(e.target.value)
                     setErrori((prev) => ({ ...prev, animale: undefined }))
                   }}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
                 >
                   <option value="">Seleziona un animale</option>
                   {animali.map((a) => (
@@ -280,7 +369,7 @@ export function NuovaTerapiaWizard({
                   ))}
                 </select>
               </Campo>
-            </div>
+            </SectionCard>
 
             <button
               type="button"
@@ -289,50 +378,38 @@ export function NuovaTerapiaWizard({
             >
               Continua <ChevronRight size={18} />
             </button>
-          </div>
+          </>
         )}
 
         {step === 'farmaco' && (
-          <div className="pt-4">
-            <div className="mb-6">
-              <div className="mb-1 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <Stethoscope size={22} strokeWidth={2.2} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  Farmaco e dose
-                </h1>
+          <>
+            <SectionCard>
+              <div className="space-y-4">
+                <Campo label="Nome farmaco" required error={errori.farmaco}>
+                  <input
+                    value={nomeFarmaco}
+                    onChange={(e) => {
+                      setNomeFarmaco(e.target.value)
+                      setErrori((prev) => ({ ...prev, farmaco: undefined }))
+                    }}
+                    placeholder="Es. Antibiotico X"
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
+                  />
+                </Campo>
+
+                <Campo label="Dose" required>
+                  <input
+                    value={dose}
+                    onChange={(e) => {
+                      setDose(e.target.value)
+                      setErrori((prev) => ({ ...prev, farmaco: undefined }))
+                    }}
+                    placeholder="Es. 1 compressa"
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
+                  />
+                </Campo>
               </div>
-              <p className="text-sm text-gray-400">
-                Inserisci i dati principali della terapia
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm space-y-4">
-              <Campo label="Nome farmaco" required error={errori.farmaco}>
-                <input
-                  value={nomeFarmaco}
-                  onChange={(e) => {
-                    setNomeFarmaco(e.target.value)
-                    setErrori((prev) => ({ ...prev, farmaco: undefined }))
-                  }}
-                  placeholder="Es. Antibiotico X"
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none placeholder:text-gray-400"
-                />
-              </Campo>
-
-              <Campo label="Dose" required>
-                <input
-                  value={dose}
-                  onChange={(e) => {
-                    setDose(e.target.value)
-                    setErrori((prev) => ({ ...prev, farmaco: undefined }))
-                  }}
-                  placeholder="Es. 1 compressa"
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none placeholder:text-gray-400"
-                />
-              </Campo>
-            </div>
+            </SectionCard>
 
             <button
               type="button"
@@ -341,61 +418,50 @@ export function NuovaTerapiaWizard({
             >
               Continua <ChevronRight size={18} />
             </button>
-          </div>
+          </>
         )}
 
         {step === 'frequenza' && (
-          <div className="pt-4">
-            <div className="mb-6">
-              <div className="mb-1 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <CalendarDays size={22} strokeWidth={2.2} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  Frequenza
-                </h1>
-              </div>
-              <p className="text-sm text-gray-400">
-                Ogni quanto va somministrata?
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm space-y-4">
-              <Campo label="Frequenza" required error={errori.frequenza}>
-                <select
-                  value={frequenza}
-                  onChange={(e) => {
-                    setFrequenza(e.target.value)
-                    setErrori((prev) => ({ ...prev, frequenza: undefined }))
-                  }}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
-                >
-                  {FREQUENZE.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-
-              {frequenza === 'personalizzata' && (
-                <Campo
-                  label="Frequenza personalizzata"
-                  required
-                  helper="Es. ogni 8 ore"
-                >
-                  <input
-                    value={frequenzaCustom}
+          <>
+            <SectionCard>
+              <div className="space-y-4">
+                <Campo label="Frequenza" required error={errori.frequenza}>
+                  <select
+                    value={frequenza}
                     onChange={(e) => {
-                      setFrequenzaCustom(e.target.value)
+                      setFrequenza(e.target.value)
                       setErrori((prev) => ({ ...prev, frequenza: undefined }))
                     }}
-                    placeholder="Es. ogni 8 ore"
-                    className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none placeholder:text-gray-400"
-                  />
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                  >
+                    {FREQUENZE.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
                 </Campo>
-              )}
-            </div>
+
+                {frequenza === 'personalizzata' && (
+                  <Campo
+                    label="Frequenza personalizzata"
+                    required
+                    helper="Es. ogni 8 ore"
+                    error={errori.frequenza}
+                  >
+                    <input
+                      value={frequenzaCustom}
+                      onChange={(e) => {
+                        setFrequenzaCustom(e.target.value)
+                        setErrori((prev) => ({ ...prev, frequenza: undefined }))
+                      }}
+                      placeholder="Es. ogni 8 ore"
+                      className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
+                    />
+                  </Campo>
+                )}
+              </div>
+            </SectionCard>
 
             <button
               type="button"
@@ -404,68 +470,55 @@ export function NuovaTerapiaWizard({
             >
               Continua <ChevronRight size={18} />
             </button>
-          </div>
+          </>
         )}
 
         {step === 'date' && (
-          <div className="pt-4">
-            <div className="mb-6">
-              <div className="mb-1 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <Clock3 size={22} strokeWidth={2.2} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  Date e orario
-                </h1>
+          <>
+            <SectionCard>
+              <div className="space-y-4">
+                <Campo label="Data inizio" required error={errori.date}>
+                  <input
+                    type="date"
+                    value={dataInizio}
+                    onChange={(e) => {
+                      setDataInizio(e.target.value)
+                      setErrori((prev) => ({ ...prev, date: undefined }))
+                    }}
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                  />
+                </Campo>
+
+                <Campo label="Data fine">
+                  <input
+                    type="date"
+                    value={dataFine}
+                    onChange={(e) => setDataFine(e.target.value)}
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                  />
+                </Campo>
+
+                <Campo
+                  label="Orario somministrazione"
+                  required={frequenza !== 'al_bisogno'}
+                  helper={
+                    frequenza === 'al_bisogno'
+                      ? 'Per le terapie al bisogno puoi lasciarlo vuoto'
+                      : 'Es. 09:00'
+                  }
+                >
+                  <input
+                    type="time"
+                    value={oraSomministrazione}
+                    onChange={(e) => {
+                      setOraSomministrazione(e.target.value)
+                      setErrori((prev) => ({ ...prev, date: undefined }))
+                    }}
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                  />
+                </Campo>
               </div>
-              <p className="text-sm text-gray-400">
-                Inserisci almeno la data di inizio e, se prevista, l’ora della
-                somministrazione
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm space-y-4">
-              <Campo label="Data inizio" required error={errori.date}>
-                <input
-                  type="date"
-                  value={dataInizio}
-                  onChange={(e) => {
-                    setDataInizio(e.target.value)
-                    setErrori((prev) => ({ ...prev, date: undefined }))
-                  }}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
-                />
-              </Campo>
-
-              <Campo label="Data fine">
-                <input
-                  type="date"
-                  value={dataFine}
-                  onChange={(e) => setDataFine(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
-                />
-              </Campo>
-
-              <Campo
-                label="Orario somministrazione"
-                required={frequenza !== 'al_bisogno'}
-                helper={
-                  frequenza === 'al_bisogno'
-                    ? 'Per le terapie al bisogno puoi lasciarlo vuoto'
-                    : 'Es. 09:00'
-                }
-              >
-                <input
-                  type="time"
-                  value={oraSomministrazione}
-                  onChange={(e) => {
-                    setOraSomministrazione(e.target.value)
-                    setErrori((prev) => ({ ...prev, date: undefined }))
-                  }}
-                  className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none"
-                />
-              </Campo>
-            </div>
+            </SectionCard>
 
             <button
               type="button"
@@ -474,89 +527,76 @@ export function NuovaTerapiaWizard({
             >
               Continua <ChevronRight size={18} />
             </button>
-          </div>
+          </>
         )}
 
         {step === 'note' && (
-          <div className="pt-4">
-            <div className="mb-6">
-              <div className="mb-1 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                  <FileText size={22} strokeWidth={2.2} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                  {valoriIniziali ? 'Conferma modifiche' : 'Ultimo step'}
-                </h1>
-              </div>
-              <p className="text-sm text-gray-400">
-                {valoriIniziali
-                  ? 'Controlla i dati e salva'
-                  : 'Aggiungi note opzionali e conferma'}
-              </p>
-            </div>
-
+          <>
             <div className="space-y-4">
-              <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+              <SectionCard>
                 <Campo label="Note">
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     rows={4}
                     placeholder="Indicazioni, osservazioni, dettagli utili..."
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none placeholder:text-gray-400"
+                    className="w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 py-3 text-base outline-none placeholder:text-gray-400"
                   />
                 </Campo>
-              </div>
+              </SectionCard>
 
-              <div className="rounded-3xl border border-amber-100 bg-amber-50 px-5 py-5 shadow-sm">
-                <h2 className="mb-3 text-sm font-bold text-amber-900">Riepilogo</h2>
-                <div className="space-y-2 text-sm text-amber-900">
-                  {animaleSelezionato && (
-                    <p>
-                      <span className="font-semibold">Animale:</span>{' '}
-                      {animaleSelezionato.nome}
-                    </p>
-                  )}
-                  <p>
-                    <span className="font-semibold">Farmaco:</span>{' '}
-                    {nomeFarmaco || '—'}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Dose:</span> {dose || '—'}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Frequenza:</span>{' '}
-                    {FREQUENZE.find((f) => f.value === frequenza)?.label ?? frequenza}
-                  </p>
-                  {frequenza === 'personalizzata' && frequenzaCustom.trim() && (
-                    <p>
-                      <span className="font-semibold">Dettaglio:</span>{' '}
-                      {frequenzaCustom}
-                    </p>
-                  )}
-                  <p>
-                    <span className="font-semibold">Data inizio:</span>{' '}
-                    {dataInizio || '—'}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Data fine:</span>{' '}
-                    {dataFine || 'Non indicata'}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Orario:</span>{' '}
-                    {oraSomministrazione || 'Non indicato'}
-                  </p>
+              <SectionCard>
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                    <FileText size={18} strokeWidth={2.2} />
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900">
+                    Riepilogo
+                  </h3>
                 </div>
-              </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {animaleSelezionato ? (
+                    <SummaryItem label="Animale" value={animaleSelezionato.nome} />
+                  ) : null}
+
+                  <SummaryItem label="Farmaco" value={nomeFarmaco || '—'} />
+                  <SummaryItem label="Dose" value={dose || '—'} />
+                  <SummaryItem
+                    label="Frequenza"
+                    value={
+                      FREQUENZE.find((f) => f.value === frequenza)?.label ??
+                      frequenza
+                    }
+                  />
+
+                  {frequenza === 'personalizzata' && frequenzaCustom.trim() ? (
+                    <SummaryItem
+                      label="Dettaglio frequenza"
+                      value={frequenzaCustom}
+                    />
+                  ) : null}
+
+                  <SummaryItem label="Data inizio" value={dataInizio || '—'} />
+                  <SummaryItem
+                    label="Data fine"
+                    value={dataFine || 'Non indicata'}
+                  />
+                  <SummaryItem
+                    label="Orario"
+                    value={oraSomministrazione || 'Non indicato'}
+                  />
+                </div>
+              </SectionCard>
             </div>
 
             <button
               type="submit"
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
             >
-              {valoriIniziali ? 'Salva modifiche' : 'Salva terapia'}
+              {isEditMode ? 'Salva modifiche' : 'Salva terapia'}
             </button>
-          </div>
+          </>
         )}
       </form>
     </div>
