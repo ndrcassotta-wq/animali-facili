@@ -126,6 +126,24 @@ function CampoForm({
   )
 }
 
+function StepLayout({
+  children,
+  action,
+}: {
+  children: React.ReactNode
+  action: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto px-5 pt-4">
+      <div className="pb-6">{children}</div>
+
+      <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-transparent px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+        {action}
+      </div>
+    </div>
+  )
+}
+
 export default function NuovoImpegnoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -441,136 +459,152 @@ export default function NuovoImpegnoPage() {
       )}
 
       {step === 'animale-data' && (
-        <div className="flex flex-1 flex-col px-5 pb-12 pt-4">
-          <div className="mb-1 flex items-center gap-3">
-            <span className="text-3xl">{tipoSelezionato?.icona}</span>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              {tipoSelezionato?.label}
-            </h1>
-          </div>
-          <p className="mb-6 text-sm text-gray-400">
-            Per quale animale e quando?
-          </p>
+        <StepLayout
+          action={
+            <button
+              onClick={() => {
+                if (!animaleIdPreselezionato && !animaleId) {
+                  setErroreAnimale('Seleziona un animale.')
+                  return
+                }
 
-          <div className="mb-4 space-y-5 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-            {!animaleIdPreselezionato && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Animale <span className="text-red-400">*</span>
-                </Label>
-                <AnimaleSelect
-                  valore={animaleId}
-                  onChange={(v) => {
-                    setAnimaleId(v)
-                    setErroreAnimale('')
+                if (!data) {
+                  setErroreData('La data è obbligatoria.')
+                  return
+                }
+
+                vaiAvanti('dettagli')
+              }}
+              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+            >
+              Continua →
+            </button>
+          }
+        >
+          <div className="mb-6">
+            <div className="mb-1 flex items-center gap-3">
+              <span className="text-3xl">{tipoSelezionato?.icona}</span>
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                {tipoSelezionato?.label}
+              </h1>
+            </div>
+            <p className="text-sm text-gray-400">
+              Per quale animale e quando?
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+            <div className="space-y-5">
+              {!animaleIdPreselezionato && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Animale <span className="text-red-400">*</span>
+                  </Label>
+                  <AnimaleSelect
+                    valore={animaleId}
+                    onChange={(v) => {
+                      setAnimaleId(v)
+                      setErroreAnimale('')
+                    }}
+                    disabled={isSubmitting}
+                    mostraLabel={false}
+                  />
+                  {erroreAnimale && (
+                    <p className="text-xs font-medium text-red-500">
+                      {erroreAnimale}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <CampoForm label="Data" required errore={erroreData}>
+                <Input
+                  type="date"
+                  value={data}
+                  onChange={(e) => {
+                    setData(e.target.value)
+                    setErroreData('')
                   }}
-                  disabled={isSubmitting}
-                  mostraLabel={false}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
                 />
-                {erroreAnimale && (
-                  <p className="text-xs font-medium text-red-500">
-                    {erroreAnimale}
-                  </p>
-                )}
-              </div>
-            )}
+              </CampoForm>
 
-            <CampoForm label="Data" required errore={erroreData}>
-              <Input
-                type="date"
-                value={data}
-                onChange={(e) => {
-                  setData(e.target.value)
-                  setErroreData('')
-                }}
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
-              />
-            </CampoForm>
-
-            <CampoForm label="Ora" opzionale>
-              <Input
-                type="time"
-                value={ora}
-                onChange={(e) => setOra(e.target.value)}
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
-              />
-            </CampoForm>
+              <CampoForm label="Ora" opzionale>
+                <Input
+                  type="time"
+                  value={ora}
+                  onChange={(e) => setOra(e.target.value)}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                />
+              </CampoForm>
+            </div>
           </div>
-
-          <button
-            onClick={() => {
-              if (!animaleIdPreselezionato && !animaleId) {
-                setErroreAnimale('Seleziona un animale.')
-                return
-              }
-
-              if (!data) {
-                setErroreData('La data è obbligatoria.')
-                return
-              }
-
-              vaiAvanti('dettagli')
-            }}
-            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-          >
-            Continua →
-          </button>
-        </div>
+        </StepLayout>
       )}
 
       {step === 'dettagli' && (
-        <div className="flex flex-1 flex-col px-5 pb-12 pt-4">
-          <h1 className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900">
-            Ultimi dettagli
-          </h1>
-          <p className="mb-6 text-sm text-gray-400">
-            Tutti opzionali — puoi completarli dopo
-          </p>
+        <StepLayout
+          action={
+            <div className="space-y-4">
+              {erroreSrv && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-medium text-red-600">
+                    {erroreSrv}
+                  </p>
+                </div>
+              )}
 
-          <div className="mb-4 space-y-5 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-            <CampoForm label="Ripetizione" opzionale>
-              <Select
-                value={frequenza}
-                onValueChange={(v) => setFrequenza(v as FrequenzaImpegno)}
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
               >
-                <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {frequenze.map((f) => (
-                    <SelectItem key={f.valore} value={f.valore}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CampoForm>
-
-            <CampoForm label="Note" opzionale>
-              <Textarea
-                placeholder="Informazioni aggiuntive"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
-              />
-            </CampoForm>
+                {isSubmitting ? 'Salvataggio in corso...' : 'Salva impegno 📅'}
+              </button>
+            </div>
+          }
+        >
+          <div className="mb-6">
+            <h1 className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900">
+              Ultimi dettagli
+            </h1>
+            <p className="text-sm text-gray-400">
+              Tutti opzionali — puoi completarli dopo
+            </p>
           </div>
 
-          {erroreSrv && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-              <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
-            </div>
-          )}
+          <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+            <div className="space-y-5">
+              <CampoForm label="Ripetizione" opzionale>
+                <Select
+                  value={frequenza}
+                  onValueChange={(v) => setFrequenza(v as FrequenzaImpegno)}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {frequenze.map((f) => (
+                      <SelectItem key={f.valore} value={f.valore}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CampoForm>
 
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
-          >
-            {isSubmitting ? 'Salvataggio in corso...' : 'Salva impegno 📅'}
-          </button>
-        </div>
+              <CampoForm label="Note" opzionale>
+                <Textarea
+                  placeholder="Informazioni aggiuntive"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={3}
+                  className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+                />
+              </CampoForm>
+            </div>
+          </div>
+        </StepLayout>
       )}
     </div>
   )
