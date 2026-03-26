@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -9,7 +8,6 @@ import {
   Stethoscope,
   User,
   ArrowLeft,
-  Pencil,
   ChevronRight,
   PawPrint,
 } from 'lucide-react'
@@ -245,13 +243,6 @@ export function SchedaAnimaleTab({
           >
             <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
           </button>
-
-          <Link
-            href={`/animali/${animale.id}/modifica`}
-            className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
-          >
-            <Pencil size={16} strokeWidth={2.2} className="text-white" />
-          </Link>
 
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
             <div className="mb-3 flex flex-wrap items-center gap-2">
