@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -11,11 +11,15 @@ import {
   ChevronRight,
   PawPrint,
   BookOpen,
+  Plus,
 } from 'lucide-react'
 import { TabProfilo } from '@/components/animali/TabProfilo'
 import { TabImpegni } from '@/components/animali/TabImpegni'
 import { TabDocumenti } from '@/components/animali/TabDocumenti'
 import TabTerapie from '@/components/animali/TabTerapie'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
 import { cn } from '@/lib/utils'
@@ -28,6 +32,14 @@ type TerapiaConUltimaSomministrazione = Terapia & {
 }
 
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
+
+type DiarioEntry = {
+  id: string
+  data: string
+  titolo: string
+  nota: string
+  createdAt: string
+}
 
 const iconaCategoria: Record<string, string> = {
   cani: '🐕',
@@ -107,34 +119,248 @@ function QuickCard({
   )
 }
 
-function TabDiarioPlaceholder({ animaleNome }: { animaleNome: string }) {
+function getDiarioStorageKey(animaleId: string) {
+  return `animali-facili-diario-${animaleId}`
+}
+
+function formatDataDiario(data: string) {
+  if (!data) return ''
+  return new Date(`${data}T12:00:00`).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function generaId() {
+  if (
+    typeof globalThis.crypto !== 'undefined' &&
+    typeof globalThis.crypto.randomUUID === 'function'
+  ) {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function TabDiario({
+  animaleId,
+  animaleNome,
+}: {
+  animaleId: string
+  animaleNome: string
+}) {
+  const oggi = new Date().toISOString().split('T')[0]
+
+  const [voci, setVoci] = useState<DiarioEntry[]>([])
+  const [mostraForm, setMostraForm] = useState(false)
+  const [data, setData] = useState(oggi)
+  const [titolo, setTitolo] = useState('')
+  const [nota, setNota] = useState('')
+  const [erroreTitolo, setErroreTitolo] = useState('')
+  const [erroreNota, setErroreNota] = useState('')
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(getDiarioStorageKey(animaleId))
+      if (!raw) {
+        setVoci([])
+        return
+      }
+
+      const parsed = JSON.parse(raw) as DiarioEntry[]
+      if (Array.isArray(parsed)) {
+        setVoci(parsed)
+      } else {
+        setVoci([])
+      }
+    } catch {
+      setVoci([])
+    }
+  }, [animaleId])
+
+  function salvaVoci(next: DiarioEntry[]) {
+    setVoci(next)
+    localStorage.setItem(getDiarioStorageKey(animaleId), JSON.stringify(next))
+  }
+
+  function aggiungiVoce() {
+    const titoloPulito = titolo.trim()
+    const notaPulita = nota.trim()
+
+    setErroreTitolo('')
+    setErroreNota('')
+
+    let hasError = false
+
+    if (!titoloPulito) {
+      setErroreTitolo('Inserisci un titolo o una categoria.')
+      hasError = true
+    }
+
+    if (!notaPulita) {
+      setErroreNota('Scrivi una nota.')
+      hasError = true
+    }
+
+    if (hasError) return
+
+    const nuovaVoce: DiarioEntry = {
+      id: generaId(),
+      data,
+      titolo: titoloPulito,
+      nota: notaPulita,
+      createdAt: new Date().toISOString(),
+    }
+
+    const next = [nuovaVoce, ...voci].sort((a, b) =>
+      b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt)
+    )
+
+    salvaVoci(next)
+    setData(oggi)
+    setTitolo('')
+    setNota('')
+    setMostraForm(false)
+  }
+
+  const vociOrdinate = useMemo(
+    () =>
+      [...voci].sort(
+        (a, b) =>
+          b.data.localeCompare(a.data) || b.createdAt.localeCompare(a.createdAt)
+      ),
+    [voci]
+  )
+
   return (
     <div className="px-5 py-5 pb-32">
-      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-          <BookOpen size={24} strokeWidth={2.2} />
+      <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <BookOpen size={22} strokeWidth={2.2} />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+              Diario
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+              Le note di {animaleNome}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              Tieni traccia di peso, sintomi, cambiamenti, progressi e note
+              utili nel tempo.
+            </p>
+          </div>
         </div>
 
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
-          Diario
-        </p>
+        <button
+          type="button"
+          onClick={() => setMostraForm((prev) => !prev)}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+        >
+          <Plus size={16} strokeWidth={2.5} />
+          {mostraForm ? 'Chiudi' : 'Nuova voce'}
+        </button>
+      </div>
 
-        <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
-          Una nuova sezione per seguire {animaleNome}
-        </h2>
+      {mostraForm && (
+        <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-gray-700">Data</Label>
+              <Input
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+              />
+            </div>
 
-        <p className="mt-3 text-sm leading-6 text-gray-500">
-          Qui potrai annotare peso, sintomi, cambiamenti, progressi e note utili
-          nel tempo, in modo semplice e ordinato.
-        </p>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-gray-700">
+                Titolo o categoria
+              </Label>
+              <Input
+                placeholder="es. Peso, Feci molli, Umore, Nota generale..."
+                value={titolo}
+                onChange={(e) => {
+                  setTitolo(e.target.value)
+                  setErroreTitolo('')
+                }}
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+              />
+              {erroreTitolo && (
+                <p className="text-xs font-medium text-red-500">
+                  {erroreTitolo}
+                </p>
+              )}
+            </div>
 
-        <div className="mt-5 rounded-2xl bg-[#FCF8F3] px-4 py-4">
-          <p className="text-sm leading-6 text-gray-600">
-            Per ora questa è la base iniziale della sezione. Nel prossimo passo
-            aggiungeremo la prima vera struttura del diario.
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-gray-700">Nota</Label>
+              <Textarea
+                rows={4}
+                placeholder="Scrivi cosa è successo o cosa vuoi ricordare..."
+                value={nota}
+                onChange={(e) => {
+                  setNota(e.target.value)
+                  setErroreNota('')
+                }}
+                className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+              />
+              {erroreNota && (
+                <p className="text-xs font-medium text-red-500">{erroreNota}</p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={aggiungiVoce}
+              className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98]"
+            >
+              Salva voce
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vociOrdinate.length === 0 ? (
+        <div className="rounded-[28px] border border-dashed border-[#EADFD3] bg-white px-6 py-10 text-center shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-amber-600">
+            <BookOpen size={24} strokeWidth={2.2} />
+          </div>
+          <h3 className="text-lg font-extrabold text-gray-900">
+            Nessuna voce nel diario
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Inizia con una nota semplice per ricordare peso, sintomi, progressi
+            o qualsiasi cambiamento utile.
           </p>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {vociOrdinate.map((voce) => (
+            <div
+              key={voce.id}
+              className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+            >
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <span className="rounded-full bg-[#FCF8F3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600">
+                  {voce.titolo}
+                </span>
+                <span className="text-xs font-semibold text-gray-400">
+                  {formatDataDiario(voce.data)}
+                </span>
+              </div>
+
+              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                {voce.nota}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -242,7 +468,7 @@ export function SchedaAnimaleTab({
             <TabTerapie animaleId={animale.id} terapie={terapie} />
           )}
           {tabAttivo === 'diario' && (
-            <TabDiarioPlaceholder animaleNome={animale.nome} />
+            <TabDiario animaleId={animale.id} animaleNome={animale.nome} />
           )}
         </div>
       </div>
