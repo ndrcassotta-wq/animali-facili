@@ -11,12 +11,17 @@ import {
   FileText,
   PawPrint,
   Stethoscope,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type AnimaleOption = {
   id: string
   nome: string
+  specie?: string | null
+  razza?: string | null
+  foto_url?: string | null
+  categoria?: string | null
 }
 
 type Step = 'animale' | 'farmaco' | 'frequenza' | 'date' | 'note'
@@ -158,6 +163,95 @@ function SummaryItem({
       </p>
       <p className="mt-1 text-sm font-bold leading-5 text-gray-800">{value}</p>
     </div>
+  )
+}
+
+function getAvatarTone(categoria?: string | null) {
+  const mappa: Record<string, string> = {
+    cani: 'bg-amber-100 text-amber-700',
+    gatti: 'bg-orange-100 text-orange-700',
+    pesci: 'bg-sky-100 text-sky-700',
+    uccelli: 'bg-lime-100 text-lime-700',
+    rettili: 'bg-green-100 text-green-700',
+    piccoli_mammiferi: 'bg-rose-100 text-rose-700',
+    altri_animali: 'bg-violet-100 text-violet-700',
+  }
+
+  return mappa[categoria ?? ''] ?? 'bg-slate-100 text-slate-700'
+}
+
+function getAnimaleInfo(animale: AnimaleOption) {
+  const dettagli = [animale.specie, animale.razza].filter(Boolean)
+  if (dettagli.length > 0) {
+    return dettagli.join(' · ')
+  }
+
+  return 'Dettagli non disponibili'
+}
+
+function getInitial(nome: string) {
+  return nome.trim().charAt(0).toUpperCase() || 'A'
+}
+
+function CardSelezioneAnimale({
+  animale,
+  selected,
+  onClick,
+}: {
+  animale: AnimaleOption
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all active:scale-[0.99]',
+        selected
+          ? 'border-amber-300 bg-amber-50 shadow-sm'
+          : 'border-[#EEE4D9] bg-[#FCF8F3]'
+      )}
+    >
+      <div className="relative shrink-0">
+        {animale.foto_url ? (
+          <img
+            src={animale.foto_url}
+            alt={animale.nome}
+            className="h-14 w-14 rounded-2xl object-cover shadow-sm"
+          />
+        ) : (
+          <div
+            className={cn(
+              'flex h-14 w-14 items-center justify-center rounded-2xl font-extrabold shadow-sm',
+              getAvatarTone(animale.categoria)
+            )}
+          >
+            {getInitial(animale.nome)}
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-extrabold text-gray-900">
+          {animale.nome}
+        </p>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          {getAnimaleInfo(animale)}
+        </p>
+      </div>
+
+      <div
+        className={cn(
+          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border',
+          selected
+            ? 'border-amber-500 bg-amber-500 text-white'
+            : 'border-gray-300 bg-white text-transparent'
+        )}
+      >
+        <Check size={14} strokeWidth={3} />
+      </div>
+    </button>
   )
 }
 
@@ -352,22 +446,25 @@ export function NuovaTerapiaWizard({
         {step === 'animale' && (
           <>
             <SectionCard>
-              <Campo label="Animale" required error={errori.animale}>
-                <select
-                  value={animaleId}
-                  onChange={(e) => {
-                    setAnimaleId(e.target.value)
-                    setErrori((prev) => ({ ...prev, animale: undefined }))
-                  }}
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
-                >
-                  <option value="">Seleziona un animale</option>
-                  {animali.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.nome}
-                    </option>
+              <Campo
+                label="Animale"
+                required
+                error={errori.animale}
+                helper="Scegli l’animale giusto controllando anche specie o razza."
+              >
+                <div className="space-y-3">
+                  {animali.map((animale) => (
+                    <CardSelezioneAnimale
+                      key={animale.id}
+                      animale={animale}
+                      selected={animaleId === animale.id}
+                      onClick={() => {
+                        setAnimaleId(animale.id)
+                        setErrori((prev) => ({ ...prev, animale: undefined }))
+                      }}
+                    />
                   ))}
-                </select>
+                </div>
               </Campo>
             </SectionCard>
 
@@ -557,7 +654,12 @@ export function NuovaTerapiaWizard({
 
                 <div className="grid grid-cols-1 gap-3">
                   {animaleSelezionato ? (
-                    <SummaryItem label="Animale" value={animaleSelezionato.nome} />
+                    <SummaryItem
+                      label="Animale"
+                      value={`${animaleSelezionato.nome} · ${getAnimaleInfo(
+                        animaleSelezionato
+                      )}`}
+                    />
                   ) : null}
 
                   <SummaryItem label="Farmaco" value={nomeFarmaco || '—'} />

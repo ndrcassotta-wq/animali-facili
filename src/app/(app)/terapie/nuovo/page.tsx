@@ -46,7 +46,7 @@ export default async function NuovaTerapiaGenericaPage() {
 
   const { data: animaliRows, error: animaliError } = await supabase
     .from('animali')
-    .select('id, nome')
+    .select('id, nome, specie, razza, foto_url, categoria')
     .eq('user_id', user.id)
     .order('nome', { ascending: true })
 
@@ -54,7 +54,10 @@ export default async function NuovaTerapiaGenericaPage() {
     throw new Error(animaliError.message)
   }
 
-  const animali = (animaliRows ?? []) as Pick<Animale, 'id' | 'nome'>[]
+  const animali = (animaliRows ?? []) as Pick<
+    Animale,
+    'id' | 'nome' | 'specie' | 'razza' | 'foto_url' | 'categoria'
+  >[]
 
   async function creaTerapia(formData: FormData) {
     'use server'
@@ -128,7 +131,10 @@ export default async function NuovaTerapiaGenericaPage() {
 
     const terapiaId = terapiaCreata.id
 
-    if (terapiaCreata.stato === 'attiva' && terapiaCreata.frequenza !== 'al_bisogno') {
+    if (
+      terapiaCreata.stato === 'attiva' &&
+      terapiaCreata.frequenza !== 'al_bisogno'
+    ) {
       const payloadImpegno: ImpegnoInsert = {
         animale_id: animaleId,
         titolo: `Terapia: ${nomeFarmaco}`,
