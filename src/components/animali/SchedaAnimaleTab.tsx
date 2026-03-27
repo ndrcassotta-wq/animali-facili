@@ -9,7 +9,6 @@ import {
   User,
   ArrowLeft,
   ChevronRight,
-  PawPrint,
   BookOpen,
   Plus,
   Camera,
@@ -787,7 +786,7 @@ export function SchedaAnimaleTab({
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
       {fotoPickerShared}
 
-      <div className="relative w-full overflow-hidden rounded-b-[32px]">
+      <div className="relative w-full overflow-hidden">
         <div className="relative h-[220px] w-full">
           {avatarFoto ? (
             <img
@@ -828,20 +827,13 @@ export function SchedaAnimaleTab({
           </button>
 
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-                {categoriaLabel}
-              </span>
-              {animale.sesso && animale.sesso !== 'non_specificato' ? (
-                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold capitalize text-white backdrop-blur-sm">
-                  {animale.sesso}
-                </span>
-              ) : null}
-            </div>
-
-            <h1 className="text-2xl leading-tight font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white">
               {animale.nome}
             </h1>
+
+            <p className="mt-1 text-sm font-semibold text-white/90">
+              {categoriaLabel}
+            </p>
 
             <p className="mt-1 text-sm text-white/85">
               {animale.specie}
@@ -862,7 +854,7 @@ export function SchedaAnimaleTab({
         </div>
       </div>
 
-      <div className="-mt-3 px-5 pt-0 pb-32">
+      <div className="px-5 pt-5 pb-32">
         {erroreFoto && (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
@@ -936,22 +928,6 @@ export function SchedaAnimaleTab({
             }
           />
         </div>
-
-        {animale.note && (
-          <div className="mt-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-            <div className="mb-3 flex items-center gap-2 text-gray-400">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-[#EEE4D9] bg-[#FCF8F3]">
-                <PawPrint size={18} strokeWidth={2.1} />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.08em]">
-                Note
-              </p>
-            </div>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-gray-600">
-              {animale.note}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )
