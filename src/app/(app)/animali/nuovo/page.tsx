@@ -72,7 +72,14 @@ const STEP_LABELS: Record<Step, string> = {
   crea: 'Crea',
 }
 
-const OPTIONAL_STEPS: Step[] = ['foto', 'nascita', 'specie', 'sesso', 'peso', 'note']
+const OPTIONAL_STEPS: Step[] = [
+  'foto',
+  'nascita',
+  'specie',
+  'sesso',
+  'peso',
+  'note',
+]
 
 const MESI = [
   { value: '01', label: 'Gennaio' },
@@ -356,6 +363,27 @@ function CampoForm({
   )
 }
 
+function StepActionButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-lg shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
+    >
+      {label}
+    </button>
+  )
+}
+
 function StepLayout({
   children,
   action,
@@ -366,7 +394,7 @@ function StepLayout({
   contentRef?: RefObject<HTMLDivElement | null>
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={contentRef}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-6"
@@ -374,7 +402,7 @@ function StepLayout({
         <div className="pb-2">{children}</div>
       </div>
 
-      <div className="shrink-0 border-t border-black/5 bg-[#FDF8F3] px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+      <div className="relative z-20 shrink-0 border-t border-black/5 bg-[#FDF8F3] px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+88px)] shadow-[0_-10px_30px_rgba(15,23,42,0.06)]">
         {action}
       </div>
     </div>
@@ -645,7 +673,7 @@ export default function NuovoAnimalePage() {
 
   return (
     <div
-      className="flex h-[100dvh] min-h-[100dvh] flex-col bg-[#FDF8F3]"
+      className="flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden bg-[#FDF8F3]"
       style={{ minHeight: '100dvh' }}
     >
       {cropSrc && (
@@ -687,7 +715,7 @@ export default function NuovoAnimalePage() {
         }}
       />
 
-      <header className="shrink-0 px-5 pt-10 pb-0">
+      <header className="relative z-10 shrink-0 px-5 pt-10 pb-0">
         <div className="mb-3 flex items-center justify-between gap-4">
           <button
             type="button"
@@ -717,7 +745,7 @@ export default function NuovoAnimalePage() {
       {step === 'categoria' && (
         <div
           ref={contenutoRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+24px)]"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+104px)]"
         >
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
             Che animale hai?
@@ -757,13 +785,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={handleNomeContinue}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -774,7 +799,8 @@ export default function NuovoAnimalePage() {
               </h1>
             </div>
             <p className="text-sm text-gray-400">
-              Inserisci il nome del tuo {categoriaSelezionata?.label.toLowerCase()}
+              Inserisci il nome del tuo{' '}
+              {categoriaSelezionata?.label.toLowerCase()}
             </p>
           </div>
 
@@ -785,6 +811,13 @@ export default function NuovoAnimalePage() {
                 placeholder={`Il nome del tuo ${categoriaSelezionata?.label.toLowerCase()}`}
                 value={valori.nome}
                 onChange={(e) => setValue('nome', e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleNomeContinue()
+                  }
+                }}
+                enterKeyHint="next"
                 autoFocus
                 className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
@@ -797,13 +830,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -811,7 +841,8 @@ export default function NuovoAnimalePage() {
               Aggiungi una foto
             </h1>
             <p className="mt-1 text-sm text-gray-400">
-              Facoltativa, ma molto utile per riconoscere subito {valori.nome || 'il tuo animale'}
+              Facoltativa, ma molto utile per riconoscere subito{' '}
+              {valori.nome || 'il tuo animale'}
             </p>
           </div>
 
@@ -842,7 +873,8 @@ export default function NuovoAnimalePage() {
                   {fotoPreview ? 'Foto selezionata' : 'Scegli come aggiungerla'}
                 </p>
                 <p className="mt-1 text-sm text-gray-500">
-                  Puoi usare direttamente la fotocamera oppure prendere una foto dalla galleria
+                  Puoi usare direttamente la fotocamera oppure prendere una foto
+                  dalla galleria
                 </p>
               </div>
 
@@ -877,7 +909,9 @@ export default function NuovoAnimalePage() {
 
               {erroreSrv && (
                 <div className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                  <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+                  <p className="text-sm font-medium text-red-600">
+                    {erroreSrv}
+                  </p>
                 </div>
               )}
             </div>
@@ -889,13 +923,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -964,7 +995,8 @@ export default function NuovoAnimalePage() {
               </div>
 
               <p className="text-xs text-gray-400">
-                Giorno, mese e anno hanno la stessa struttura per restare chiari anche su schermi piccoli
+                Giorno, mese e anno hanno la stessa struttura per restare chiari
+                anche su schermi piccoli
               </p>
 
               {valori.data_nascita && (
@@ -986,13 +1018,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -1030,13 +1059,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -1077,13 +1103,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Continua →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Continua →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -1122,13 +1145,10 @@ export default function NuovoAnimalePage() {
         <StepLayout
           contentRef={contenutoRef}
           action={
-            <button
-              type="button"
+            <StepActionButton
+              label="Vai al riepilogo →"
               onClick={() => vaiAvanti()}
-              className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              Vai al riepilogo →
-            </button>
+            />
           }
         >
           <div className="mb-8">
@@ -1162,22 +1182,17 @@ export default function NuovoAnimalePage() {
             <div className="space-y-4">
               {erroreSrv && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                  <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+                  <p className="text-sm font-medium text-red-600">
+                    {erroreSrv}
+                  </p>
                 </div>
               )}
 
-              <button
-                type="button"
+              <StepActionButton
+                label={isSubmitting ? 'Creazione in corso...' : 'Crea animale'}
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
-              >
-                {isSubmitting
-                  ? 'Creazione in corso...'
-                  : `Crea ${
-                      categoriaSelezionata?.label.toLowerCase() ?? 'animale'
-                    }`}
-              </button>
+              />
             </div>
           }
         >
@@ -1224,10 +1239,7 @@ export default function NuovoAnimalePage() {
           </div>
 
           <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-            <RiepilogoRiga
-              label="Nome"
-              value={valori.nome.trim() || '—'}
-            />
+            <RiepilogoRiga label="Nome" value={valori.nome.trim() || '—'} />
             <RiepilogoRiga
               label="Foto"
               value={fotoFile ? 'Aggiunta' : 'Non inserita'}
