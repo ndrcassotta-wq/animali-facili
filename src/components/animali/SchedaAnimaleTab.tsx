@@ -13,6 +13,8 @@ import {
   BookOpen,
   Plus,
   Camera,
+  Images,
+  X,
 } from 'lucide-react'
 import { TabProfilo } from '@/components/animali/TabProfilo'
 import { TabImpegni } from '@/components/animali/TabImpegni'
@@ -145,6 +147,88 @@ function formatDataDiario(data: string) {
     month: 'long',
     year: 'numeric',
   })
+}
+
+function FotoSourceSheet({
+  isOpen,
+  onClose,
+  onPickCamera,
+  onPickGallery,
+  isUploading,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onPickCamera: () => void
+  onPickGallery: () => void
+  isUploading: boolean
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]">
+      <button
+        type="button"
+        aria-label="Chiudi scelta foto"
+        className="absolute inset-0 h-full w-full cursor-default"
+        onClick={onClose}
+      />
+
+      <div className="absolute inset-x-0 bottom-0 rounded-t-[30px] bg-white px-5 pb-7 pt-5 shadow-[0_-18px_40px_rgba(15,23,42,0.16)]">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-lg font-extrabold text-gray-900">Cambia foto</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Scegli come vuoi aggiornare la foto profilo.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 active:opacity-70"
+          >
+            <X size={18} strokeWidth={2.2} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={onPickCamera}
+            disabled={isUploading}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] px-4 py-4 text-left transition-all active:scale-[0.99] disabled:opacity-60"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm">
+              <Camera size={20} strokeWidth={2.2} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Usa fotocamera</p>
+              <p className="text-xs text-gray-500">
+                Scatta subito una nuova foto.
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onPickGallery}
+            disabled={isUploading}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#EADFD3] bg-white px-4 py-4 text-left transition-all active:scale-[0.99] disabled:opacity-60"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F4F4F5] text-slate-700 shadow-sm">
+              <Images size={20} strokeWidth={2.2} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Scegli da galleria</p>
+              <p className="text-xs text-gray-500">
+                Apri le foto già presenti sul telefono.
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function TabDiario({
@@ -404,7 +488,8 @@ export function SchedaAnimaleTab({
   tabIniziale,
 }: Props) {
   const router = useRouter()
-  const inputFotoRef = useRef<HTMLInputElement | null>(null)
+  const inputFotoCameraRef = useRef<HTMLInputElement | null>(null)
+  const inputFotoGalleriaRef = useRef<HTMLInputElement | null>(null)
   const contenutoInternoRef = useRef<HTMLDivElement | null>(null)
 
   const [tabAttivo, setTabAttivo] = useState<TabId>(
@@ -421,6 +506,7 @@ export function SchedaAnimaleTab({
   const [cropNome, setCropNome] = useState('')
   const [isUploadingFoto, setIsUploadingFoto] = useState(false)
   const [erroreFoto, setErroreFoto] = useState<string | null>(null)
+  const [mostraSceltaFoto, setMostraSceltaFoto] = useState(false)
 
   useEffect(() => {
     setFotoUrl(animale.foto_url ?? null)
@@ -451,7 +537,25 @@ export function SchedaAnimaleTab({
 
   function apriCambioFoto() {
     if (isUploadingFoto) return
-    inputFotoRef.current?.click()
+    setErroreFoto(null)
+    setMostraSceltaFoto(true)
+  }
+
+  function gestisciFileFoto(file: File | null) {
+    if (!file) return
+
+    if (file.size > MAX_FOTO_SIZE_BYTES) {
+      setErroreFoto(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+      return
+    }
+
+    if (cropSrc) {
+      URL.revokeObjectURL(cropSrc)
+    }
+
+    setErroreFoto(null)
+    setCropNome(file.name)
+    setCropSrc(URL.createObjectURL(file))
   }
 
   async function aggiornaFotoAnimale(file: File) {
@@ -523,47 +627,68 @@ export function SchedaAnimaleTab({
   const avatarFoto = fotoUrl
   const avatarFallback = iconaCategoria[animale.categoria] ?? '🐾'
 
+  const fotoPickerShared = (
+    <>
+      <FotoSourceSheet
+        isOpen={mostraSceltaFoto}
+        isUploading={isUploadingFoto}
+        onClose={() => setMostraSceltaFoto(false)}
+        onPickCamera={() => {
+          setMostraSceltaFoto(false)
+          inputFotoCameraRef.current?.click()
+        }}
+        onPickGallery={() => {
+          setMostraSceltaFoto(false)
+          inputFotoGalleriaRef.current?.click()
+        }}
+      />
+
+      {cropSrc && (
+        <CropFoto
+          imageSrc={cropSrc}
+          fileName={cropNome}
+          onConfirm={aggiornaFotoAnimale}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+        />
+      )}
+
+      <input
+        ref={inputFotoCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null
+          gestisciFileFoto(file)
+          e.target.value = ''
+        }}
+      />
+
+      <input
+        ref={inputFotoGalleriaRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null
+          gestisciFileFoto(file)
+          e.target.value = ''
+        }}
+      />
+    </>
+  )
+
   if (tabAttivo !== 'home') {
     return (
       <div
         className="flex flex-col bg-[#F7F1EA]"
         style={{ minHeight: '100dvh' }}
       >
-        {cropSrc && (
-          <CropFoto
-            imageSrc={cropSrc}
-            fileName={cropNome}
-            onConfirm={aggiornaFotoAnimale}
-            onCancel={() => {
-              URL.revokeObjectURL(cropSrc)
-              setCropSrc(null)
-            }}
-          />
-        )}
-
-        <input
-          ref={inputFotoRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null
-
-            if (file && file.size > MAX_FOTO_SIZE_BYTES) {
-              setErroreFoto(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
-              e.target.value = ''
-              return
-            }
-
-            if (file) {
-              setCropNome(file.name)
-              setCropSrc(URL.createObjectURL(file))
-            }
-
-            e.target.value = ''
-          }}
-        />
+        {fotoPickerShared}
 
         <header className="rounded-b-[30px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-4 pt-10">
           <button
@@ -660,41 +785,7 @@ export function SchedaAnimaleTab({
 
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
-      {cropSrc && (
-        <CropFoto
-          imageSrc={cropSrc}
-          fileName={cropNome}
-          onConfirm={aggiornaFotoAnimale}
-          onCancel={() => {
-            URL.revokeObjectURL(cropSrc)
-            setCropSrc(null)
-          }}
-        />
-      )}
-
-      <input
-        ref={inputFotoRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0] ?? null
-
-          if (file && file.size > MAX_FOTO_SIZE_BYTES) {
-            setErroreFoto(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
-            e.target.value = ''
-            return
-          }
-
-          if (file) {
-            setCropNome(file.name)
-            setCropSrc(URL.createObjectURL(file))
-          }
-
-          e.target.value = ''
-        }}
-      />
+      {fotoPickerShared}
 
       <div className="relative w-full overflow-hidden rounded-b-[32px]">
         <div className="relative h-[220px] w-full">
