@@ -85,6 +85,7 @@ function CardImpegno({
   const scaduto = statoAttivo === 'programmato' && isScaduta(impegno.data)
   const imminente = statoAttivo === 'programmato' && isImminente(impegno.data)
   const isTerapia = impegno.tipo === 'terapia'
+  const isCompleanno = impegno.tipo === 'compleanno'
 
   const autoTerapiaId = isTerapia ? getAutoTerapiaId(impegno.note) : null
   const previewNota = getPreviewNote(impegno)
@@ -222,7 +223,7 @@ function CardImpegno({
         <ChevronRight size={16} className="shrink-0 text-gray-300" />
       </Link>
 
-      {statoAttivo === 'programmato' && (
+      {statoAttivo === 'programmato' && !isCompleanno && (
         <div className="mt-4">
           <button
             type="button"
