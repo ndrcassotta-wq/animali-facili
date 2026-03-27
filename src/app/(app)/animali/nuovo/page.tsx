@@ -400,13 +400,13 @@ function StepLayout({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={contentRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-5"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+104px)]"
       >
-        <div className="pb-2">{children}</div>
-      </div>
+        <div className="pb-2">
+          {children}
 
-      <div className="relative z-20 shrink-0 border-t border-black/5 bg-[#FDF8F3] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+112px)] shadow-[0_-8px_24px_rgba(15,23,42,0.05)]">
-        {action}
+          <div className="mt-6">{action}</div>
+        </div>
       </div>
     </div>
   )
