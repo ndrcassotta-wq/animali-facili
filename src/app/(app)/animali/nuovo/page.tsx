@@ -127,6 +127,9 @@ const labelSesso: Record<string, string> = {
   non_specificato: 'Non specificato',
 }
 
+const BIRTH_FIELD_CLASS =
+  'h-14 min-h-14 w-full min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-4 text-base shadow-none'
+
 function getEstensioneFile(file: File) {
   const parti = file.name.split('.')
   return parti[parti.length - 1]?.toLowerCase() || 'jpg'
@@ -397,12 +400,12 @@ function StepLayout({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={contentRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-5"
       >
         <div className="pb-2">{children}</div>
       </div>
 
-      <div className="relative z-20 shrink-0 border-t border-black/5 bg-[#FDF8F3] px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+88px)] shadow-[0_-10px_30px_rgba(15,23,42,0.06)]">
+      <div className="relative z-20 shrink-0 border-t border-black/5 bg-[#FDF8F3] px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+112px)] shadow-[0_-8px_24px_rgba(15,23,42,0.05)]">
         {action}
       </div>
     </div>
@@ -944,12 +947,12 @@ export default function NuovoAnimalePage() {
               opzionale
               errore={birthDateError}
             >
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 items-stretch gap-3">
                 <Select
                   value={giornoNascita}
                   onValueChange={(value) => setGiornoNascita(value ?? '')}
                 >
-                  <SelectTrigger className="h-14 w-full min-w-0 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                  <SelectTrigger className={BIRTH_FIELD_CLASS}>
                     <SelectValue placeholder="Giorno" />
                   </SelectTrigger>
                   <SelectContent>
@@ -965,7 +968,7 @@ export default function NuovoAnimalePage() {
                   value={meseNascita}
                   onValueChange={(value) => setMeseNascita(value ?? '')}
                 >
-                  <SelectTrigger className="h-14 w-full min-w-0 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                  <SelectTrigger className={BIRTH_FIELD_CLASS}>
                     <SelectValue placeholder="Mese" />
                   </SelectTrigger>
                   <SelectContent>
@@ -990,13 +993,13 @@ export default function NuovoAnimalePage() {
                       .slice(0, 4)
                     setAnnoNascita(soloNumeri)
                   }}
-                  className="h-14 w-full min-w-0 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                  className={`${BIRTH_FIELD_CLASS} py-0 leading-none`}
                 />
               </div>
 
               <p className="text-xs text-gray-400">
-                Giorno, mese e anno hanno la stessa struttura per restare chiari
-                anche su schermi piccoli
+                Giorno, mese e anno hanno ora la stessa struttura visiva e una
+                spaziatura coerente
               </p>
 
               {valori.data_nascita && (
