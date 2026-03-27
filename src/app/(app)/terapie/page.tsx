@@ -124,23 +124,6 @@ function calcolaProssimaDataImpegno(
   return prossimaData
 }
 
-function SummaryBox({
-  value,
-  label,
-}: {
-  value: number
-  label: string
-}) {
-  return (
-    <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3 text-center">
-      <p className="text-lg font-extrabold text-gray-900">{value}</p>
-      <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-        {label}
-      </p>
-    </div>
-  )
-}
-
 function DetailPill({
   label,
   value,
@@ -381,7 +364,7 @@ function CardTerapia({
           <form action={segnaSomministrataRapida}>
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 active:scale-[0.98] transition-all"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
             >
               <Check size={16} strokeWidth={2.5} />
               Segna somministrata
@@ -456,41 +439,27 @@ export default async function ListaTerapiePage({
     ultimaSomministrazione: ultimaPerTerapia.get(t.id) ?? null,
   }))
 
-  const attiveCount = terapieBase.filter((t) => t.stato === 'attiva').length
-  const concluseCount = terapieBase.filter((t) => t.stato === 'conclusa').length
-  const archiviateCount = terapieBase.filter(
-    (t) => t.stato === 'archiviata'
-  ).length
-
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
-      <header className="shrink-0 rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
-        <div className="rounded-[28px] border border-[#F1E4D7] bg-white/90 p-5 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-teal-700">
-              <Stethoscope size={22} strokeWidth={2.2} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-                Terapie
-              </h1>
-              <p className="mt-1 text-sm leading-5 text-gray-500">
-                Farmaci e cure dei tuoi animali in una vista più chiara e veloce.
-              </p>
-            </div>
+      <header className="shrink-0 px-5 pb-2 pt-10">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-teal-700">
+            <Stethoscope size={20} strokeWidth={2.2} />
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <SummaryBox value={attiveCount} label="Attive" />
-            <SummaryBox value={concluseCount} label="Concluse" />
-            <SummaryBox value={archiviateCount} label="Archiviate" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              Terapie
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-gray-500">
+              Farmaci e cure in una vista più compatta e veloce.
+            </p>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col px-5 pb-32 pt-4">
-        <div className="mb-4 flex justify-center gap-2">
+      <div className="flex flex-1 flex-col px-5 pb-32 pt-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {filtri.map((f) => {
             const param = paramDaStato[f.valore]
             const href = param ? `/terapie?stato=${param}` : '/terapie'

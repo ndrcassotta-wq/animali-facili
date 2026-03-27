@@ -1,7 +1,6 @@
-// src/components/animali/SchedaAnimaleTab.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
@@ -13,6 +12,7 @@ import {
   PawPrint,
   BookOpen,
   Plus,
+  Camera,
 } from 'lucide-react'
 import { TabProfilo } from '@/components/animali/TabProfilo'
 import { TabImpegni } from '@/components/animali/TabImpegni'
@@ -21,6 +21,7 @@ import TabTerapie from '@/components/animali/TabTerapie'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { CropFoto } from '@/components/ui/CropFoto'
 import { createClient } from '@/lib/supabase/client'
 import type { Animale, Impegno, Documento } from '@/lib/types/query.types'
 import type { Database } from '@/lib/types/database.types'
@@ -36,6 +37,10 @@ type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
 type DiarioVoceInsert = Database['public']['Tables']['diario_voci']['Insert']
 
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
+
+const BUCKET_FOTO_ANIMALI = 'foto-animali'
+const MAX_FOTO_SIZE_MB = 10
+const MAX_FOTO_SIZE_BYTES = MAX_FOTO_SIZE_MB * 1024 * 1024
 
 const iconaCategoria: Record<string, string> = {
   cani: '🐕',
@@ -76,6 +81,11 @@ interface Props {
   tabIniziale: TabId
 }
 
+function getEstensioneFile(file: File) {
+  const parti = file.name.split('.')
+  return parti[parti.length - 1]?.toLowerCase() || 'jpg'
+}
+
 function QuickCard({
   title,
   subtitle,
@@ -93,11 +103,11 @@ function QuickCard({
     <button
       onClick={onClick}
       className={cn(
-        'group flex min-h-[150px] flex-col justify-between rounded-[28px] border p-5 text-left shadow-sm transition-all active:scale-[0.98]',
+        'group flex min-h-[132px] flex-col justify-between rounded-[28px] border p-4 text-left shadow-sm transition-all active:scale-[0.98]',
         tone
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
         {icon}
       </div>
 
@@ -376,6 +386,8 @@ export function SchedaAnimaleTab({
   tabIniziale,
 }: Props) {
   const router = useRouter()
+  const inputFotoRef = useRef<HTMLInputElement | null>(null)
+
   const [tabAttivo, setTabAttivo] = useState<TabId>(
     tabIniziale === 'profilo' ||
       tabIniziale === 'impegni' ||
@@ -385,6 +397,15 @@ export function SchedaAnimaleTab({
       ? tabIniziale
       : 'home'
   )
+  const [fotoUrl, setFotoUrl] = useState<string | null>(animale.foto_url ?? null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropNome, setCropNome] = useState('')
+  const [isUploadingFoto, setIsUploadingFoto] = useState(false)
+  const [erroreFoto, setErroreFoto] = useState<string | null>(null)
+
+  useEffect(() => {
+    setFotoUrl(animale.foto_url ?? null)
+  }, [animale.foto_url])
 
   function cambiaTab(tab: TabId) {
     setTabAttivo(tab)
@@ -401,16 +422,125 @@ export function SchedaAnimaleTab({
   const terapieAttive = terapie.filter((t) => t.stato === 'attiva').length
   const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
 
+  function apriCambioFoto() {
+    if (isUploadingFoto) return
+    inputFotoRef.current?.click()
+  }
+
+  async function aggiornaFotoAnimale(file: File) {
+    setErroreFoto(null)
+    setIsUploadingFoto(true)
+
+    try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const estensione = getEstensioneFile(file)
+      const filePath = `${user.id}/animali/${animale.id}/foto-${Date.now()}.${estensione}`
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_FOTO_ANIMALI)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type || undefined,
+        })
+
+      if (uploadError) {
+        throw new Error(`Upload foto non riuscito: ${uploadError.message}`)
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from(BUCKET_FOTO_ANIMALI)
+        .getPublicUrl(filePath)
+
+      const nuovaFotoUrl = publicUrlData.publicUrl
+
+      const { error: updateError } = await supabase
+        .from('animali')
+        .update({ foto_url: nuovaFotoUrl })
+        .eq('id', animale.id)
+
+      if (updateError) {
+        throw new Error(
+          `Aggiornamento foto non riuscito: ${updateError.message}`
+        )
+      }
+
+      setFotoUrl(nuovaFotoUrl)
+      router.refresh()
+    } catch (error) {
+      console.error(error)
+      setErroreFoto(
+        error instanceof Error
+          ? error.message
+          : 'Errore durante il cambio foto. Riprova.'
+      )
+    } finally {
+      if (cropSrc) {
+        URL.revokeObjectURL(cropSrc)
+      }
+      setCropSrc(null)
+      setIsUploadingFoto(false)
+    }
+  }
+
+  const avatarFoto = fotoUrl
+  const avatarFallback = iconaCategoria[animale.categoria] ?? '🐾'
+
   if (tabAttivo !== 'home') {
     return (
       <div
         className="flex flex-col bg-[#F7F1EA]"
         style={{ minHeight: '100dvh' }}
       >
-        <header className="rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
+        {cropSrc && (
+          <CropFoto
+            imageSrc={cropSrc}
+            fileName={cropNome}
+            onConfirm={aggiornaFotoAnimale}
+            onCancel={() => {
+              URL.revokeObjectURL(cropSrc)
+              setCropSrc(null)
+            }}
+          />
+        )}
+
+        <input
+          ref={inputFotoRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null
+
+            if (file && file.size > MAX_FOTO_SIZE_BYTES) {
+              setErroreFoto(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+              e.target.value = ''
+              return
+            }
+
+            if (file) {
+              setCropNome(file.name)
+              setCropSrc(URL.createObjectURL(file))
+            }
+
+            e.target.value = ''
+          }}
+        />
+
+        <header className="rounded-b-[30px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-4 pt-10">
           <button
             onClick={() => cambiaTab('home')}
-            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white shadow-sm active:opacity-70"
+            className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white shadow-sm active:opacity-70"
           >
             <ArrowLeft
               size={20}
@@ -419,26 +549,36 @@ export function SchedaAnimaleTab({
             />
           </button>
 
-          <div className="rounded-[28px] border border-[#F1E4D7] bg-white/90 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+          <div className="rounded-[24px] border border-[#F1E4D7] bg-white/90 p-3.5 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
             <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm',
-                  !animale.foto_url &&
-                    (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
-                )}
-              >
-                {animale.foto_url ? (
-                  <img
-                    src={animale.foto_url}
-                    alt={animale.nome}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl leading-none">
-                    {iconaCategoria[animale.categoria] ?? '🐾'}
-                  </span>
-                )}
+              <div className="relative shrink-0">
+                <div
+                  className={cn(
+                    'flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-sm',
+                    !avatarFoto &&
+                      (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
+                  )}
+                >
+                  {avatarFoto ? (
+                    <img
+                      src={avatarFoto}
+                      alt={animale.nome}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl leading-none">{avatarFallback}</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={apriCambioFoto}
+                  disabled={isUploadingFoto}
+                  className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-white bg-gray-900 text-white shadow-md transition-all active:scale-95 disabled:opacity-60"
+                  aria-label="Cambia foto"
+                >
+                  <Camera size={14} strokeWidth={2.4} />
+                </button>
               </div>
 
               <div className="min-w-0 flex-1">
@@ -460,6 +600,14 @@ export function SchedaAnimaleTab({
         </header>
 
         <div className="flex-1 overflow-y-auto">
+          {erroreFoto && (
+            <div className="px-5 pt-4">
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
+              </div>
+            </div>
+          )}
+
           {tabAttivo === 'profilo' && <TabProfilo animale={animale} />}
           {tabAttivo === 'impegni' && (
             <TabImpegni animaleId={animale.id} impegni={impegni} />
@@ -484,11 +632,47 @@ export function SchedaAnimaleTab({
 
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
-      <div className="relative w-full overflow-hidden rounded-b-[36px]">
-        <div className="relative h-[300px] w-full">
-          {animale.foto_url ? (
+      {cropSrc && (
+        <CropFoto
+          imageSrc={cropSrc}
+          fileName={cropNome}
+          onConfirm={aggiornaFotoAnimale}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc)
+            setCropSrc(null)
+          }}
+        />
+      )}
+
+      <input
+        ref={inputFotoRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0] ?? null
+
+          if (file && file.size > MAX_FOTO_SIZE_BYTES) {
+            setErroreFoto(`La foto non può superare ${MAX_FOTO_SIZE_MB}MB.`)
+            e.target.value = ''
+            return
+          }
+
+          if (file) {
+            setCropNome(file.name)
+            setCropSrc(URL.createObjectURL(file))
+          }
+
+          e.target.value = ''
+        }}
+      />
+
+      <div className="relative w-full overflow-hidden rounded-b-[32px]">
+        <div className="relative h-[220px] w-full">
+          {avatarFoto ? (
             <img
-              src={animale.foto_url}
+              src={avatarFoto}
               alt={animale.nome}
               className="h-full w-full object-cover"
             />
@@ -499,8 +683,8 @@ export function SchedaAnimaleTab({
                 coloreCategoria[animale.categoria] ?? 'bg-gray-100'
               )}
             >
-              <span style={{ fontSize: '7rem', lineHeight: 1 }}>
-                {iconaCategoria[animale.categoria] ?? '🐾'}
+              <span style={{ fontSize: '5.5rem', lineHeight: 1 }}>
+                {avatarFallback}
               </span>
             </div>
           )}
@@ -514,8 +698,18 @@ export function SchedaAnimaleTab({
             <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
           </button>
 
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={apriCambioFoto}
+            disabled={isUploadingFoto}
+            className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur-sm transition-all active:scale-95 disabled:opacity-60"
+            aria-label="Cambia foto"
+          >
+            <Camera size={18} strokeWidth={2.4} />
+          </button>
+
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
                 {categoriaLabel}
               </span>
@@ -526,7 +720,7 @@ export function SchedaAnimaleTab({
               ) : null}
             </div>
 
-            <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl leading-tight font-extrabold tracking-tight text-white">
               {animale.nome}
             </h1>
 
@@ -549,37 +743,12 @@ export function SchedaAnimaleTab({
         </div>
       </div>
 
-      <div className="-mt-6 px-5 pt-0 pb-32">
-        <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
-              <p className="text-lg font-extrabold text-gray-900">
-                {impegniProssimi}
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Impegni
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
-              <p className="text-lg font-extrabold text-gray-900">
-                {terapieAttive}
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Terapie attive
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-[#FCF8F3] px-3 py-3">
-              <p className="text-lg font-extrabold text-gray-900">
-                {documenti.length}
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Documenti
-              </p>
-            </div>
+      <div className="-mt-3 px-5 pt-0 pb-32">
+        {erroreFoto && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <QuickCard
