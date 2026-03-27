@@ -15,8 +15,11 @@ export default async function AppLayout({
   if (!user) redirect('/login')
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-lg mx-auto pb-20 min-h-screen">
+    <div className="min-h-[100dvh] bg-background">
+      <main
+        id="app-scroll-root"
+        className="mx-auto min-h-[100dvh] max-w-lg overflow-x-hidden pb-20"
+      >
         {children}
       </main>
       <BottomNav />

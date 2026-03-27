@@ -81,6 +81,18 @@ interface Props {
   tabIniziale: TabId
 }
 
+function resetAppScrollToTop(target?: HTMLElement | null) {
+  if (typeof window === 'undefined') return
+
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
+
+  const appRoot = document.getElementById('app-scroll-root')
+  appRoot?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  target?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+}
+
 function getEstensioneFile(file: File) {
   const parti = file.name.split('.')
   return parti[parti.length - 1]?.toLowerCase() || 'jpg'
@@ -161,6 +173,10 @@ function TabDiario({
     setVoci(vociIniziali)
   }, [vociIniziali])
 
+  useEffect(() => {
+    resetAppScrollToTop()
+  }, [])
+
   async function aggiungiVoce() {
     const titoloPulito = titolo.trim()
     const notaPulita = nota.trim()
@@ -224,6 +240,7 @@ function TabDiario({
       setNota('')
       setMostraForm(false)
       router.refresh()
+      resetAppScrollToTop()
     } catch (error) {
       console.error(error)
       setErroreSrv('Errore durante il salvataggio. Riprova.')
@@ -233,8 +250,8 @@ function TabDiario({
   }
 
   return (
-    <div className="px-5 py-5 pb-32">
-      <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+    <div className="space-y-4 px-5 py-5 pb-32">
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
@@ -258,6 +275,7 @@ function TabDiario({
           onClick={() => {
             setMostraForm((prev) => !prev)
             setErroreSrv(null)
+            resetAppScrollToTop()
           }}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
         >
@@ -267,7 +285,7 @@ function TabDiario({
       </div>
 
       {mostraForm && (
-        <div className="mb-4 rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
           <div className="space-y-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-gray-700">Data</Label>
@@ -387,6 +405,7 @@ export function SchedaAnimaleTab({
 }: Props) {
   const router = useRouter()
   const inputFotoRef = useRef<HTMLInputElement | null>(null)
+  const contenutoInternoRef = useRef<HTMLDivElement | null>(null)
 
   const [tabAttivo, setTabAttivo] = useState<TabId>(
     tabIniziale === 'profilo' ||
@@ -406,6 +425,14 @@ export function SchedaAnimaleTab({
   useEffect(() => {
     setFotoUrl(animale.foto_url ?? null)
   }, [animale.foto_url])
+
+  useEffect(() => {
+    const reset = () => resetAppScrollToTop(contenutoInternoRef.current)
+    reset()
+    const frame = window.requestAnimationFrame(reset)
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [tabAttivo])
 
   function cambiaTab(tab: TabId) {
     setTabAttivo(tab)
@@ -476,6 +503,7 @@ export function SchedaAnimaleTab({
 
       setFotoUrl(nuovaFotoUrl)
       router.refresh()
+      resetAppScrollToTop(contenutoInternoRef.current)
     } catch (error) {
       console.error(error)
       setErroreFoto(
@@ -599,7 +627,7 @@ export function SchedaAnimaleTab({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div ref={contenutoInternoRef} className="flex-1 overflow-y-auto">
           {erroreFoto && (
             <div className="px-5 pt-4">
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
