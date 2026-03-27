@@ -1,8 +1,12 @@
-// src/app/(app)/impegni/nuovo/page.tsx
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
@@ -129,15 +133,22 @@ function CampoForm({
 function StepLayout({
   children,
   action,
+  contentRef,
 }: {
   children: React.ReactNode
   action: React.ReactNode
+  contentRef?: RefObject<HTMLDivElement | null>
 }) {
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-5 pt-4">
-      <div className="pb-6">{children}</div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={contentRef}
+        className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6"
+      >
+        <div className="pb-2">{children}</div>
+      </div>
 
-      <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-transparent px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+      <div className="shrink-0 bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-[#FDF8F3] px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
         {action}
       </div>
     </div>
@@ -147,6 +158,7 @@ function StepLayout({
 export default function NuovoImpegnoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const contenutoRef = useRef<HTMLDivElement | null>(null)
   const animaleIdPreselezionato = searchParams.get('animale_id') ?? ''
 
   const [step, setStep] = useState<Step>('tipo')
@@ -201,16 +213,26 @@ export default function NuovoImpegnoPage() {
     }
   }, [animaleIdPreselezionato])
 
+  useEffect(() => {
+    const resetScroll = () => {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      contenutoRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    }
+
+    resetScroll()
+    const frame = window.requestAnimationFrame(resetScroll)
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [step])
+
   function vaiAvanti(next: Step) {
     setStep(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function vaiIndietro() {
     const idx = STEPS.indexOf(step)
     if (idx > 0) setStep(STEPS[idx - 1])
     else router.back()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function handleSubmit() {
@@ -403,7 +425,10 @@ export default function NuovoImpegnoPage() {
   }
 
   return (
-    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
+    <div
+      className="flex h-[100dvh] flex-col bg-[#FDF8F3]"
+      style={{ minHeight: '100dvh' }}
+    >
       <header className="shrink-0 px-5 pt-10 pb-0">
         <div className="mb-3 flex items-center justify-between">
           <button
@@ -430,7 +455,10 @@ export default function NuovoImpegnoPage() {
       </header>
 
       {step === 'tipo' && (
-        <div className="flex-1 px-5 pt-4 pb-12">
+        <div
+          ref={contenutoRef}
+          className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+24px)]"
+        >
           <h1 className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900">
             Che tipo di impegno?
           </h1>
@@ -460,6 +488,7 @@ export default function NuovoImpegnoPage() {
 
       {step === 'animale-data' && (
         <StepLayout
+          contentRef={contenutoRef}
           action={
             <button
               onClick={() => {
@@ -544,6 +573,7 @@ export default function NuovoImpegnoPage() {
 
       {step === 'dettagli' && (
         <StepLayout
+          contentRef={contenutoRef}
           action={
             <div className="space-y-4">
               {erroreSrv && (
