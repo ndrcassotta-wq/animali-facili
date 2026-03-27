@@ -783,10 +783,13 @@ export function SchedaAnimaleTab({
   }
 
   return (
-    <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
+    <div
+      className="flex flex-col overflow-hidden bg-[#F7F1EA]"
+      style={{ height: 'calc(100dvh - 80px)' }}
+    >
       {fotoPickerShared}
 
-      <div className="relative w-full overflow-hidden">
+      <div className="relative w-full shrink-0 overflow-hidden">
         <div className="relative h-[220px] w-full">
           {avatarFoto ? (
             <img
@@ -854,7 +857,7 @@ export function SchedaAnimaleTab({
         </div>
       </div>
 
-      <div className="px-5 pt-5 pb-32">
+      <div className="flex-1 px-5 pt-5 pb-6">
         {erroreFoto && (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
