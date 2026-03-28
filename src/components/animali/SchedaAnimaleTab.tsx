@@ -530,7 +530,9 @@ export function SchedaAnimaleTab({
     window.history.replaceState(null, '', url.toString())
   }
 
-  const impegniProssimi = impegni.filter((i) => i.stato === 'programmato').length
+  const impegniProssimi = impegni.filter(
+    (i) => i.stato === 'programmato' && i.tipo !== 'terapia'
+  ).length
   const terapieAttive = terapie.filter((t) => t.stato === 'attiva').length
   const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
 
@@ -869,7 +871,9 @@ export function SchedaAnimaleTab({
             title="Impegni"
             subtitle={
               impegniProssimi > 0
-                ? `${impegniProssimi} programmati`
+                ? `${impegniProssimi} ${
+                    impegniProssimi === 1 ? 'programmato' : 'programmati'
+                  }`
                 : 'Nessuno in arrivo'
             }
             onClick={() => cambiaTab('impegni')}
