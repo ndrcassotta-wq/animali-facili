@@ -5,6 +5,29 @@ import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { createClient } from '@/lib/supabase/client'
 
+function isSafeRedirect(path: string): boolean {
+  return (
+    typeof path === 'string' &&
+    path.startsWith('/') &&
+    !path.startsWith('//') &&
+    !path.includes(':')
+  )
+}
+
+function getSafeNextFromUrl(parsedUrl: URL) {
+  const nextParam = parsedUrl.searchParams.get('next')
+  if (nextParam && isSafeRedirect(nextParam)) {
+    return nextParam
+  }
+
+  const pathname = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname
+  const hostPath = parsedUrl.host
+    ? `/${parsedUrl.host}${pathname}`
+    : pathname || '/home'
+
+  return isSafeRedirect(hostPath) ? hostPath : '/home'
+}
+
 export function CapacitorAuthRedirectHandler() {
   useEffect(() => {
     const supabase = createClient()
@@ -14,8 +37,8 @@ export function CapacitorAuthRedirectHandler() {
 
       try {
         const parsedUrl = new URL(url)
+        const safeNext = getSafeNextFromUrl(parsedUrl)
 
-        // Caso PKCE: ritorna con ?code=...
         const code = parsedUrl.searchParams.get('code')
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -29,11 +52,10 @@ export function CapacitorAuthRedirectHandler() {
             await Browser.close()
           } catch {}
 
-          window.location.href = '/home'
+          window.location.replace(safeNext)
           return
         }
 
-        // Fallback: caso implicit flow con #access_token=...
         const hash = parsedUrl.hash?.startsWith('#')
           ? parsedUrl.hash.substring(1)
           : parsedUrl.hash
@@ -58,7 +80,7 @@ export function CapacitorAuthRedirectHandler() {
               await Browser.close()
             } catch {}
 
-            window.location.href = '/home'
+            window.location.replace(safeNext)
           }
         }
       } catch (e) {
@@ -70,11 +92,11 @@ export function CapacitorAuthRedirectHandler() {
 
     App.addListener('appUrlOpen', async ({ url }) => {
       await handleAuthUrl(url)
-    }).then(handle => {
+    }).then((handle) => {
       listenerHandle = handle
     })
 
-    App.getLaunchUrl().then(async result => {
+    App.getLaunchUrl().then(async (result) => {
       if (result?.url) {
         await handleAuthUrl(result.url)
       }

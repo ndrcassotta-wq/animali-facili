@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from '@/hooks/useForm'
@@ -20,11 +21,41 @@ function isSafeRedirect(path: string): boolean {
   )
 }
 
+function buildWebCallbackUrl(next: string) {
+  const callbackUrl = new URL('/auth/callback', window.location.origin)
+  callbackUrl.searchParams.set('next', next)
+  return callbackUrl.toString()
+}
+
+function buildNativeCallbackUrl(next: string) {
+  const callbackUrl = new URL('com.animalifacili.app://auth/callback')
+  callbackUrl.searchParams.set('next', next)
+  return callbackUrl.toString()
+}
+
+function getLoginErrorMessage(error: string | null, message: string | null) {
+  switch (error) {
+    case 'missing_code':
+      return 'Login Google non completato. Riprova.'
+    case 'auth_failed':
+      if (message?.toLowerCase().includes('access_denied')) {
+        return 'Accesso Google negato. Riprova oppure scegli un altro account.'
+      }
+      return 'Autenticazione Google non riuscita. Riprova.'
+    default:
+      return null
+  }
+}
+
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+
   const next = searchParams.get('next') ?? '/home'
   const safeNext = isSafeRedirect(next) ? next : '/home'
+
+  const queryError = searchParams.get('error')
+  const queryMessage = searchParams.get('message')
 
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
@@ -33,18 +64,28 @@ export function LoginForm() {
   const { values, errors, isSubmitting, setValue, validate, setSubmitting } =
     useForm(loginSchema, { email: '', password: '' })
 
+  useEffect(() => {
+    const message = getLoginErrorMessage(queryError, queryMessage)
+    if (message) {
+      setErroreSrv(message)
+    }
+  }, [queryError, queryMessage])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErroreSrv(null)
+
     const data = validate()
     if (!data) return
 
     setSubmitting(true)
     const supabase = createClient()
+
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     })
+
     setSubmitting(false)
 
     if (error) {
@@ -61,59 +102,85 @@ export function LoginForm() {
     setLoadingGoogle(true)
 
     const supabase = createClient()
+    const isNative = Capacitor.getPlatform() !== 'web'
 
-    try {
-      const { Browser } = await import('@capacitor/browser')
+    if (isNative) {
+      let browserFinishedListener: { remove: () => Promise<void> } | null = null
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'com.animalifacili.app://home',
-          skipBrowserRedirect: true,
-        },
-      })
+      try {
+        const { Browser } = await import('@capacitor/browser')
 
-      if (error || !data.url) {
+        const redirectTo = buildNativeCallbackUrl(safeNext)
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+          },
+        })
+
+        if (error || !data?.url) {
+          setErroreSrv('Errore durante il login con Google. Riprova.')
+          setLoadingGoogle(false)
+          return
+        }
+
+        browserFinishedListener = await Browser.addListener(
+          'browserFinished',
+          async () => {
+            try {
+              const {
+                data: { session },
+              } = await supabase.auth.getSession()
+
+              if (!session) {
+                setErroreSrv('Login Google non completato. Riprova.')
+                setLoadingGoogle(false)
+              }
+            } finally {
+              if (browserFinishedListener) {
+                await browserFinishedListener.remove()
+                browserFinishedListener = null
+              }
+            }
+          }
+        )
+
+        await Browser.open({
+          url: data.url,
+          windowName: '_self',
+        })
+
+        return
+      } catch {
+        if (browserFinishedListener) {
+          await browserFinishedListener.remove()
+        }
+
         setErroreSrv('Errore durante il login con Google. Riprova.')
         setLoadingGoogle(false)
         return
       }
+    }
 
-      await Browser.open({
-        url: data.url,
-        windowName: '_self',
-      })
-
-      Browser.addListener('browserFinished', async () => {
-        let tentativi = 0
-        const intervallo = setInterval(async () => {
-          tentativi++
-          const { data: sessionData } = await supabase.auth.getSession()
-          if (sessionData.session) {
-            clearInterval(intervallo)
-            router.push('/home')
-            router.refresh()
-            setLoadingGoogle(false)
-          } else if (tentativi >= 10) {
-            clearInterval(intervallo)
-            setErroreSrv('Login non completato. Riprova.')
-            setLoadingGoogle(false)
-          }
-        }, 1000)
-      })
-    } catch {
-      const callbackUrl = new URL('/auth/callback', window.location.origin)
-      callbackUrl.searchParams.set('next', safeNext)
+    try {
+      const redirectTo = buildWebCallbackUrl(safeNext)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: callbackUrl.toString() },
+        options: {
+          redirectTo,
+        },
       })
 
       if (error) {
         setErroreSrv('Errore durante il login con Google. Riprova.')
         setLoadingGoogle(false)
       }
+    } catch {
+      setErroreSrv('Errore durante il login con Google. Riprova.')
+      setLoadingGoogle(false)
     }
   }
 
@@ -152,7 +219,9 @@ export function LoginForm() {
               d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.084 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.651-.389-3.917z"
             />
           </svg>
-          <span>{loadingGoogle ? 'Reindirizzamento...' : 'Continua con Google'}</span>
+          <span>
+            {loadingGoogle ? 'Reindirizzamento...' : 'Continua con Google'}
+          </span>
         </span>
       </Button>
 

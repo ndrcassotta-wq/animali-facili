@@ -17,10 +17,13 @@ export async function GET(request: NextRequest) {
   const redirectTo = isSafeRedirect(next) ? next : '/home'
 
   const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https'
   const isLocalEnv = process.env.NODE_ENV === 'development'
-  const baseUrl = isLocalEnv || !forwardedHost
-    ? origin
-    : `https://${forwardedHost}`
+
+  const baseUrl =
+    isLocalEnv || !forwardedHost
+      ? origin
+      : `${forwardedProto}://${forwardedHost}`
 
   if (!code) {
     return NextResponse.redirect(`${baseUrl}/login?error=missing_code`)
