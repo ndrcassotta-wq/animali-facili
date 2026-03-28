@@ -20,7 +20,6 @@ const labelTipo: Record<string, string> = {
   controllo: 'Controllo',
   vaccinazione: 'Vaccinazione',
   toelettatura: 'Toelettatura',
-  terapia: 'Terapia',
   addestramento: 'Addestramento',
   compleanno: 'Compleanno',
   altro: 'Altro',
@@ -31,7 +30,6 @@ const iconaTipo: Record<string, string> = {
   controllo: '🔍',
   vaccinazione: '💉',
   toelettatura: '✂️',
-  terapia: '💊',
   addestramento: '🎓',
   compleanno: '🎂',
   altro: '📌',
@@ -65,7 +63,9 @@ export function TabImpegni({
     return () => window.cancelAnimationFrame(frame)
   }, [])
 
-  const impegniFiltrati = impegni.filter((i) => i.stato === filtro)
+  const impegniFiltrati = impegni.filter(
+    (i) => i.stato === filtro && i.tipo !== 'terapia'
+  )
 
   return (
     <div className="space-y-4 px-5 py-5 pb-32">

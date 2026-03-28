@@ -30,6 +30,7 @@ export default async function ListaImpegniPage({
     .from('impegni')
     .select('*, animali(nome)')
     .eq('stato', statoFiltro)
+    .neq('tipo', 'terapia')
     .order('data', { ascending: true })
 
   const impegni = asImpegniConAnimale(data)
