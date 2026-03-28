@@ -387,6 +387,27 @@ function StepActionButton({
   )
 }
 
+function SecondaryActionButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full rounded-2xl border border-amber-200 bg-white py-4 text-base font-bold text-amber-700 shadow-sm transition-all active:scale-[0.98] disabled:opacity-60"
+    >
+      {label}
+    </button>
+  )
+}
+
 function StepLayout({
   children,
   action,
@@ -445,6 +466,7 @@ export default function NuovoAnimalePage() {
   const [cropNome, setCropNome] = useState('')
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false)
 
   const dataNascitaParts = useMemo(
     () => parseDataParts(valori.data_nascita),
@@ -490,6 +512,12 @@ export default function NuovoAnimalePage() {
     const frame = window.requestAnimationFrame(resetScroll)
 
     return () => window.cancelAnimationFrame(frame)
+  }, [step, isQuickEditOpen])
+
+  useEffect(() => {
+    if (step !== 'crea') {
+      setIsQuickEditOpen(false)
+    }
   }, [step])
 
   function setValue(field: keyof FormValori, value: unknown) {
@@ -562,6 +590,9 @@ export default function NuovoAnimalePage() {
 
     if (Object.keys(nuoviErrori).length > 0) {
       setErroriForm((prev) => ({ ...prev, ...nuoviErrori }))
+      if (step === 'crea') {
+        setIsQuickEditOpen(true)
+      }
       return
     }
 
@@ -1196,86 +1227,364 @@ export default function NuovoAnimalePage() {
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               />
+
+              <SecondaryActionButton
+                label={
+                  isQuickEditOpen ? 'Torna al riepilogo' : 'Modifica rapida'
+                }
+                onClick={() => setIsQuickEditOpen((prev) => !prev)}
+                disabled={isSubmitting}
+              />
             </div>
           }
         >
-          <div className="mb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              Controlla e crea
-            </h1>
-            <p className="mt-1 text-sm text-gray-400">
-              Ultimo step: il pulsante finale resta sempre visibile in basso
-            </p>
-          </div>
-
-          <div className="mb-5 rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
-            <div className="flex items-center gap-4">
-              <div
-                className={cn(
-                  'flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-white shadow-md',
-                  !fotoPreview &&
-                    colorePerCategoria(valori.categoria as CategoriaAnimale)
-                )}
-              >
-                {fotoPreview ? (
-                  <img
-                    src={fotoPreview}
-                    alt="Anteprima animale"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl leading-none">
-                    {categoriaSelezionata?.icona ?? '🐾'}
-                  </span>
-                )}
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-lg font-extrabold text-gray-900">
-                  {valori.nome || 'Nuovo animale'}
-                </p>
-                <p className="text-sm font-medium text-gray-500">
-                  {categoriaSelezionata?.label ?? 'Animale'}
+          {!isQuickEditOpen && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                  Controlla e crea
+                </h1>
+                <p className="mt-1 text-sm text-gray-400">
+                  Se noti un errore, puoi correggerlo da qui con Modifica rapida
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-            <RiepilogoRiga label="Nome" value={valori.nome.trim() || '—'} />
-            <RiepilogoRiga
-              label="Foto"
-              value={fotoFile ? 'Aggiunta' : 'Non inserita'}
-            />
-            <RiepilogoRiga
-              label="Data nascita"
-              value={
-                valori.data_nascita
-                  ? formatBirthDatePreview(valori.data_nascita)
-                  : 'Non inserita'
-              }
-            />
-            <RiepilogoRiga
-              label={titoloCampoPrincipale}
-              value={valori.specie?.trim() || 'Non inserita'}
-            />
-            <RiepilogoRiga
-              label="Sesso"
-              value={labelSesso[valori.sesso ?? 'non_specificato']}
-            />
-            <RiepilogoRiga
-              label="Peso"
-              value={
-                valori.peso !== undefined && valori.peso !== null
-                  ? `${valori.peso} kg`
-                  : 'Non inserito'
-              }
-            />
-            <RiepilogoRiga
-              label="Note"
-              value={valori.note?.trim() || 'Non inserite'}
-            />
-          </div>
+              <div className="mb-5 rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={cn(
+                      'flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-white shadow-md',
+                      !fotoPreview &&
+                        colorePerCategoria(valori.categoria as CategoriaAnimale)
+                    )}
+                  >
+                    {fotoPreview ? (
+                      <img
+                        src={fotoPreview}
+                        alt="Anteprima animale"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl leading-none">
+                        {categoriaSelezionata?.icona ?? '🐾'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-extrabold text-gray-900">
+                      {valori.nome || 'Nuovo animale'}
+                    </p>
+                    <p className="text-sm font-medium text-gray-500">
+                      {categoriaSelezionata?.label ?? 'Animale'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                <RiepilogoRiga label="Nome" value={valori.nome.trim() || '—'} />
+                <RiepilogoRiga
+                  label="Foto"
+                  value={fotoFile ? 'Aggiunta' : 'Non inserita'}
+                />
+                <RiepilogoRiga
+                  label="Data nascita"
+                  value={
+                    valori.data_nascita
+                      ? formatBirthDatePreview(valori.data_nascita)
+                      : 'Non inserita'
+                  }
+                />
+                <RiepilogoRiga
+                  label={titoloCampoPrincipale}
+                  value={valori.specie?.trim() || 'Non inserita'}
+                />
+                <RiepilogoRiga
+                  label="Sesso"
+                  value={labelSesso[valori.sesso ?? 'non_specificato']}
+                />
+                <RiepilogoRiga
+                  label="Peso"
+                  value={
+                    valori.peso !== undefined && valori.peso !== null
+                      ? `${valori.peso} kg`
+                      : 'Non inserito'
+                  }
+                />
+                <RiepilogoRiga
+                  label="Note"
+                  value={valori.note?.trim() || 'Non inserite'}
+                />
+              </div>
+            </>
+          )}
+
+          {isQuickEditOpen && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                  Modifica rapida
+                </h1>
+                <p className="mt-1 text-sm text-gray-400">
+                  Correggi qui i dati senza tornare indietro step per step
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Tipo">
+                    <Select
+                      value={valori.categoria}
+                      onValueChange={(value) =>
+                        setValue('categoria', value as CategoriaAnimale)
+                      }
+                    >
+                      <SelectTrigger className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                        <SelectValue placeholder="Seleziona il tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categorie.map((cat) => (
+                          <SelectItem key={cat.valore} value={cat.valore}>
+                            {cat.icona} {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Nome" required errore={erroriForm.nome}>
+                    <Input
+                      id="nome-quick-edit"
+                      placeholder={`Il nome del tuo ${categoriaSelezionata?.label.toLowerCase()}`}
+                      value={valori.nome}
+                      onChange={(e) => setValue('nome', e.target.value)}
+                      className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
+                  <div className="flex flex-col items-center gap-5">
+                    <div
+                      className={cn(
+                        'flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl',
+                        !fotoPreview &&
+                          colorePerCategoria(valori.categoria as CategoriaAnimale)
+                      )}
+                    >
+                      {fotoPreview ? (
+                        <img
+                          src={fotoPreview}
+                          alt="Anteprima foto animale"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-6xl leading-none">
+                          {categoriaSelezionata?.icona ?? '🐾'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-base font-bold text-gray-900">
+                        {fotoPreview ? 'Foto aggiornata' : 'Aggiungi una foto'}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Puoi cambiarla direttamente da questa schermata
+                      </p>
+                    </div>
+
+                    <div className="grid w-full gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-4 py-4 text-sm font-bold text-amber-700 shadow-sm transition-all active:scale-[0.98]"
+                      >
+                        <Camera size={18} strokeWidth={2.2} />
+                        Usa fotocamera
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current?.click()}
+                        className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+                      >
+                        Scegli dalla galleria
+                      </button>
+                    </div>
+
+                    {fotoPreview && (
+                      <button
+                        type="button"
+                        onClick={() => setFotoFile(null)}
+                        className="text-sm font-semibold text-gray-500 underline underline-offset-4 active:opacity-70"
+                      >
+                        Rimuovi foto
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm
+                    label="Data di nascita"
+                    opzionale
+                    errore={birthDateError}
+                  >
+                    <div className="grid grid-cols-3 items-stretch gap-3">
+                      <Select
+                        value={giornoNascita}
+                        onValueChange={(value) => setGiornoNascita(value ?? '')}
+                      >
+                        <SelectTrigger className={BIRTH_FIELD_CLASS}>
+                          <SelectValue placeholder="Giorno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GIORNI.map((giorno) => (
+                            <SelectItem key={giorno} value={giorno}>
+                              {Number(giorno)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={meseNascita}
+                        onValueChange={(value) => setMeseNascita(value ?? '')}
+                      >
+                        <SelectTrigger className={BIRTH_FIELD_CLASS}>
+                          <SelectValue placeholder="Mese" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MESI.map((mese) => (
+                            <SelectItem key={mese.value} value={mese.value}>
+                              {mese.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        placeholder="Anno"
+                        value={annoNascita}
+                        onChange={(e) => {
+                          const soloNumeri = e.target.value
+                            .replace(/\D/g, '')
+                            .slice(0, 4)
+                          setAnnoNascita(soloNumeri)
+                        }}
+                        className={`${BIRTH_FIELD_CLASS} py-0 leading-none`}
+                      />
+                    </div>
+
+                    {valori.data_nascita && (
+                      <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                          Data selezionata
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-amber-900">
+                          {formatBirthDatePreview(valori.data_nascita)}
+                        </p>
+                      </div>
+                    )}
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label={titoloCampoPrincipale} opzionale>
+                    <AutocompleteInput
+                      id="specie-quick-edit"
+                      placeholder={placeholderCampoPrincipale(
+                        valori.categoria as CategoriaAnimale
+                      )}
+                      value={valori.specie}
+                      onChange={(v) => setValue('specie', v)}
+                      suggerimenti={
+                        SUGGERIMENTI_ANIMALE_PER_CATEGORIA[
+                          valori.categoria as CategoriaAnimale
+                        ] ?? []
+                      }
+                      disabled={isSubmitting}
+                      className="h-14 rounded-xl border border-gray-200 bg-gray-50 px-4 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Sesso" opzionale>
+                    <Select
+                      value={valori.sesso ?? 'non_specificato'}
+                      onValueChange={(v) => setValue('sesso', v)}
+                    >
+                      <SelectTrigger className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                        <span>
+                          {labelSesso[valori.sesso ?? 'non_specificato'] ??
+                            'Non specificato'}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="maschio">Maschio</SelectItem>
+                        <SelectItem value="femmina">Femmina</SelectItem>
+                        <SelectItem value="non_specificato">
+                          Non specificato
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Peso in kg" opzionale>
+                    <Input
+                      id="peso-quick-edit"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.001"
+                      min="0"
+                      placeholder="es. 4.250"
+                      value={valori.peso ?? ''}
+                      onChange={(e) =>
+                        setValue(
+                          'peso',
+                          e.target.value === ''
+                            ? undefined
+                            : Number(e.target.value)
+                        )
+                      }
+                      className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Note" opzionale>
+                    <Textarea
+                      id="note-quick-edit"
+                      placeholder="Informazioni aggiuntive"
+                      value={valori.note ?? ''}
+                      onChange={(e) => setValue('note', e.target.value)}
+                      rows={5}
+                      className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-sm font-medium text-amber-800">
+                    Quando torni al riepilogo vedrai subito tutti i dati
+                    aggiornati.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </StepLayout>
       )}
     </div>
