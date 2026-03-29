@@ -820,7 +820,7 @@ export function SchedaAnimaleTab({
           <div className="flex flex-col items-center text-center">
             <div
               className={cn(
-                'mt-2 flex h-[220px] w-[220px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
+                'mt-2 flex h-[200px] w-[200px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
                 !avatarFoto &&
                   (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
               )}
