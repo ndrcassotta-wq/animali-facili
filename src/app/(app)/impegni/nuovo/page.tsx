@@ -148,7 +148,7 @@ function StepLayout({
         <div className="pb-2">{children}</div>
       </div>
 
-      <div className="shrink-0 bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-[#FDF8F3] px-5 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4">
+      <div className="relative z-10 shrink-0 bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-[#FDF8F3] px-5 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-4">
         {action}
       </div>
     </div>
@@ -164,6 +164,7 @@ export default function NuovoImpegnoPage() {
   const [step, setStep] = useState<Step>('tipo')
   const [tipo, setTipo] = useState<TipoImpegno>('visita')
   const [animaleId, setAnimaleId] = useState(animaleIdPreselezionato)
+  const [animaleNomePreselezionato, setAnimaleNomePreselezionato] = useState('')
   const [data, setData] = useState(oggi)
   const [ora, setOra] = useState('')
   const [frequenza, setFrequenza] = useState<FrequenzaImpegno>('nessuna')
@@ -207,6 +208,37 @@ export default function NuovoImpegnoPage() {
     }
 
     checkAnimali()
+
+    return () => {
+      isMounted = false
+    }
+  }, [animaleIdPreselezionato])
+
+  useEffect(() => {
+    if (!animaleIdPreselezionato) {
+      setAnimaleNomePreselezionato('')
+      return
+    }
+
+    let isMounted = true
+
+    async function loadAnimalePreselezionato() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('animali')
+          .select('nome')
+          .eq('id', animaleIdPreselezionato)
+          .single()
+
+        if (!isMounted) return
+        setAnimaleNomePreselezionato(data?.nome ?? '')
+      } catch {
+        if (isMounted) setAnimaleNomePreselezionato('')
+      }
+    }
+
+    loadAnimalePreselezionato()
 
     return () => {
       isMounted = false
@@ -506,7 +538,7 @@ export default function NuovoImpegnoPage() {
               }}
               className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
             >
-              Continua →
+              Continua
             </button>
           }
         >
@@ -518,7 +550,11 @@ export default function NuovoImpegnoPage() {
               </h1>
             </div>
             <p className="text-sm text-gray-400">
-              Per quale animale e quando?
+              {animaleIdPreselezionato
+                ? `Associato a ${
+                    animaleNomePreselezionato || 'questo animale'
+                  }. Quando?`
+                : 'Per quale animale e quando?'}
             </p>
           </div>
 
