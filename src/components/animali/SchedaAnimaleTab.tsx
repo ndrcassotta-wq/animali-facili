@@ -535,6 +535,9 @@ export function SchedaAnimaleTab({
   ).length
   const terapieAttive = terapie.filter((t) => t.stato === 'attiva').length
   const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
+  const sottotitoloHeader = [categoriaLabel, animale.specie, animale.razza]
+    .filter(Boolean)
+    .join(' · ')
 
   function apriCambioFoto() {
     if (isUploadingFoto) return
@@ -817,7 +820,7 @@ export function SchedaAnimaleTab({
           <div className="flex flex-col items-center text-center">
             <div
               className={cn(
-                'mt-6 flex h-[220px] w-[220px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
+                'mt-2 flex h-[220px] w-[220px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
                 !avatarFoto &&
                   (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
               )}
@@ -835,18 +838,13 @@ export function SchedaAnimaleTab({
               )}
             </div>
 
-            <div className="mt-5 px-2">
+            <div className="mt-4 px-2">
               <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-gray-900">
                 {animale.nome}
               </h1>
 
               <p className="mt-1 text-sm font-semibold text-gray-600">
-                {categoriaLabel}
-              </p>
-
-              <p className="mt-1 text-sm text-gray-500">
-                {animale.specie}
-                {animale.razza ? ` · ${animale.razza}` : ''}
+                {sottotitoloHeader}
               </p>
 
               {animale.data_nascita && (
