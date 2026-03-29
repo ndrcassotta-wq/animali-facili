@@ -52,7 +52,7 @@ export default async function ListaDocumentiPage() {
     <div>
       <PageHeader titolo="Documenti" />
 
-      <div className="space-y-4 px-5 py-5 pb-32">
+      <div className="space-y-4 px-5 pt-7 pb-32">
         <div className="rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -89,22 +89,7 @@ export default async function ListaDocumentiPage() {
           </Link>
         </div>
 
-        {documenti.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-amber-200 bg-white px-6 py-10 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F7F7F8] text-slate-600">
-              <FileText size={24} strokeWidth={2.2} />
-            </div>
-
-            <p className="mt-4 text-base font-bold text-gray-900">
-              Nessun documento ancora caricato
-            </p>
-
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              Quando caricherai il primo documento lo troverai qui, pronto da
-              aprire, consultare e ritrovare anche dal profilo dell’animale.
-            </p>
-          </div>
-        ) : (
+        {documenti.length > 0 && (
           <div className="space-y-3">
             {documenti.map((documento) => (
               <Link
