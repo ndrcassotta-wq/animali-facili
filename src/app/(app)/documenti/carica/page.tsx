@@ -309,11 +309,11 @@ function StepLayout({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={contentRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+40px)]"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+28px)]"
       >
         <div className="pb-2">
           {children}
-          <div className="mt-6">{action}</div>
+          <div className="mt-4">{action}</div>
         </div>
       </div>
     </div>
@@ -428,6 +428,21 @@ export default function CaricaDocumentoPage() {
     }
   }, [step])
 
+  function mantieniScrollCorrente() {
+    const windowTop = window.scrollY
+    const contentTop = contenutoRef.current?.scrollTop ?? 0
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: windowTop, behavior: 'auto' })
+      contenutoRef.current?.scrollTo({ top: contentTop, behavior: 'auto' })
+
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: windowTop, behavior: 'auto' })
+        contenutoRef.current?.scrollTo({ top: contentTop, behavior: 'auto' })
+      })
+    })
+  }
+
   function setValue(field: keyof FormValori, value: unknown) {
     setValori((prev) => ({ ...prev, [field]: value }))
     setErroriForm((prev) => ({ ...prev, [field]: undefined }))
@@ -486,6 +501,8 @@ export default function CaricaDocumentoPage() {
         setValori((prev) => ({ ...prev, titolo: titoloDefault }))
       }
     }
+
+    mantieniScrollCorrente()
   }
 
   function vaiAvanti(targetStep?: Step) {
@@ -806,6 +823,7 @@ export default function CaricaDocumentoPage() {
                     onClick={() => {
                       setFile(null)
                       setErroreSrv(null)
+                      mantieniScrollCorrente()
                     }}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 active:opacity-70"
                     aria-label="Rimuovi file selezionato"
@@ -819,7 +837,7 @@ export default function CaricaDocumentoPage() {
                     <img
                       src={previewUrl}
                       alt="Anteprima documento"
-                      className="max-h-[360px] w-full object-contain"
+                      className="max-h-[220px] w-full object-contain md:max-h-[280px]"
                     />
                   </div>
                 )}
