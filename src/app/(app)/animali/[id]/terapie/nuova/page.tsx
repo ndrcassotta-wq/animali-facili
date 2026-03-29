@@ -143,7 +143,7 @@ export default async function NuovaTerapiaPage({ params }: PageProps) {
       title="Nuova terapia"
       subtitle={`Inserisci i dati della terapia per ${animale.nome}`}
       backHref={`/animali/${animaleId}?tab=terapie`}
-      onSubmit={creaTerapia}
+      submitAction={creaTerapia}
       animali={[animale]}
       preselectedAnimalId={animale.id}
     />

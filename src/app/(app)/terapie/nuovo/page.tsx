@@ -17,7 +17,8 @@ function buildAutoImpegnoNote(
   terapiaId: string,
   dose: string,
   frequenza: string,
-  noteRaw: string
+  noteRaw: string,
+  orariRaw?: string
 ) {
   const parts = [
     getAutoTerapiaMarker(terapiaId),
@@ -25,6 +26,10 @@ function buildAutoImpegnoNote(
     `Dose: ${dose}`,
     `Frequenza: ${frequenza}`,
   ]
+
+  if (orariRaw) {
+    parts.push(`Orari: ${orariRaw}`)
+  }
 
   if (noteRaw) {
     parts.push(`Note terapia: ${noteRaw}`)
@@ -143,7 +148,13 @@ export default async function NuovaTerapiaGenericaPage() {
         frequenza: 'nessuna',
         notifiche_attive: false,
         stato: 'programmato',
-        note: buildAutoImpegnoNote(terapiaId, dose, frequenza, noteRaw),
+        note: buildAutoImpegnoNote(
+          terapiaId,
+          dose,
+          frequenza,
+          noteRaw,
+          oraSomministrazioneRaw
+        ),
       }
 
       const { error: impegnoError } = await supabase
@@ -219,8 +230,9 @@ export default async function NuovaTerapiaGenericaPage() {
       title="Nuova terapia"
       subtitle="Inserisci i dati principali della terapia"
       backHref="/home"
-      onSubmit={creaTerapia}
+      submitAction={creaTerapia}
       animali={animali}
+      variant="generale"
     />
   )
 }

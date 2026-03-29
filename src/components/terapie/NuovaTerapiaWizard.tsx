@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type { ReactNode, HTMLAttributes } from 'react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import {
@@ -26,6 +26,16 @@ type AnimaleOption = {
 }
 
 type Step = 'animale' | 'farmaco' | 'frequenza' | 'date' | 'note'
+type WizardVariant = 'standard' | 'generale'
+type FormatoSomministrazione =
+  | 'compressa'
+  | 'pasticca'
+  | 'puntura'
+  | 'gocce'
+  | 'collirio'
+  | 'sciroppo'
+  | 'crema'
+  | 'spray'
 
 const FREQUENZE = [
   { value: 'una_volta_giorno', label: '1× al giorno' },
@@ -35,29 +45,80 @@ const FREQUENZE = [
   { value: 'personalizzata', label: 'Personalizzata' },
 ] as const
 
-const FARMACI_SUGGERITI = [
-  'Antibiotico',
-  'Antinfiammatorio',
-  'Antidolorifico',
-  'Collirio',
-  'Integratore',
-  'Antiparassitario',
-  'Cortisone',
-  'Probiotico',
-  'Pomata',
-  'Sciroppo',
+const FARMACI_SUGGERITI_REALISTICI = [
+  'Synulox',
+  'Baytril',
+  'Marbocyl',
+  'Stomorgyl',
+  'Clavaseptin',
+  'Metacam',
+  'Onsior',
+  'Cimalgex',
+  'Rimadyl',
+  'Trocoxil',
+  'Apoquel',
+  'Cytopoint',
+  'Atopivet',
+  'Stronghold',
+  'Frontline Combo',
+  'Frontline Tri-Act',
+  'Advocate',
+  'Advantix',
+  'Bravecto',
+  'NexGard',
+  'NexGard Spectra',
+  'Simparica',
+  'Simparica Trio',
+  'Milbemax',
+  'Drontal',
+  'Cardotek',
+  'Interceptor',
+  'Fortekor',
+  'Semintra',
+  'Cardalis',
+  'Prilium',
+  'Vetmedin',
+  'Libeo',
+  'Cerenia',
+  'Propalin',
+  'Epato 1500 Plus',
+  'Florentero',
+  'Prolife',
+  'Enterofilus',
+  'Diarsanyl',
+  'Condrogen',
+  'Hyaloral',
+  'Redonyl',
+  'Otoact',
+  'Otodine',
+  'Aurizon',
+  'Surolan',
+  'Isathal',
+  'Iryplus',
+  'Tobral',
+  'Colbiocin',
+  'Amoxicillina + acido clavulanico',
+  'Meloxicam',
+  'Prednisolone',
+  'Omeprazolo',
+  'Furosemide',
+  'Benazepril',
+  'Gabapentin',
+  'Probiotico veterinario',
+  'Collirio antibiotico',
   'Gocce auricolari',
-  'Gocce oculari',
+  'Sciroppo mucolitico',
 ] as const
 
-const DOSI_RAPIDE = [
-  'compressa',
-  'pasticca',
-  'puntura',
-  'gocce',
-  'sciroppo',
-  'crema',
-  'spray',
+const FORMATI_SOMMINISTRAZIONE = [
+  { value: 'compressa', label: 'Compressa' },
+  { value: 'pasticca', label: 'Pasticca' },
+  { value: 'puntura', label: 'Puntura' },
+  { value: 'gocce', label: 'Gocce' },
+  { value: 'collirio', label: 'Collirio' },
+  { value: 'sciroppo', label: 'Sciroppo' },
+  { value: 'crema', label: 'Crema' },
+  { value: 'spray', label: 'Spray' },
 ] as const
 
 const STEP_LABELS: Record<Step, string> = {
@@ -68,7 +129,86 @@ const STEP_LABELS: Record<Step, string> = {
   note: 'Conferma',
 }
 
-function getStepInfo(step: Step, isEditMode: boolean) {
+const FORMATO_LABELS: Record<FormatoSomministrazione, string> = {
+  compressa: 'compressa',
+  pasticca: 'pasticca',
+  puntura: 'puntura',
+  gocce: 'gocce',
+  collirio: 'collirio',
+  sciroppo: 'sciroppo',
+  crema: 'crema',
+  spray: 'spray',
+}
+
+const QUANTITA_CONFIG: Record<
+  FormatoSomministrazione,
+  {
+    label: string
+    placeholder: string
+    helper: string
+    quickValues: string[]
+    inputMode?: HTMLAttributes<HTMLInputElement>['inputMode']
+  }
+> = {
+  compressa: {
+    label: 'Quantità',
+    placeholder: 'Es. mezza, 1, 2',
+    helper: 'Indica quante compresse dare.',
+    quickValues: ['mezza', '1', '2'],
+  },
+  pasticca: {
+    label: 'Quantità',
+    placeholder: 'Es. mezza, 1, 2',
+    helper: 'Indica quante pasticche dare.',
+    quickValues: ['mezza', '1', '2'],
+  },
+  puntura: {
+    label: 'Quantità',
+    placeholder: 'Es. 1',
+    helper: 'Indica quante punture sono previste per ogni somministrazione.',
+    quickValues: ['1', '2'],
+    inputMode: 'numeric',
+  },
+  gocce: {
+    label: 'Numero di gocce',
+    placeholder: 'Es. 4',
+    helper: 'Indica quante gocce dare ogni volta.',
+    quickValues: ['1', '2', '3', '4', '5'],
+    inputMode: 'numeric',
+  },
+  collirio: {
+    label: 'Numero di gocce',
+    placeholder: 'Es. 2',
+    helper: 'Indica quante gocce mettere per ogni somministrazione.',
+    quickValues: ['1', '2', '3'],
+    inputMode: 'numeric',
+  },
+  sciroppo: {
+    label: 'Quantità in ml',
+    placeholder: 'Es. 2,5',
+    helper: 'Indica i ml da somministrare.',
+    quickValues: ['0,5', '1', '2', '5'],
+    inputMode: 'decimal',
+  },
+  crema: {
+    label: 'Quantità',
+    placeholder: 'Es. 1 applicazione',
+    helper: 'Puoi scrivere ad esempio 1 applicazione o 2 applicazioni.',
+    quickValues: ['1 applicazione', '2 applicazioni'],
+  },
+  spray: {
+    label: 'Quantità',
+    placeholder: 'Es. 2 spruzzi',
+    helper: 'Puoi scrivere ad esempio 1 spruzzo o 2 spruzzi.',
+    quickValues: ['1 spruzzo', '2 spruzzi', '3 spruzzi'],
+  },
+}
+
+function getStepInfo(
+  step: Step,
+  isEditMode: boolean,
+  isGeneralVariant: boolean
+) {
   if (step === 'animale') {
     return {
       icon: <PawPrint size={22} strokeWidth={2.2} />,
@@ -80,8 +220,12 @@ function getStepInfo(step: Step, isEditMode: boolean) {
   if (step === 'farmaco') {
     return {
       icon: <Stethoscope size={22} strokeWidth={2.2} />,
-      title: 'Farmaco e dose',
-      description: 'Inserisci i dati principali della terapia.',
+      title: isGeneralVariant
+        ? 'Farmaco, formato e quantità'
+        : 'Farmaco e dose',
+      description: isGeneralVariant
+        ? 'Indica che farmaco è, in che formato lo dai e quanto ne dai.'
+        : 'Inserisci i dati principali della terapia.',
     }
   }
 
@@ -89,16 +233,17 @@ function getStepInfo(step: Step, isEditMode: boolean) {
     return {
       icon: <CalendarDays size={22} strokeWidth={2.2} />,
       title: 'Frequenza',
-      description: 'Ogni quanto va somministrata?',
+      description: 'Quante volte al giorno va somministrata?',
     }
   }
 
   if (step === 'date') {
     return {
       icon: <Clock3 size={22} strokeWidth={2.2} />,
-      title: 'Date e durata',
-      description:
-        'Scegli la data di inizio, opzionalmente una durata in giorni e, se vuoi, anche un orario.',
+      title: isGeneralVariant ? 'Orari e durata' : 'Date e durata',
+      description: isGeneralVariant
+        ? 'Imposta prima gli orari richiesti dalla frequenza scelta, poi da quando a quando.'
+        : 'Scegli la data di inizio, opzionalmente una durata in giorni e, se vuoi, anche un orario.',
     }
   }
 
@@ -316,19 +461,173 @@ function formatDateLabel(dateIso: string) {
   }).format(parseDateIso(dateIso))
 }
 
+function getOrariRichiestiDaFrequenza(frequenza: string) {
+  if (frequenza === 'una_volta_giorno') return 1
+  if (frequenza === 'due_volte_giorno') return 2
+  if (frequenza === 'tre_volte_giorno') return 3
+  return 0
+}
+
+function normalizzaOrariPerFrequenza(orari: string[], frequenza: string) {
+  const richiesti = getOrariRichiestiDaFrequenza(frequenza)
+  if (richiesti === 0) return []
+
+  return Array.from({ length: richiesti }, (_, index) => orari[index] ?? '')
+}
+
+function parseOrariIniziali(orariRaw: string, frequenza: string) {
+  const richiesti = getOrariRichiestiDaFrequenza(frequenza)
+  const parti = orariRaw
+    .split(/\s*(?:,|•|\|)\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  if (richiesti === 0) return []
+  return Array.from({ length: richiesti }, (_, index) => parti[index] ?? '')
+}
+
+function buildDoseFromFormatoEQuantita(
+  formato: FormatoSomministrazione | '',
+  quantita: string
+) {
+  const q = quantita.trim()
+  if (!formato || !q) return ''
+
+  if (formato === 'compressa') {
+    if (q === '1') return '1 compressa'
+    if (q === 'mezza') return 'mezza compressa'
+    return `${q} compresse`
+  }
+
+  if (formato === 'pasticca') {
+    if (q === '1') return '1 pasticca'
+    if (q === 'mezza') return 'mezza pasticca'
+    return `${q} pasticche`
+  }
+
+  if (formato === 'puntura') {
+    if (q === '1') return '1 puntura'
+    return `${q} punture`
+  }
+
+  if (formato === 'gocce') {
+    if (q === '1') return '1 goccia'
+    return `${q} gocce`
+  }
+
+  if (formato === 'collirio') {
+    if (q === '1') return '1 goccia di collirio'
+    return `${q} gocce di collirio`
+  }
+
+  if (formato === 'sciroppo') {
+    return `${q} ml`
+  }
+
+  if (formato === 'crema') {
+    if (q.toLowerCase().includes('crema')) return q
+    return `${q} di crema`
+  }
+
+  if (formato === 'spray') {
+    const lower = q.toLowerCase()
+    if (lower.includes('spruzz') || lower.includes('spray')) return q
+    return `${q} spray`
+  }
+
+  return q
+}
+
+function parseDoseIniziale(doseRaw: string): {
+  formato: FormatoSomministrazione | ''
+  quantita: string
+} {
+  const dose = doseRaw.trim()
+  const lower = dose.toLowerCase()
+
+  if (!dose) {
+    return { formato: '', quantita: '' }
+  }
+
+  if (lower.includes('collirio')) {
+    return {
+      formato: 'collirio',
+      quantita: dose
+        .replace(/gocce?\s+di\s+collirio/i, '')
+        .replace(/goccia\s+di\s+collirio/i, '')
+        .trim(),
+    }
+  }
+
+  if (lower.includes('ml')) {
+    return {
+      formato: 'sciroppo',
+      quantita: dose.replace(/ml/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('compress')) {
+    return {
+      formato: 'compressa',
+      quantita: dose.replace(/compresse?/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('pastic')) {
+    return {
+      formato: 'pasticca',
+      quantita: dose.replace(/pasticche?/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('puntur')) {
+    return {
+      formato: 'puntura',
+      quantita: dose.replace(/punture?/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('goccia') || lower.includes('gocce')) {
+    return {
+      formato: 'gocce',
+      quantita: dose.replace(/gocce?/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('crema')) {
+    return {
+      formato: 'crema',
+      quantita: dose.replace(/\s*di\s+crema/i, '').replace(/crema/i, '').trim(),
+    }
+  }
+
+  if (lower.includes('spray')) {
+    return {
+      formato: 'spray',
+      quantita: dose.replace(/spray/i, '').trim(),
+    }
+  }
+
+  return {
+    formato: '',
+    quantita: '',
+  }
+}
+
 export function NuovaTerapiaWizard({
   title,
   subtitle,
   backHref,
-  onSubmit,
+  submitAction,
   animali,
   preselectedAnimalId,
   valoriIniziali,
+  variant = 'standard',
 }: {
   title: string
   subtitle: string
   backHref: string
-  onSubmit: (formData: FormData) => void | Promise<void>
+  submitAction: (formData: FormData) => void | Promise<void>
   animali: AnimaleOption[]
   preselectedAnimalId?: string
   valoriIniziali?: {
@@ -341,8 +640,10 @@ export function NuovaTerapiaWizard({
     oraSomministrazione?: string
     note?: string
   }
+  variant?: WizardVariant
 }) {
   const isEditMode = Boolean(valoriIniziali)
+  const isGeneralVariant = variant === 'generale'
   const hasAnimalStep = !preselectedAnimalId
 
   const steps = useMemo<Step[]>(
@@ -353,13 +654,20 @@ export function NuovaTerapiaWizard({
     [hasAnimalStep]
   )
 
+  const frequenzaIniziale = valoriIniziali?.frequenza ?? 'una_volta_giorno'
+  const doseInizialeParsata = parseDoseIniziale(valoriIniziali?.dose ?? '')
+
   const [step, setStep] = useState<Step>(hasAnimalStep ? 'animale' : 'farmaco')
   const [animaleId, setAnimaleId] = useState(preselectedAnimalId ?? '')
   const [nomeFarmaco, setNomeFarmaco] = useState(valoriIniziali?.nomeFarmaco ?? '')
   const [dose, setDose] = useState(valoriIniziali?.dose ?? '')
-  const [frequenza, setFrequenza] = useState<string>(
-    valoriIniziali?.frequenza ?? 'una_volta_giorno'
+  const [formatoSomministrazione, setFormatoSomministrazione] = useState<
+    FormatoSomministrazione | ''
+  >(isGeneralVariant ? doseInizialeParsata.formato : '')
+  const [quantitaSomministrazione, setQuantitaSomministrazione] = useState(
+    isGeneralVariant ? doseInizialeParsata.quantita : ''
   )
+  const [frequenza, setFrequenza] = useState<string>(frequenzaIniziale)
   const [frequenzaCustom, setFrequenzaCustom] = useState(
     valoriIniziali?.frequenzaCustom ?? ''
   )
@@ -380,6 +688,15 @@ export function NuovaTerapiaWizard({
   const [oraSomministrazione, setOraSomministrazione] = useState(
     valoriIniziali?.oraSomministrazione ?? ''
   )
+  const [orariSomministrazione, setOrariSomministrazione] = useState<string[]>(
+    () =>
+      isGeneralVariant
+        ? parseOrariIniziali(
+            valoriIniziali?.oraSomministrazione ?? '',
+            frequenzaIniziale
+          )
+        : []
+  )
   const [note, setNote] = useState(valoriIniziali?.note ?? '')
   const [errori, setErrori] = useState<Partial<Record<Step, string>>>({})
 
@@ -396,7 +713,19 @@ export function NuovaTerapiaWizard({
 
   const animaleSelezionato = animali.find((a) => a.id === animaleId) ?? null
   const indice = steps.indexOf(step)
-  const stepInfo = getStepInfo(step, isEditMode)
+  const stepInfo = getStepInfo(step, isEditMode, isGeneralVariant)
+  const quantitaConfig = formatoSomministrazione
+    ? QUANTITA_CONFIG[formatoSomministrazione]
+    : null
+  const doseComposta = isGeneralVariant
+    ? buildDoseFromFormatoEQuantita(formatoSomministrazione, quantitaSomministrazione)
+    : dose
+  const orariRichiesti = isGeneralVariant
+    ? getOrariRichiestiDaFrequenza(frequenza)
+    : 0
+  const orariCompattati = isGeneralVariant
+    ? orariSomministrazione.filter(Boolean).join(', ')
+    : oraSomministrazione
 
   function vaiAvanti() {
     const erroriNuovi: Partial<Record<Step, string>> = {}
@@ -405,8 +734,16 @@ export function NuovaTerapiaWizard({
       erroriNuovi.animale = 'Seleziona un animale'
     }
 
-    if (step === 'farmaco' && (!nomeFarmaco.trim() || !dose.trim())) {
-      erroriNuovi.farmaco = 'Compila nome farmaco e dose'
+    if (step === 'farmaco') {
+      if (!nomeFarmaco.trim()) {
+        erroriNuovi.farmaco = 'Compila il nome del farmaco'
+      } else if (isGeneralVariant) {
+        if (!formatoSomministrazione || !quantitaSomministrazione.trim()) {
+          erroriNuovi.farmaco = 'Seleziona formato e quantità'
+        }
+      } else if (!dose.trim()) {
+        erroriNuovi.farmaco = 'Compila nome farmaco e dose'
+      }
     }
 
     if (step === 'frequenza') {
@@ -422,6 +759,12 @@ export function NuovaTerapiaWizard({
         erroriNuovi.date = 'La data di inizio è obbligatoria'
       } else if (durataGiorni && !dataFineCalcolata) {
         erroriNuovi.date = 'Inserisci una durata valida in giorni'
+      } else if (
+        isGeneralVariant &&
+        orariRichiesti > 0 &&
+        orariSomministrazione.some((orario) => !orario.trim())
+      ) {
+        erroriNuovi.date = 'Compila tutti gli orari richiesti dalla frequenza scelta'
       }
     }
 
@@ -445,9 +788,26 @@ export function NuovaTerapiaWizard({
     }
   }
 
-  function applicaDoseRapida(suggerimento: string) {
+  function applicaQuantitaRapida(suggerimento: string) {
+    if (isGeneralVariant) {
+      setQuantitaSomministrazione(suggerimento)
+      setErrori((prev) => ({ ...prev, farmaco: undefined }))
+      return
+    }
+
     setDose(suggerimento)
     setErrori((prev) => ({ ...prev, farmaco: undefined }))
+  }
+
+  function aggiornaFrequenza(nuovaFrequenza: string) {
+    setFrequenza(nuovaFrequenza)
+    setErrori((prev) => ({ ...prev, frequenza: undefined, date: undefined }))
+
+    if (isGeneralVariant) {
+      setOrariSomministrazione((prev) =>
+        normalizzaOrariPerFrequenza(prev, nuovaFrequenza)
+      )
+    }
   }
 
   return (
@@ -501,20 +861,30 @@ export function NuovaTerapiaWizard({
         </div>
       </header>
 
-      <form action={onSubmit} className="flex-1 px-5 pb-12 pt-4">
+      <form action={submitAction} className="flex-1 px-5 pb-12 pt-4">
         <input type="hidden" name="animale_id" value={animaleId} />
         <input type="hidden" name="nome_farmaco" value={nomeFarmaco} />
-        <input type="hidden" name="dose" value={dose} />
+        <input type="hidden" name="dose" value={doseComposta} />
         <input type="hidden" name="frequenza" value={frequenza} />
         <input type="hidden" name="frequenza_custom" value={frequenzaCustom} />
         <input type="hidden" name="data_inizio" value={dataInizio} />
         <input type="hidden" name="data_fine" value={dataFineCalcolata} />
-        <input
-          type="hidden"
-          name="ora_somministrazione"
-          value={oraSomministrazione}
-        />
+        <input type="hidden" name="ora_somministrazione" value={orariCompattati} />
         <input type="hidden" name="note" value={note} />
+        {isGeneralVariant && (
+          <>
+            <input
+              type="hidden"
+              name="formato_somministrazione"
+              value={formatoSomministrazione}
+            />
+            <input
+              type="hidden"
+              name="quantita_somministrazione"
+              value={quantitaSomministrazione}
+            />
+          </>
+        )}
 
         <div className="mb-5">
           <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">
@@ -568,54 +938,141 @@ export function NuovaTerapiaWizard({
                   label="Nome farmaco"
                   required
                   error={errori.farmaco}
-                  helper="Puoi scegliere un suggerimento oppure scrivere liberamente."
+                  helper="Puoi scegliere un suggerimento realistico oppure scrivere liberamente."
                 >
                   <AutocompleteInput
                     id="nome_farmaco"
-                    placeholder="Es. Antibiotico, Collirio, Integratore..."
+                    placeholder="Es. Synulox, Metacam, Apoquel..."
                     value={nomeFarmaco}
                     onChange={(value) => {
                       setNomeFarmaco(value)
                       setErrori((prev) => ({ ...prev, farmaco: undefined }))
                     }}
-                    suggerimenti={[...FARMACI_SUGGERITI]}
+                    suggerimenti={[...FARMACI_SUGGERITI_REALISTICI]}
                     className="h-12 rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base"
                   />
                 </Campo>
 
-                <Campo
-                  label="Dose / formato"
-                  required
-                  helper="Tocca un suggerimento rapido oppure scrivi il tuo valore."
-                >
-                  <input
-                    value={dose}
-                    onChange={(e) => {
-                      setDose(e.target.value)
-                      setErrori((prev) => ({ ...prev, farmaco: undefined }))
-                    }}
-                    placeholder="Es. 1 compressa, 5 gocce, crema..."
-                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
-                  />
+                {isGeneralVariant ? (
+                  <>
+                    <Campo
+                      label="Formato"
+                      required
+                      helper="Seleziona in che formato lo somministri."
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        {FORMATI_SOMMINISTRAZIONE.map((formato) => (
+                          <button
+                            key={formato.value}
+                            type="button"
+                            onClick={() => {
+                              setFormatoSomministrazione(formato.value)
+                              setQuantitaSomministrazione('')
+                              setErrori((prev) => ({ ...prev, farmaco: undefined }))
+                            }}
+                            className={cn(
+                              'rounded-full border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]',
+                              formatoSomministrazione === formato.value
+                                ? 'border-amber-300 bg-amber-100 text-amber-700'
+                                : 'border-[#E7DBCF] bg-[#FCF8F3] text-gray-600'
+                            )}
+                          >
+                            {formato.label}
+                          </button>
+                        ))}
+                      </div>
+                    </Campo>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {DOSI_RAPIDE.map((suggerimento) => (
-                      <button
-                        key={suggerimento}
-                        type="button"
-                        onClick={() => applicaDoseRapida(suggerimento)}
-                        className={cn(
-                          'rounded-full border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]',
-                          dose === suggerimento
-                            ? 'border-amber-300 bg-amber-100 text-amber-700'
-                            : 'border-[#E7DBCF] bg-[#FCF8F3] text-gray-600'
-                        )}
-                      >
-                        {suggerimento}
-                      </button>
-                    ))}
-                  </div>
-                </Campo>
+                    <Campo
+                      label={quantitaConfig?.label ?? 'Quantità'}
+                      required
+                      helper={
+                        quantitaConfig?.helper ??
+                        'Seleziona prima un formato per impostare una quantità coerente.'
+                      }
+                    >
+                      <input
+                        value={quantitaSomministrazione}
+                        onChange={(e) => {
+                          setQuantitaSomministrazione(e.target.value)
+                          setErrori((prev) => ({ ...prev, farmaco: undefined }))
+                        }}
+                        placeholder={
+                          quantitaConfig?.placeholder ??
+                          'Seleziona prima un formato'
+                        }
+                        disabled={!formatoSomministrazione}
+                        inputMode={quantitaConfig?.inputMode}
+                        className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400 disabled:opacity-60"
+                      />
+
+                      {quantitaConfig && quantitaConfig.quickValues.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {quantitaConfig.quickValues.map((suggerimento) => (
+                            <button
+                              key={suggerimento}
+                              type="button"
+                              onClick={() => applicaQuantitaRapida(suggerimento)}
+                              className={cn(
+                                'rounded-full border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]',
+                                quantitaSomministrazione === suggerimento
+                                  ? 'border-amber-300 bg-amber-100 text-amber-700'
+                                  : 'border-[#E7DBCF] bg-[#FCF8F3] text-gray-600'
+                              )}
+                            >
+                              {suggerimento}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </Campo>
+
+                    <Campo
+                      label="Dose risultante"
+                      helper="Così sarà salvata in terapia e mostrata nel riepilogo."
+                    >
+                      <div className="flex min-h-12 items-center rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-3 text-sm font-semibold text-gray-700">
+                        {doseComposta || 'Seleziona formato e quantità'}
+                      </div>
+                    </Campo>
+                  </>
+                ) : (
+                  <Campo
+                    label="Dose / formato"
+                    required
+                    helper="Tocca un suggerimento rapido oppure scrivi il tuo valore."
+                  >
+                    <input
+                      value={dose}
+                      onChange={(e) => {
+                        setDose(e.target.value)
+                        setErrori((prev) => ({ ...prev, farmaco: undefined }))
+                      }}
+                      placeholder="Es. 1 compressa, 5 gocce, crema..."
+                      className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none placeholder:text-gray-400"
+                    />
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {FORMATI_SOMMINISTRAZIONE.map((suggerimento) => (
+                        <button
+                          key={suggerimento.value}
+                          type="button"
+                          onClick={() =>
+                            applicaQuantitaRapida(suggerimento.label.toLowerCase())
+                          }
+                          className={cn(
+                            'rounded-full border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]',
+                            dose === suggerimento.label.toLowerCase()
+                              ? 'border-amber-300 bg-amber-100 text-amber-700'
+                              : 'border-[#E7DBCF] bg-[#FCF8F3] text-gray-600'
+                          )}
+                        >
+                          {suggerimento.label}
+                        </button>
+                      ))}
+                    </div>
+                  </Campo>
+                )}
               </div>
             </SectionCard>
 
@@ -633,13 +1090,19 @@ export function NuovaTerapiaWizard({
           <>
             <SectionCard>
               <div className="space-y-4">
-                <Campo label="Frequenza" required error={errori.frequenza}>
+                <Campo
+                  label="Frequenza"
+                  required
+                  error={errori.frequenza}
+                  helper={
+                    isGeneralVariant
+                      ? 'Se scegli 1, 2 o 3 volte al giorno, nello step successivo compariranno automaticamente gli orari necessari.'
+                      : undefined
+                  }
+                >
                   <select
                     value={frequenza}
-                    onChange={(e) => {
-                      setFrequenza(e.target.value)
-                      setErrori((prev) => ({ ...prev, frequenza: undefined }))
-                    }}
+                    onChange={(e) => aggiornaFrequenza(e.target.value)}
                     className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
                   >
                     {FREQUENZE.map((f) => (
@@ -685,6 +1148,61 @@ export function NuovaTerapiaWizard({
           <>
             <SectionCard>
               <div className="space-y-4">
+                {isGeneralVariant ? (
+                  <Campo
+                    label="Orari somministrazione"
+                    required={orariRichiesti > 0}
+                    error={errori.date}
+                    helper={
+                      orariRichiesti > 0
+                        ? `Hai scelto ${orariRichiesti} ${
+                            orariRichiesti === 1 ? 'somministrazione' : 'somministrazioni'
+                          } al giorno: inserisci ${orariRichiesti} orari.`
+                        : frequenza === 'al_bisogno'
+                          ? 'Per “al bisogno” non è richiesto un orario fisso.'
+                          : 'Con frequenza personalizzata non viene forzato un numero fisso di orari.'
+                    }
+                  >
+                    {orariRichiesti > 0 ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: orariRichiesti }).map((_, index) => (
+                          <input
+                            key={`orario-${index}`}
+                            type="time"
+                            value={orariSomministrazione[index] ?? ''}
+                            onChange={(e) => {
+                              const prossimo = [...orariSomministrazione]
+                              prossimo[index] = e.target.value
+                              setOrariSomministrazione(prossimo)
+                              setErrori((prev) => ({ ...prev, date: undefined }))
+                            }}
+                            className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex min-h-12 items-center rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-3 text-sm font-semibold text-gray-700">
+                        Nessun orario obbligatorio per questa frequenza
+                      </div>
+                    )}
+                  </Campo>
+                ) : (
+                  <Campo
+                    label="Orario somministrazione"
+                    helper="Facoltativo. Puoi aggiungerlo ora oppure in seguito."
+                  >
+                    <input
+                      type="time"
+                      value={oraSomministrazione}
+                      onChange={(e) => {
+                        setOraSomministrazione(e.target.value)
+                        setErrori((prev) => ({ ...prev, date: undefined }))
+                      }}
+                      className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
+                    />
+                  </Campo>
+                )}
+
                 <Campo label="Data inizio" required error={errori.date}>
                   <input
                     type="date"
@@ -731,21 +1249,6 @@ export function NuovaTerapiaWizard({
                       ? formatDateLabel(dataFineCalcolata)
                       : 'Non impostata'}
                   </div>
-                </Campo>
-
-                <Campo
-                  label="Orario somministrazione"
-                  helper="Facoltativo. Puoi aggiungerlo ora oppure in seguito."
-                >
-                  <input
-                    type="time"
-                    value={oraSomministrazione}
-                    onChange={(e) => {
-                      setOraSomministrazione(e.target.value)
-                      setErrori((prev) => ({ ...prev, date: undefined }))
-                    }}
-                    className="h-12 w-full rounded-2xl border border-gray-200 bg-[#FCF8F3] px-4 text-base outline-none"
-                  />
                 </Campo>
               </div>
             </SectionCard>
@@ -796,7 +1299,27 @@ export function NuovaTerapiaWizard({
                   ) : null}
 
                   <SummaryItem label="Farmaco" value={nomeFarmaco || '—'} />
-                  <SummaryItem label="Dose" value={dose || '—'} />
+
+                  {isGeneralVariant ? (
+                    <>
+                      <SummaryItem
+                        label="Formato"
+                        value={
+                          formatoSomministrazione
+                            ? FORMATO_LABELS[formatoSomministrazione]
+                            : '—'
+                        }
+                      />
+                      <SummaryItem
+                        label="Quantità"
+                        value={quantitaSomministrazione || '—'}
+                      />
+                      <SummaryItem label="Dose" value={doseComposta || '—'} />
+                    </>
+                  ) : (
+                    <SummaryItem label="Dose" value={dose || '—'} />
+                  )}
+
                   <SummaryItem
                     label="Frequenza"
                     value={
@@ -804,12 +1327,23 @@ export function NuovaTerapiaWizard({
                       frequenza
                     }
                   />
+
                   {frequenza === 'personalizzata' && frequenzaCustom.trim() ? (
                     <SummaryItem
                       label="Dettaglio frequenza"
                       value={frequenzaCustom}
                     />
                   ) : null}
+
+                  <SummaryItem
+                    label="Orari"
+                    value={
+                      isGeneralVariant
+                        ? orariCompattati || 'Non indicati'
+                        : oraSomministrazione || 'Non indicato'
+                    }
+                  />
+
                   <SummaryItem label="Data inizio" value={dataInizio || '—'} />
                   <SummaryItem
                     label="Durata"
@@ -822,10 +1356,6 @@ export function NuovaTerapiaWizard({
                         ? formatDateLabel(dataFineCalcolata)
                         : 'Non indicata'
                     }
-                  />
-                  <SummaryItem
-                    label="Orario"
-                    value={oraSomministrazione || 'Non indicato'}
                   />
                 </div>
               </SectionCard>
