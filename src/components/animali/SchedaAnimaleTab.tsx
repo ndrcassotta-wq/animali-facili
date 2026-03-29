@@ -36,6 +36,7 @@ type TerapiaConUltimaSomministrazione = Terapia & {
 }
 type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
 type DiarioVoceInsert = Database['public']['Tables']['diario_voci']['Insert']
+type DiarioVoceUpdate = Database['public']['Tables']['diario_voci']['Update']
 
 type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
 
@@ -97,6 +98,18 @@ function resetAppScrollToTop(target?: HTMLElement | null) {
 function getEstensioneFile(file: File) {
   const parti = file.name.split('.')
   return parti[parti.length - 1]?.toLowerCase() || 'jpg'
+}
+
+function getDataOggi() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function ordinaVociDiario(voci: DiarioVoce[]) {
+  return [...voci].sort(
+    (a, b) =>
+      b.data.localeCompare(a.data) ||
+      (b.created_at ?? '').localeCompare(a.created_at ?? '')
+  )
 }
 
 function QuickCard({
@@ -240,11 +253,11 @@ function TabDiario({
   vociIniziali: DiarioVoce[]
 }) {
   const router = useRouter()
-  const oggi = new Date().toISOString().split('T')[0]
 
-  const [voci, setVoci] = useState<DiarioVoce[]>(vociIniziali)
+  const [voci, setVoci] = useState<DiarioVoce[]>(ordinaVociDiario(vociIniziali))
   const [mostraForm, setMostraForm] = useState(false)
-  const [data, setData] = useState(oggi)
+  const [voceInModificaId, setVoceInModificaId] = useState<string | null>(null)
+  const [data, setData] = useState(getDataOggi())
   const [titolo, setTitolo] = useState('')
   const [nota, setNota] = useState('')
   const [erroreTitolo, setErroreTitolo] = useState('')
@@ -252,15 +265,51 @@ function TabDiario({
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  const isEditing = voceInModificaId !== null
+
   useEffect(() => {
-    setVoci(vociIniziali)
+    setVoci(ordinaVociDiario(vociIniziali))
   }, [vociIniziali])
 
   useEffect(() => {
     resetAppScrollToTop()
   }, [])
 
-  async function aggiungiVoce() {
+  function resetForm() {
+    setData(getDataOggi())
+    setTitolo('')
+    setNota('')
+    setErroreTitolo('')
+    setErroreNota('')
+    setErroreSrv(null)
+    setVoceInModificaId(null)
+  }
+
+  function chiudiFormDiario() {
+    setMostraForm(false)
+    resetForm()
+    resetAppScrollToTop()
+  }
+
+  function apriNuovaVoce() {
+    resetForm()
+    setMostraForm(true)
+    resetAppScrollToTop()
+  }
+
+  function apriModificaVoce(voce: DiarioVoce) {
+    setVoceInModificaId(voce.id)
+    setData(voce.data)
+    setTitolo(voce.titolo ?? '')
+    setNota(voce.nota ?? '')
+    setErroreTitolo('')
+    setErroreNota('')
+    setErroreSrv(null)
+    setMostraForm(true)
+    resetAppScrollToTop()
+  }
+
+  async function salvaVoce() {
     const titoloPulito = titolo.trim()
     const notaPulita = nota.trim()
 
@@ -287,6 +336,44 @@ function TabDiario({
     try {
       const supabase = createClient()
 
+      if (isEditing && voceInModificaId) {
+        const payload: DiarioVoceUpdate = {
+          data,
+          titolo: titoloPulito,
+          nota: notaPulita,
+        }
+
+        const response = await supabase
+          .from('diario_voci')
+          .update(payload)
+          .eq('id', voceInModificaId)
+          .eq('animale_id', animaleId)
+          .select('*')
+          .single()
+
+        const voceAggiornata = (response.data ?? null) as DiarioVoce | null
+        const error = response.error
+
+        if (error || !voceAggiornata) {
+          setErroreSrv(
+            `Errore durante il salvataggio: ${error?.message ?? 'sconosciuto'}`
+          )
+          setIsSaving(false)
+          return
+        }
+
+        const next = ordinaVociDiario(
+          voci.map((voce) =>
+            voce.id === voceInModificaId ? voceAggiornata : voce
+          )
+        )
+
+        setVoci(next)
+        chiudiFormDiario()
+        router.refresh()
+        return
+      }
+
       const payload: DiarioVoceInsert = {
         animale_id: animaleId,
         data,
@@ -311,19 +398,11 @@ function TabDiario({
         return
       }
 
-      const next: DiarioVoce[] = [nuovaVoce, ...voci].sort(
-        (a, b) =>
-          b.data.localeCompare(a.data) ||
-          b.created_at.localeCompare(a.created_at)
-      )
+      const next = ordinaVociDiario([nuovaVoce, ...voci])
 
       setVoci(next)
-      setData(oggi)
-      setTitolo('')
-      setNota('')
-      setMostraForm(false)
+      chiudiFormDiario()
       router.refresh()
-      resetAppScrollToTop()
     } catch (error) {
       console.error(error)
       setErroreSrv('Errore durante il salvataggio. Riprova.')
@@ -356,19 +435,33 @@ function TabDiario({
         <button
           type="button"
           onClick={() => {
-            setMostraForm((prev) => !prev)
-            setErroreSrv(null)
-            resetAppScrollToTop()
+            if (mostraForm) {
+              chiudiFormDiario()
+              return
+            }
+
+            apriNuovaVoce()
           }}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
         >
           <Plus size={16} strokeWidth={2.5} />
-          {mostraForm ? 'Chiudi' : 'Nuova voce'}
+          {mostraForm ? (isEditing ? 'Annulla modifica' : 'Chiudi') : 'Nuova voce'}
         </button>
       </div>
 
       {mostraForm && (
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+              {isEditing ? 'Modifica voce' : 'Nuova voce'}
+            </p>
+            <h3 className="mt-1 text-lg font-extrabold text-gray-900">
+              {isEditing
+                ? 'Aggiorna la voce del diario'
+                : 'Aggiungi una nuova nota'}
+            </h3>
+          </div>
+
           <div className="space-y-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-gray-700">Data</Label>
@@ -426,14 +519,31 @@ function TabDiario({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={aggiungiVoce}
-              disabled={isSaving}
-              className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60"
-            >
-              {isSaving ? 'Salvataggio in corso...' : 'Salva voce'}
-            </button>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={salvaVoce}
+                disabled={isSaving}
+                className="w-full rounded-2xl bg-gray-900 py-3.5 text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSaving
+                  ? 'Salvataggio in corso...'
+                  : isEditing
+                    ? 'Salva modifiche'
+                    : 'Salva voce'}
+              </button>
+
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={chiudiFormDiario}
+                  disabled={isSaving}
+                  className="w-full rounded-2xl border border-[#EADFD3] bg-white py-3.5 text-sm font-bold text-gray-700 transition-all active:scale-[0.98] disabled:opacity-60"
+                >
+                  Annulla
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -470,6 +580,16 @@ function TabDiario({
               <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
                 {voce.nota}
               </p>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => apriModificaVoce(voce)}
+                  className="rounded-full border border-[#EADFD3] bg-[#FCF8F3] px-4 py-2 text-xs font-bold text-amber-700 transition-all active:scale-[0.98]"
+                >
+                  Modifica
+                </button>
+              </div>
             </div>
           ))}
         </div>
