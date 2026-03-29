@@ -140,16 +140,13 @@ function StepLayout({
   contentRef?: RefObject<HTMLDivElement | null>
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        ref={contentRef}
-        className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6"
-      >
-        <div className="pb-2">{children}</div>
-      </div>
-
-      <div className="relative z-10 shrink-0 bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3] to-[#FDF8F3] px-5 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-4">
-        {action}
+    <div
+      ref={contentRef}
+      className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+96px)]"
+    >
+      <div className="space-y-6 pb-2">
+        {children}
+        <div className="pt-1">{action}</div>
       </div>
     </div>
   )
