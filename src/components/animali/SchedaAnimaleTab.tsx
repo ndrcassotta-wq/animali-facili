@@ -793,26 +793,30 @@ export function SchedaAnimaleTab({
 
       <div className="relative w-full shrink-0 overflow-hidden">
         <div className="relative h-[220px] w-full">
-          {avatarFoto ? (
-            <img
-              src={avatarFoto}
-              alt={animale.nome}
-              className="h-full w-full object-cover"
-            />
-          ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#E9DDC5] to-[#AEA184]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+
+          <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2">
             <div
               className={cn(
-                'flex h-full w-full items-center justify-center',
-                coloreCategoria[animale.categoria] ?? 'bg-gray-100'
+                'flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.22)]',
+                !avatarFoto &&
+                  (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
               )}
             >
-              <span style={{ fontSize: '5.5rem', lineHeight: 1 }}>
-                {avatarFallback}
-              </span>
+              {avatarFoto ? (
+                <img
+                  src={avatarFoto}
+                  alt={animale.nome}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span style={{ fontSize: '3.75rem', lineHeight: 1 }}>
+                  {avatarFallback}
+                </span>
+              )}
             </div>
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+          </div>
 
           <button
             onClick={() => router.back()}
