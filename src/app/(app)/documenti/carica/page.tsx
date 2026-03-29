@@ -354,7 +354,6 @@ export default function CaricaDocumentoPage() {
   const [animaleId, setAnimaleId] = useState(animaleIdPreselezionato)
   const [erroreAnimale, setErroreAnimale] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [valori, setValori] = useState<FormValori>(valoriIniziali)
   const [erroriForm, setErroriForm] = useState<
@@ -377,20 +376,6 @@ export default function CaricaDocumentoPage() {
   const categoriaLabel =
     categorie.find((categoria) => categoria.valore === valori.categoria)?.label ??
     'Altro'
-
-  useEffect(() => {
-    if (!file || !isImageFile(file)) {
-      setPreviewUrl(null)
-      return
-    }
-
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-
-    return () => {
-      URL.revokeObjectURL(url)
-    }
-  }, [file])
 
   useEffect(() => {
     const nuovaDataIso = buildDateIso(
@@ -831,16 +816,6 @@ export default function CaricaDocumentoPage() {
                     <X size={16} strokeWidth={2.2} />
                   </button>
                 </div>
-
-                {previewUrl && (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100 bg-white">
-                    <img
-                      src={previewUrl}
-                      alt="Anteprima documento"
-                      className="max-h-[220px] w-full object-contain md:max-h-[280px]"
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -1172,16 +1147,6 @@ export default function CaricaDocumentoPage() {
                       </p>
                     </div>
                   </div>
-
-                  {previewUrl && (
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100 bg-white">
-                      <img
-                        src={previewUrl}
-                        alt="Anteprima documento"
-                        className="max-h-[320px] w-full object-contain"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
 
