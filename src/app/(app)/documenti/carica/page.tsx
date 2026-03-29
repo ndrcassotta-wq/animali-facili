@@ -275,6 +275,27 @@ function StepActionButton({
   )
 }
 
+function SecondaryActionButton({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full rounded-2xl border border-amber-200 bg-white py-4 text-base font-bold text-amber-700 shadow-sm transition-all active:scale-[0.98] disabled:opacity-60"
+    >
+      {label}
+    </button>
+  )
+}
+
 function StepLayout({
   children,
   action,
@@ -339,6 +360,7 @@ export default function CaricaDocumentoPage() {
     Partial<Record<keyof FormValori, string>>
   >({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false)
 
   const dataDocumentoParts = useMemo(
     () => parseDataParts(valori.data_documento),
@@ -397,6 +419,12 @@ export default function CaricaDocumentoPage() {
     const frame = window.requestAnimationFrame(resetScroll)
 
     return () => window.cancelAnimationFrame(frame)
+  }, [step, isQuickEditOpen])
+
+  useEffect(() => {
+    if (step !== 'carica') {
+      setIsQuickEditOpen(false)
+    }
   }, [step])
 
   function setValue(field: keyof FormValori, value: unknown) {
@@ -518,7 +546,7 @@ export default function CaricaDocumentoPage() {
 
     if (!animaleId) {
       setErroreAnimale('Seleziona un animale.')
-      setStep('titolo')
+      setIsQuickEditOpen(true)
       return
     }
 
@@ -536,11 +564,7 @@ export default function CaricaDocumentoPage() {
 
     const data = validate()
     if (!data) {
-      if (erroriForm.data_documento) {
-        setStep('data')
-      } else if (erroriForm.titolo) {
-        setStep('titolo')
-      }
+      setIsQuickEditOpen(true)
       return
     }
 
@@ -1062,95 +1086,308 @@ export default function CaricaDocumentoPage() {
               >
                 {isSubmitting ? 'Caricamento...' : 'Carica documento'}
               </Button>
+
+              <SecondaryActionButton
+                label={
+                  isQuickEditOpen ? 'Torna al riepilogo' : 'Modifica rapida'
+                }
+                onClick={() => setIsQuickEditOpen((prev) => !prev)}
+                disabled={isSubmitting}
+              />
             </div>
           }
         >
-          <div className="mb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              Controlla e carica
-            </h1>
-            <p className="mt-1 text-sm text-gray-400">
-              Ultimo controllo prima di salvare il documento
-            </p>
-          </div>
+          {!isQuickEditOpen && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                  Controlla e carica
+                </h1>
+                <p className="mt-1 text-sm text-gray-400">
+                  Ultimo controllo prima di salvare il documento
+                </p>
+              </div>
 
-          {file && (
-            <div className="mb-5 rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  {isPdfFile(file) ? (
-                    <FileText
-                      size={28}
-                      strokeWidth={2.1}
-                      className="text-slate-700"
-                    />
-                  ) : (
-                    <Paperclip
-                      size={28}
-                      strokeWidth={2.1}
-                      className="text-slate-700"
-                    />
+              {file && (
+                <div className="mb-5 rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
+                      {isPdfFile(file) ? (
+                        <FileText
+                          size={28}
+                          strokeWidth={2.1}
+                          className="text-slate-700"
+                        />
+                      ) : (
+                        <Paperclip
+                          size={28}
+                          strokeWidth={2.1}
+                          className="text-slate-700"
+                        />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-extrabold text-gray-900">
+                        {file.name}
+                      </p>
+                      <p className="text-sm font-medium text-gray-500">
+                        {formatFileSize(file.size)}
+                        {isPdfFile(file)
+                          ? ' · PDF'
+                          : isImageFile(file)
+                            ? ' · Immagine'
+                            : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {previewUrl && (
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100 bg-white">
+                      <img
+                        src={previewUrl}
+                        alt="Anteprima documento"
+                        className="max-h-[320px] w-full object-contain"
+                      />
+                    </div>
                   )}
                 </div>
+              )}
 
-                <div className="min-w-0">
-                  <p className="truncate text-base font-extrabold text-gray-900">
-                    {file.name}
-                  </p>
-                  <p className="text-sm font-medium text-gray-500">
-                    {formatFileSize(file.size)}
-                    {isPdfFile(file)
-                      ? ' · PDF'
-                      : isImageFile(file)
-                        ? ' · Immagine'
-                        : ''}
-                  </p>
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-gray-700">
+                      Animale
+                    </Label>
+                    <AnimaleSelect
+                      valore={animaleId}
+                      onChange={() => {}}
+                      disabled
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {previewUrl && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100 bg-white">
-                  <img
-                    src={previewUrl}
-                    alt="Anteprima documento"
-                    className="max-h-[320px] w-full object-contain"
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <RiepilogoRiga
+                    label="Titolo"
+                    value={valori.titolo.trim() || '—'}
+                  />
+                  <RiepilogoRiga label="Categoria" value={categoriaLabel} />
+                  <RiepilogoRiga
+                    label="Data documento"
+                    value={
+                      valori.data_documento
+                        ? formatDatePreview(valori.data_documento)
+                        : 'Non inserita'
+                    }
+                  />
+                  <RiepilogoRiga
+                    label="Note"
+                    value={valori.note?.trim() || 'Non inserite'}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            </>
           )}
 
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Animale
-                </Label>
-                <AnimaleSelect
-                  valore={animaleId}
-                  onChange={() => {}}
-                  disabled
-                />
+          {isQuickEditOpen && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                  Modifica rapida
+                </h1>
+                <p className="mt-1 text-sm text-gray-400">
+                  Correggi tutto da qui senza tornare indietro step per step
+                </p>
               </div>
-            </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
-              <RiepilogoRiga label="Titolo" value={valori.titolo.trim() || '—'} />
-              <RiepilogoRiga label="Categoria" value={categoriaLabel} />
-              <RiepilogoRiga
-                label="Data documento"
-                value={
-                  valori.data_documento
-                    ? formatDatePreview(valori.data_documento)
-                    : 'Non inserita'
-                }
-              />
-              <RiepilogoRiga
-                label="Note"
-                value={valori.note?.trim() || 'Non inserite'}
-              />
-            </div>
-          </div>
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Animale
+                        <span className="ml-1 text-red-400">*</span>
+                      </Label>
+                    </div>
+
+                    <AnimaleSelect
+                      valore={animaleId}
+                      onChange={(value) => {
+                        setAnimaleId(value)
+                        setErroreAnimale(null)
+                      }}
+                      disabled={!!animaleIdPreselezionato || isSubmitting}
+                    />
+
+                    {erroreAnimale && (
+                      <p className="text-xs font-medium text-red-500">
+                        {erroreAnimale}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm
+                    label="Titolo"
+                    required
+                    errore={erroriForm.titolo}
+                  >
+                    <Input
+                      id="titolo-quick-edit"
+                      placeholder="es. Visita 2024, Analisi sangue..."
+                      value={valori.titolo}
+                      onChange={(e) => setValue('titolo', e.target.value)}
+                      disabled={isSubmitting}
+                      className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Categoria">
+                    <Select
+                      value={valori.categoria}
+                      onValueChange={(v) => setValue('categoria', v)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categorie.map((categoria) => (
+                          <SelectItem
+                            key={categoria.valore}
+                            value={categoria.valore}
+                          >
+                            {categoria.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm
+                    label="Data documento"
+                    opzionale
+                    errore={erroreDataDocumento}
+                  >
+                    <div className="grid grid-cols-3 items-stretch gap-3">
+                      <Select
+                        value={giornoDocumento}
+                        onValueChange={(value) => {
+                          clearDataDocumentoError()
+                          setGiornoDocumento(value ?? '')
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className={DATE_FIELD_CLASS}>
+                          <SelectValue placeholder="Giorno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GIORNI.map((giorno) => (
+                            <SelectItem key={giorno} value={giorno}>
+                              {Number(giorno)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={meseDocumento}
+                        onValueChange={(value) => {
+                          clearDataDocumentoError()
+                          setMeseDocumento(value ?? '')
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className={DATE_FIELD_CLASS}>
+                          <SelectValue placeholder="Mese" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MESI.map((mese) => (
+                            <SelectItem key={mese.value} value={mese.value}>
+                              {mese.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        placeholder="Anno"
+                        value={annoDocumento}
+                        onChange={(e) => {
+                          clearDataDocumentoError()
+                          const soloNumeri = e.target.value
+                            .replace(/\D/g, '')
+                            .slice(0, 4)
+                          setAnnoDocumento(soloNumeri)
+                        }}
+                        disabled={isSubmitting}
+                        className={`${DATE_FIELD_CLASS} py-0 leading-none`}
+                      />
+                    </div>
+
+                    {valori.data_documento && (
+                      <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                          Data selezionata
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-amber-900">
+                          {formatDatePreview(valori.data_documento)}
+                        </p>
+                      </div>
+                    )}
+
+                    {(giornoDocumento || meseDocumento || annoDocumento) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearDataDocumentoError()
+                          setGiornoDocumento('')
+                          setMeseDocumento('')
+                          setAnnoDocumento('')
+                        }}
+                        disabled={isSubmitting}
+                        className="text-sm font-semibold text-gray-500 underline underline-offset-4 active:opacity-70"
+                      >
+                        Pulisci data
+                      </button>
+                    )}
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
+                  <CampoForm label="Note" opzionale>
+                    <Textarea
+                      id="note-quick-edit"
+                      placeholder="Note sul documento"
+                      value={valori.note ?? ''}
+                      onChange={(e) => setValue('note', e.target.value)}
+                      disabled={isSubmitting}
+                      rows={5}
+                      className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
+                    />
+                  </CampoForm>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-sm font-medium text-amber-800">
+                    Quando torni al riepilogo vedrai subito tutti i dati
+                    aggiornati.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </StepLayout>
       )}
     </form>
