@@ -791,15 +791,33 @@ export function SchedaAnimaleTab({
     >
       {fotoPickerShared}
 
-      <div className="relative w-full shrink-0 overflow-hidden">
-        <div className="relative h-[220px] w-full">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#E9DDC5] to-[#AEA184]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+      <div className="w-full shrink-0 px-5 pt-6">
+        <div className="relative">
+          <button
+            onClick={() => router.back()}
+            className="absolute left-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white shadow-sm active:opacity-70"
+          >
+            <ArrowLeft
+              size={20}
+              strokeWidth={2.2}
+              className="text-gray-600"
+            />
+          </button>
 
-          <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2">
+          <button
+            type="button"
+            onClick={apriCambioFoto}
+            disabled={isUploadingFoto}
+            className="absolute right-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white text-gray-700 shadow-sm transition-all active:scale-95 disabled:opacity-60"
+            aria-label="Cambia foto"
+          >
+            <Camera size={18} strokeWidth={2.4} />
+          </button>
+
+          <div className="flex flex-col items-center text-center">
             <div
               className={cn(
-                'flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white/90 shadow-[0_18px_40px_rgba(15,23,42,0.22)]',
+                'mt-12 flex h-[220px] w-[220px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
                 !avatarFoto &&
                   (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
               )}
@@ -811,59 +829,42 @@ export function SchedaAnimaleTab({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span style={{ fontSize: '3.75rem', lineHeight: 1 }}>
+                <span style={{ fontSize: '5.5rem', lineHeight: 1 }}>
                   {avatarFallback}
                 </span>
               )}
             </div>
-          </div>
 
-          <button
-            onClick={() => router.back()}
-            className="absolute left-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm active:opacity-70"
-          >
-            <ArrowLeft size={20} strokeWidth={2.2} className="text-white" />
-          </button>
+            <div className="mt-5 px-2">
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-gray-900">
+                {animale.nome}
+              </h1>
 
-          <button
-            type="button"
-            onClick={apriCambioFoto}
-            disabled={isUploadingFoto}
-            className="absolute right-4 top-12 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur-sm transition-all active:scale-95 disabled:opacity-60"
-            aria-label="Cambia foto"
-          >
-            <Camera size={18} strokeWidth={2.4} />
-          </button>
-
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-            <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white">
-              {animale.nome}
-            </h1>
-
-            <p className="mt-1 text-sm font-semibold text-white/90">
-              {categoriaLabel}
-            </p>
-
-            <p className="mt-1 text-sm text-white/85">
-              {animale.specie}
-              {animale.razza ? ` · ${animale.razza}` : ''}
-            </p>
-
-            {animale.data_nascita && (
-              <p className="mt-1 text-xs text-white/70">
-                🎂{' '}
-                {new Date(animale.data_nascita).toLocaleDateString('it-IT', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+              <p className="mt-1 text-sm font-semibold text-gray-600">
+                {categoriaLabel}
               </p>
-            )}
+
+              <p className="mt-1 text-sm text-gray-500">
+                {animale.specie}
+                {animale.razza ? ` · ${animale.razza}` : ''}
+              </p>
+
+              {animale.data_nascita && (
+                <p className="mt-1 text-xs text-gray-400">
+                  🎂{' '}
+                  {new Date(animale.data_nascita).toLocaleDateString('it-IT', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 px-5 pt-5 pb-6">
+      <div className="flex-1 px-5 pb-6 pt-5">
         {erroreFoto && (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
