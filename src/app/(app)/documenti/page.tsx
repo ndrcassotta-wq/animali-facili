@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { ChevronRight, FileText, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/button'
 import { formatData } from '@/lib/utils/date'
 import {
   asDocumentiConAnimale,
@@ -51,14 +50,7 @@ export default async function ListaDocumentiPage() {
 
   return (
     <div>
-      <PageHeader
-        titolo="Documenti"
-        azione={
-          <Button asChild size="sm" variant="outline">
-            <Link href="/documenti/carica">+ Carica</Link>
-          </Button>
-        }
-      />
+      <PageHeader titolo="Documenti" />
 
       <div className="space-y-4 px-4 py-4 pb-28">
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
@@ -77,30 +69,24 @@ export default async function ListaDocumentiPage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-gray-500">
-                Qui trovi l’archivio generale dei documenti: puoi aprirli,
-                scaricarli e rientrare rapidamente nel dettaglio dell’animale
-                collegato.
+                Qui trovi l’archivio generale dei documenti caricati nell’app,
+                con accesso rapido al dettaglio e all’animale collegato.
               </p>
             </div>
 
             <span className="shrink-0 rounded-full border border-[#EEE4D9] bg-[#FCF8F3] px-3 py-1 text-xs font-semibold text-gray-500">
-              {documenti.length} {documenti.length === 1 ? 'documento' : 'documenti'}
+              {documenti.length}{' '}
+              {documenti.length === 1 ? 'documento' : 'documenti'}
             </span>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/documenti/carica"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3 text-sm font-bold text-white transition-all active:scale-[0.98]"
-            >
-              <Plus size={16} strokeWidth={2.4} />
-              Carica documento
-            </Link>
-
-            <div className="inline-flex items-center rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] px-4 py-3 text-sm text-gray-500">
-              Ogni documento resta collegato anche al suo animale
-            </div>
-          </div>
+          <Link
+            href="/documenti/carica"
+            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gray-900 px-5 py-3 text-sm font-bold text-white transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} strokeWidth={2.4} />
+            Carica documento
+          </Link>
         </div>
 
         {documenti.length === 0 ? (
@@ -115,12 +101,8 @@ export default async function ListaDocumentiPage() {
 
             <p className="mt-2 text-sm leading-6 text-gray-500">
               Quando caricherai il primo documento lo troverai qui, pronto da
-              aprire, scaricare e consultare anche dal profilo dell’animale.
+              aprire, consultare e ritrovare anche dal profilo dell’animale.
             </p>
-
-            <Button asChild size="sm" className="mt-5">
-              <Link href="/documenti/carica">Carica il primo documento</Link>
-            </Button>
           </div>
         ) : (
           <>
@@ -129,7 +111,7 @@ export default async function ListaDocumentiPage() {
                 Archivio
               </p>
               <p className="mt-1 text-sm text-gray-500">
-                Ultimi documenti caricati nell’app
+                Ultimi documenti caricati
               </p>
             </div>
 
