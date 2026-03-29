@@ -411,7 +411,7 @@ function CardTerapia({
             type="button"
             onClick={segnaSomministrataRapida}
             disabled={isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-70"
           >
             <Check size={16} strokeWidth={2.5} />
             {isPending ? 'Aggiornamento...' : 'Somministrato'}
@@ -535,9 +535,9 @@ export default function TabTerapie({
 
         <Link
           href={`/animali/${animaleId}/terapie/nuova`}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 transition-transform active:scale-[0.98]"
         >
-          <Plus size={18} strokeWidth={2.4} />
+          <Plus size={18} strokeWidth={2.5} />
           Aggiungi terapia
         </Link>
       </div>
