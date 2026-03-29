@@ -15,16 +15,6 @@ const filtri: { label: string; valore: FiltroStato }[] = [
   { label: 'Annullati', valore: 'annullato' },
 ]
 
-const labelTipo: Record<string, string> = {
-  visita: 'Visita',
-  controllo: 'Controllo',
-  vaccinazione: 'Vaccinazione',
-  toelettatura: 'Toelettatura',
-  addestramento: 'Addestramento',
-  compleanno: 'Compleanno',
-  altro: 'Altro',
-}
-
 const iconaTipo: Record<string, string> = {
   visita: '🩺',
   controllo: '🔍',
@@ -33,6 +23,61 @@ const iconaTipo: Record<string, string> = {
   addestramento: '🎓',
   compleanno: '🎂',
   altro: '📌',
+}
+
+function getPreviewNote(impegno: Impegno) {
+  const noteOriginali = impegno.note?.trim()
+
+  if (!noteOriginali) return null
+
+  const notePulite = noteOriginali
+    .replace(/\[AUTO_TERAPIA:[^[\]]+\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!notePulite) return null
+
+  const LIMITE = 90
+  if (notePulite.length <= LIMITE) return notePulite
+
+  return `${notePulite.slice(0, LIMITE).trimEnd()}…`
+}
+
+function formatOra(value?: string | null) {
+  if (!value) return null
+
+  const oraPulita = value.trim()
+  if (!oraPulita) return null
+
+  const matchOrario = oraPulita.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (matchOrario) {
+    return `${matchOrario[1].padStart(2, '0')}:${matchOrario[2]}`
+  }
+
+  const data = new Date(oraPulita)
+  if (Number.isNaN(data.getTime())) return null
+
+  return new Intl.DateTimeFormat('it-IT', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(data)
+}
+
+function getOrarioImpegno(impegno: Impegno) {
+  const candidato = impegno as Impegno & {
+    orario?: string | null
+    ora?: string | null
+    data_ora?: string | null
+    datetime?: string | null
+  }
+
+  return (
+    formatOra(candidato.orario) ??
+    formatOra(candidato.ora) ??
+    formatOra(candidato.data_ora) ??
+    formatOra(candidato.datetime) ??
+    null
+  )
 }
 
 function resetAppScrollToTop() {
@@ -120,6 +165,8 @@ export function TabImpegni({
           {impegniFiltrati.map((i) => {
             const scaduto = filtro === 'programmato' && isScaduta(i.data)
             const imminente = filtro === 'programmato' && isImminente(i.data)
+            const previewNota = getPreviewNote(i)
+            const orarioLabel = getOrarioImpegno(i)
 
             return (
               <Link
@@ -151,9 +198,12 @@ export function TabImpegni({
                   <p className="truncate text-base font-extrabold text-gray-900">
                     {i.titolo}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {labelTipo[i.tipo] ?? i.tipo}
-                  </p>
+
+                  {previewNota && (
+                    <p className="mt-1 truncate text-[11px] leading-5 text-gray-500">
+                      {previewNota}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1">
@@ -169,6 +219,21 @@ export function TabImpegni({
                   >
                     {formatData(i.data)}
                   </span>
+
+                  {orarioLabel && (
+                    <span
+                      className={cn(
+                        'text-xs font-medium',
+                        scaduto
+                          ? 'text-red-500/80'
+                          : imminente
+                            ? 'text-amber-700'
+                            : 'text-gray-500'
+                      )}
+                    >
+                      {orarioLabel}
+                    </span>
+                  )}
 
                   {scaduto && (
                     <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
