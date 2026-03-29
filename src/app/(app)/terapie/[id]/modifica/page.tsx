@@ -91,7 +91,7 @@ export default async function ModificaTerapiaPage({ params }: PageProps) {
       title="Modifica terapia"
       subtitle={`Modifica la terapia di ${animale.nome}`}
       backHref={`/terapie/${id}`}
-      onSubmit={modificaTerapia}
+      submitAction={modificaTerapia}
       animali={[animale]}
       preselectedAnimalId={animale.id}
       valoriIniziali={{
