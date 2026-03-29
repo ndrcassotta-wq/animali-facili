@@ -28,12 +28,12 @@ function Campo({
   multilinea?: boolean
 }) {
   return (
-    <div className="border-b border-border py-3 last:border-0">
-      <p className="text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+    <div className="border-b border-gray-100 py-3 last:border-0">
+      <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">
         {label}
       </p>
       <p
-        className={`mt-1 text-sm font-medium text-foreground ${
+        className={`mt-1 text-sm font-medium text-gray-900 ${
           multilinea ? 'whitespace-pre-wrap leading-6' : ''
         }`}
       >
@@ -99,33 +99,48 @@ export default async function DettaglioDocumentoPage({
 
   return (
     <div>
-      <PageHeader titolo="Dettaglio documento" backHref={backHref} />
+      <PageHeader titolo="Documento" backHref={backHref} />
 
-      <div className="space-y-4 px-4 py-4">
+      <div className="space-y-4 px-4 py-4 pb-28">
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-            Documento
-          </p>
-          <h1 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
-            {doc.titolo}
-          </h1>
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F4F4F5] text-slate-700">
+              <FileText size={24} strokeWidth={2.1} />
+            </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#F4F4F5] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
-              {labelCategoria[doc.categoria] ?? doc.categoria}
-            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                Archivio documenti
+              </p>
 
-            {animale && (
-              <span className="rounded-full border border-[#EEE4D9] bg-[#FCF8F3] px-2.5 py-1 text-[11px] font-semibold text-gray-500">
-                {animale.nome}
-              </span>
-            )}
+              <h1 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+                {doc.titolo}
+              </h1>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#F4F4F5] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
+                  {labelCategoria[doc.categoria] ?? doc.categoria}
+                </span>
+
+                {animale && (
+                  <span className="rounded-full border border-[#EEE4D9] bg-[#FCF8F3] px-2.5 py-1 text-[11px] font-semibold text-gray-500">
+                    {animale.nome}
+                  </span>
+                )}
+
+                <span className="rounded-full border border-[#EEE4D9] bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-400">
+                  {doc.data_documento
+                    ? formatData(doc.data_documento)
+                    : `Caricato il ${formatData(doc.created_at)}`}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
         {signedUrl ? (
           <>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <a
                 href={signedUrl}
                 target="_blank"
@@ -144,6 +159,19 @@ export default async function DettaglioDocumentoPage({
             </div>
 
             <div className="overflow-hidden rounded-[28px] border border-[#EADFD3] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <div className="border-b border-[#F1E7DC] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  Anteprima
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isImage
+                    ? 'Visualizzazione diretta dell’immagine caricata'
+                    : isPdf
+                      ? 'Anteprima del PDF caricato'
+                      : 'Per questo formato l’anteprima potrebbe non essere disponibile'}
+                </p>
+              </div>
+
               {isImage ? (
                 <img
                   src={signedUrl}
@@ -182,6 +210,10 @@ export default async function DettaglioDocumentoPage({
         )}
 
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+            Dettagli
+          </p>
+
           {animale && <Campo label="Animale" valore={animale.nome} />}
           <Campo
             label="Categoria"

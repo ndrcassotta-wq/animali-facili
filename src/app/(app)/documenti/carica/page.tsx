@@ -201,7 +201,7 @@ function ProgressBar({ step }: { step: Step }) {
   const percent = (idx / (STEPS.length - 1)) * 100
 
   return (
-    <div className="px-5 pt-4 pb-2">
+    <div className="pt-1 pb-2">
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
         <div
           className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
@@ -309,7 +309,7 @@ function StepLayout({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={contentRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+104px)]"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+40px)]"
       >
         <div className="pb-2">
           {children}
@@ -341,6 +341,7 @@ export default function CaricaDocumentoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const animaleIdPreselezionato = searchParams.get('animale_id') ?? ''
+  const isFlussoGenerico = !animaleIdPreselezionato
   const backHref = animaleIdPreselezionato
     ? `/animali/${animaleIdPreselezionato}?tab=documenti`
     : '/documenti'
@@ -697,6 +698,15 @@ export default function CaricaDocumentoPage() {
           )}
         </div>
 
+        <div className="mb-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600">
+            {isFlussoGenerico ? 'Archivio documenti' : 'Documento animale'}
+          </p>
+          <p className="mt-1 text-base font-extrabold tracking-tight text-gray-900">
+            Nuovo documento
+          </p>
+        </div>
+
         <ProgressBar step={step} />
       </header>
 
@@ -712,10 +722,11 @@ export default function CaricaDocumentoPage() {
         >
           <div className="mb-8">
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              Carica il documento
+              Carica un documento
             </h1>
             <p className="mt-1 text-sm text-gray-400">
-              Puoi scattare una foto oppure scegliere un file già salvato
+              Scatta una foto oppure scegli un file già salvato nel telefono o nel
+              dispositivo
             </p>
           </div>
 
@@ -836,10 +847,10 @@ export default function CaricaDocumentoPage() {
         >
           <div className="mb-8">
             <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              Dai un titolo al documento
+              Descrivi il documento
             </h1>
             <p className="mt-1 text-sm text-gray-400">
-              Scegli anche l’animale e la categoria per trovarlo subito dopo
+              Scegli l’animale, inserisci un titolo e imposta la categoria
             </p>
           </div>
 
@@ -926,7 +937,8 @@ export default function CaricaDocumentoPage() {
               Inserisci la data
             </h1>
             <p className="mt-1 text-sm text-gray-400">
-              Facoltativa, ma utile soprattutto per documenti sanitari e ricevute
+              Facoltativa, ma utile soprattutto per documenti sanitari, referti e
+              ricevute
             </p>
           </div>
 
@@ -1046,7 +1058,8 @@ export default function CaricaDocumentoPage() {
               Aggiungi note
             </h1>
             <p className="mt-1 text-sm text-gray-400">
-              Ultimo campo facoltativo prima del caricamento
+              Campo facoltativo utile per ricordarti dettagli o contesto del
+              documento
             </p>
           </div>
 
@@ -1104,7 +1117,7 @@ export default function CaricaDocumentoPage() {
                   Controlla e carica
                 </h1>
                 <p className="mt-1 text-sm text-gray-400">
-                  Ultimo controllo prima di salvare il documento
+                  Ultimo controllo prima di salvare il documento nell’archivio
                 </p>
               </div>
 
