@@ -77,6 +77,43 @@ function getPreviewNote(impegno: ImpegnoConAnimale) {
   return `${notePulite.slice(0, LIMITE).trimEnd()}…`
 }
 
+function formatOra(value?: string | null) {
+  if (!value) return null
+
+  const oraPulita = value.trim()
+  if (!oraPulita) return null
+
+  const matchOrario = oraPulita.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (matchOrario) {
+    return `${matchOrario[1].padStart(2, '0')}:${matchOrario[2]}`
+  }
+
+  const data = new Date(oraPulita)
+  if (Number.isNaN(data.getTime())) return null
+
+  return new Intl.DateTimeFormat('it-IT', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(data)
+}
+
+function getOrarioImpegno(impegno: ImpegnoConAnimale) {
+  const candidato = impegno as ImpegnoConAnimale & {
+    orario?: string | null
+    ora?: string | null
+    data_ora?: string | null
+    datetime?: string | null
+  }
+
+  return (
+    formatOra(candidato.orario) ??
+    formatOra(candidato.ora) ??
+    formatOra(candidato.data_ora) ??
+    formatOra(candidato.datetime) ??
+    null
+  )
+}
+
 function deduplicaImpegni(impegni: ImpegnoConAnimale[]) {
   const visti = new Set<string>()
 
@@ -130,6 +167,7 @@ function CardImpegno({
 
   const autoTerapiaId = isTerapia ? getAutoTerapiaId(impegno.note) : null
   const previewNota = getPreviewNote(impegno)
+  const orarioLabel = getOrarioImpegno(impegno)
 
   const hrefDettaglio = autoTerapiaId
     ? `/terapie/${autoTerapiaId}`
@@ -256,8 +294,7 @@ function CardImpegno({
                       : 'text-gray-500'
                 )}
               >
-                {impegno.animali?.nome ?? '—'} ·{' '}
-                {labelTipo[impegno.tipo] ?? impegno.tipo}
+                {impegno.animali?.nome ?? '—'}
               </p>
 
               {isTerapia && !isAnnullato && (
@@ -299,6 +336,27 @@ function CardImpegno({
           >
             {formatData(impegno.data)}
           </span>
+
+          {orarioLabel && (
+            <span
+              className={cn(
+                'text-xs font-medium',
+                isAnnullato
+                  ? 'text-gray-500'
+                  : isCompletato
+                    ? 'text-emerald-700/80'
+                    : scaduto
+                      ? 'text-red-500/80'
+                      : imminente
+                        ? 'text-amber-700'
+                        : isTerapia
+                          ? 'text-teal-700/80'
+                          : 'text-gray-500'
+              )}
+            >
+              {orarioLabel}
+            </span>
+          )}
 
           {isAnnullato && (
             <span className="rounded-full bg-gray-700 px-2 py-0.5 text-[10px] font-bold text-white">
