@@ -38,6 +38,28 @@ const categorie = [
   { valore: 'altro', label: 'Altro' },
 ]
 
+const MESI = [
+  { value: '01', label: 'Gennaio' },
+  { value: '02', label: 'Febbraio' },
+  { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Aprile' },
+  { value: '05', label: 'Maggio' },
+  { value: '06', label: 'Giugno' },
+  { value: '07', label: 'Luglio' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Settembre' },
+  { value: '10', label: 'Ottobre' },
+  { value: '11', label: 'Novembre' },
+  { value: '12', label: 'Dicembre' },
+] as const
+
+const GIORNI = Array.from({ length: 31 }, (_, i) =>
+  String(i + 1).padStart(2, '0')
+)
+
+const DATE_FIELD_CLASS =
+  'h-14 min-h-14 w-full min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-4 text-base shadow-none'
+
 const valoriIniziali: FormValori = {
   titolo: '',
   categoria: 'altro',
@@ -73,6 +95,93 @@ function getTitoloDefaultDaFile(nomeFile: string) {
   return pulito.charAt(0).toUpperCase() + pulito.slice(1)
 }
 
+function parseDataParts(data?: string | null) {
+  if (!data) {
+    return { giorno: '', mese: '', anno: '' }
+  }
+
+  const [anno = '', mese = '', giorno = ''] = data.split('-')
+
+  return { giorno, mese, anno }
+}
+
+function isValidDateParts(
+  giorno: string,
+  mese: string,
+  anno: string
+): boolean {
+  if (!giorno || !mese || anno.length !== 4) return false
+
+  const y = Number(anno)
+  const m = Number(mese)
+  const d = Number(giorno)
+  const annoCorrente = new Date().getFullYear()
+
+  if (
+    !Number.isInteger(y) ||
+    !Number.isInteger(m) ||
+    !Number.isInteger(d) ||
+    y < 1900 ||
+    y > annoCorrente ||
+    m < 1 ||
+    m > 12 ||
+    d < 1 ||
+    d > 31
+  ) {
+    return false
+  }
+
+  const data = new Date(y, m - 1, d)
+  return (
+    data.getFullYear() === y &&
+    data.getMonth() === m - 1 &&
+    data.getDate() === d
+  )
+}
+
+function buildDateIso(giorno: string, mese: string, anno: string) {
+  if (!isValidDateParts(giorno, mese, anno)) return ''
+  return `${anno}-${mese}-${giorno}`
+}
+
+function formatDatePreview(dataIso: string) {
+  if (!dataIso) return ''
+
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${dataIso}T12:00:00`))
+}
+
+function CampoForm({
+  label,
+  required,
+  opzionale,
+  errore,
+  children,
+}: {
+  label: string
+  required?: boolean
+  opzionale?: boolean
+  errore?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm font-semibold text-gray-700">
+          {label}
+          {required && <span className="ml-1 text-red-400">*</span>}
+        </Label>
+        {opzionale && <span className="text-xs text-gray-400">opzionale</span>}
+      </div>
+      {children}
+      {errore && <p className="text-xs font-medium text-red-500">{errore}</p>}
+    </div>
+  )
+}
+
 export default function CaricaDocumentoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -81,11 +190,18 @@ export default function CaricaDocumentoPage() {
   const inputCameraRef = useRef<HTMLInputElement | null>(null)
   const inputFileRef = useRef<HTMLInputElement | null>(null)
 
+  const dataDocumentoParts = parseDataParts(valoriIniziali.data_documento)
+
   const [animaleId, setAnimaleId] = useState(animaleIdPreselezionato)
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [valori, setValori] = useState<FormValori>(valoriIniziali)
+  const [giornoDocumento, setGiornoDocumento] = useState(
+    dataDocumentoParts.giorno
+  )
+  const [meseDocumento, setMeseDocumento] = useState(dataDocumentoParts.mese)
+  const [annoDocumento, setAnnoDocumento] = useState(dataDocumentoParts.anno)
   const [erroriForm, setErroriForm] = useState<
     Partial<Record<keyof FormValori, string>>
   >({})
@@ -105,12 +221,43 @@ export default function CaricaDocumentoPage() {
     }
   }, [file])
 
+  useEffect(() => {
+    const nuovaDataIso = buildDateIso(
+      giornoDocumento,
+      meseDocumento,
+      annoDocumento
+    )
+
+    setValori((prev) => ({
+      ...prev,
+      data_documento: nuovaDataIso,
+    }))
+  }, [giornoDocumento, meseDocumento, annoDocumento])
+
   function setValue(field: keyof FormValori, value: unknown) {
     setValori((prev) => ({ ...prev, [field]: value }))
     setErroriForm((prev) => ({ ...prev, [field]: undefined }))
   }
 
+  function clearDataDocumentoError() {
+    setErroriForm((prev) => ({ ...prev, data_documento: undefined }))
+  }
+
   function validate(): FormValori | null {
+    const hasAnyDatePart =
+      !!giornoDocumento || !!meseDocumento || !!annoDocumento.trim()
+
+    if (hasAnyDatePart && !valori.data_documento) {
+      setErroriForm((prev) => ({
+        ...prev,
+        data_documento:
+          giornoDocumento && meseDocumento && annoDocumento.length === 4
+            ? 'Data non valida'
+            : 'Completa giorno, mese e anno oppure lascia il campo vuoto',
+      }))
+      return null
+    }
+
     const result = documentoSchema.safeParse(valori)
 
     if (!result.success) {
@@ -234,17 +381,30 @@ export default function CaricaDocumentoPage() {
     ? `/animali/${animaleIdPreselezionato}?tab=documenti`
     : '/documenti'
 
+  const erroreDataDocumentoDinamico =
+    giornoDocumento || meseDocumento || annoDocumento
+      ? !valori.data_documento &&
+        giornoDocumento &&
+        meseDocumento &&
+        annoDocumento.length === 4
+        ? 'Data non valida'
+        : undefined
+      : undefined
+
+  const erroreDataDocumento =
+    erroriForm.data_documento ?? erroreDataDocumentoDinamico
+
   return (
-    <div>
+    <div className="min-h-[100dvh] bg-[#FDF8F3]">
       <PageHeader titolo="Carica documento" backHref={backHref} />
 
       <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
-        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+        <div className="rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
               Nuovo documento
             </p>
-            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
               Carica un file o una foto
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
@@ -258,9 +418,9 @@ export default function CaricaDocumentoPage() {
               type="button"
               onClick={() => inputCameraRef.current?.click()}
               disabled={isSubmitting}
-              className="flex items-center gap-3 rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] px-4 py-4 text-left transition-all active:scale-[0.99] disabled:opacity-60"
+              className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-4 text-left shadow-sm transition-all active:scale-[0.99] disabled:opacity-60"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 shadow-sm">
                 <Camera size={20} strokeWidth={2.2} />
               </div>
               <div>
@@ -275,9 +435,9 @@ export default function CaricaDocumentoPage() {
               type="button"
               onClick={() => inputFileRef.current?.click()}
               disabled={isSubmitting}
-              className="flex items-center gap-3 rounded-2xl border border-[#EADFD3] bg-white px-4 py-4 text-left transition-all active:scale-[0.99] disabled:opacity-60"
+              className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-4 text-left shadow-sm transition-all active:scale-[0.99] disabled:opacity-60"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F4F4F5] text-slate-700 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-slate-700 shadow-sm">
                 <Images size={20} strokeWidth={2.2} />
               </div>
               <div>
@@ -317,10 +477,10 @@ export default function CaricaDocumentoPage() {
           />
 
           {file && (
-            <div className="mt-4 rounded-2xl border border-[#EADFD3] bg-[#FAFAFA] p-4">
+            <div className="mt-4 rounded-2xl border border-amber-100 bg-white/90 p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-slate-700 shadow-sm">
                     {isPdfFile(file) ? (
                       <FileText size={20} strokeWidth={2.1} />
                     ) : (
@@ -357,7 +517,7 @@ export default function CaricaDocumentoPage() {
               </div>
 
               {previewUrl && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-[#EADFD3] bg-white">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-amber-100 bg-white">
                   <img
                     src={previewUrl}
                     alt="Anteprima documento"
@@ -369,7 +529,20 @@ export default function CaricaDocumentoPage() {
           )}
         </div>
 
-        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
+              Dettagli documento
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
+              Completa le informazioni
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              Inserisci i dati principali per ritrovare il documento più
+              facilmente in futuro.
+            </p>
+          </div>
+
           <div className="space-y-4">
             <AnimaleSelect
               valore={animaleId}
@@ -377,30 +550,28 @@ export default function CaricaDocumentoPage() {
               disabled={!!animaleIdPreselezionato || isSubmitting}
             />
 
-            <div className="space-y-1">
-              <Label htmlFor="titolo">
-                Titolo <span className="text-destructive">*</span>
-              </Label>
+            <CampoForm
+              label="Titolo"
+              required
+              errore={erroriForm.titolo}
+            >
               <Input
                 id="titolo"
                 placeholder="es. Visita 2024, Analisi sangue..."
                 value={valori.titolo}
                 onChange={(e) => setValue('titolo', e.target.value)}
                 disabled={isSubmitting}
+                className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
               />
-              {erroriForm.titolo && (
-                <p className="text-xs text-destructive">{erroriForm.titolo}</p>
-              )}
-            </div>
+            </CampoForm>
 
-            <div className="space-y-1">
-              <Label>Categoria</Label>
+            <CampoForm label="Categoria">
               <Select
                 value={valori.categoria}
                 onValueChange={(v) => setValue('categoria', v)}
                 disabled={isSubmitting}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-14 rounded-xl border-gray-200 bg-gray-50 px-4 text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -411,36 +582,116 @@ export default function CaricaDocumentoPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </CampoForm>
 
-            <div className="space-y-1">
-              <Label htmlFor="data_documento">
-                Data documento{' '}
-                <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
-              <Input
-                id="data_documento"
-                type="date"
-                value={valori.data_documento ?? ''}
-                onChange={(e) => setValue('data_documento', e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
+            <CampoForm
+              label="Data documento"
+              opzionale
+              errore={erroreDataDocumento}
+            >
+              <div className="grid grid-cols-3 items-stretch gap-3">
+                <Select
+                  value={giornoDocumento}
+                  onValueChange={(value) => {
+                    clearDataDocumentoError()
+                    setGiornoDocumento(value ?? '')
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className={DATE_FIELD_CLASS}>
+                    <SelectValue placeholder="Giorno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GIORNI.map((giorno) => (
+                      <SelectItem key={giorno} value={giorno}>
+                        {Number(giorno)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <div className="space-y-1">
-              <Label htmlFor="note">
-                Note{' '}
-                <span className="text-xs text-muted-foreground">(opzionale)</span>
-              </Label>
+                <Select
+                  value={meseDocumento}
+                  onValueChange={(value) => {
+                    clearDataDocumentoError()
+                    setMeseDocumento(value ?? '')
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className={DATE_FIELD_CLASS}>
+                    <SelectValue placeholder="Mese" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MESI.map((mese) => (
+                      <SelectItem key={mese.value} value={mese.value}>
+                        {mese.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="Anno"
+                  value={annoDocumento}
+                  onChange={(e) => {
+                    clearDataDocumentoError()
+                    const soloNumeri = e.target.value
+                      .replace(/\D/g, '')
+                      .slice(0, 4)
+                    setAnnoDocumento(soloNumeri)
+                  }}
+                  disabled={isSubmitting}
+                  className={`${DATE_FIELD_CLASS} py-0 leading-none`}
+                />
+              </div>
+
+              <p className="text-xs text-gray-400">
+                Questo inserimento è più comodo anche per documenti molto vecchi.
+              </p>
+
+              {valori.data_documento && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                    Data selezionata
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-amber-900">
+                    {formatDatePreview(valori.data_documento)}
+                  </p>
+                </div>
+              )}
+
+              {(giornoDocumento || meseDocumento || annoDocumento) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearDataDocumentoError()
+                    setGiornoDocumento('')
+                    setMeseDocumento('')
+                    setAnnoDocumento('')
+                  }}
+                  disabled={isSubmitting}
+                  className="text-sm font-semibold text-gray-500 underline underline-offset-4 active:opacity-70"
+                >
+                  Pulisci data
+                </button>
+              )}
+            </CampoForm>
+
+            <CampoForm label="Note" opzionale>
               <Textarea
                 id="note"
                 placeholder="Note sul documento"
                 value={valori.note ?? ''}
                 onChange={(e) => setValue('note', e.target.value)}
                 disabled={isSubmitting}
-                rows={3}
+                rows={4}
+                className="rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-base"
               />
-            </div>
+            </CampoForm>
           </div>
         </div>
 
@@ -450,7 +701,11 @@ export default function CaricaDocumentoPage() {
           </div>
         )}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting || !file}>
+        <Button
+          type="submit"
+          className="h-14 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-base font-bold text-white shadow-lg shadow-orange-200 disabled:opacity-60"
+          disabled={isSubmitting || !file}
+        >
           {isSubmitting ? 'Caricamento...' : 'Carica documento'}
         </Button>
       </form>
