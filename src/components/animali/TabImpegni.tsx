@@ -67,45 +67,53 @@ export function TabImpegni({
     (i) => i.stato === filtro && i.tipo !== 'terapia'
   )
 
-  return (
-    <div className="space-y-4 px-5 py-5 pb-32">
-      <Link
-        href={`/impegni/nuovo?animale_id=${animaleId}`}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 transition-transform active:scale-[0.98]"
-      >
-        <Plus size={18} strokeWidth={2.5} />
-        Aggiungi impegno
-      </Link>
+  const emptyLabel =
+    filtro === 'programmato'
+      ? 'Nessun impegno programmato.'
+      : filtro === 'completato'
+        ? 'Nessun impegno completato.'
+        : 'Nessun impegno annullato.'
 
-      <div className="flex justify-center gap-2">
-        {filtri.map((f) => (
-          <button
-            key={f.valore}
-            onClick={() => {
-              setFiltro(f.valore)
-              resetAppScrollToTop()
-            }}
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-bold transition-colors',
-              filtro === f.valore
-                ? 'bg-gray-900 text-white'
-                : 'border border-gray-200 bg-white text-gray-500'
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
+  return (
+    <div className="space-y-4 px-4 py-4 pb-32">
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <Link
+          href={`/impegni/nuovo?animale_id=${animaleId}`}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 transition-transform active:scale-[0.98]"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+          Aggiungi impegno
+        </Link>
+      </div>
+
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="grid grid-cols-3 gap-2">
+          {filtri.map((f) => (
+            <button
+              key={f.valore}
+              type="button"
+              onClick={() => {
+                setFiltro(f.valore)
+                resetAppScrollToTop()
+              }}
+              className={cn(
+                'rounded-2xl px-3 py-3 text-sm font-bold transition-all',
+                filtro === f.valore
+                  ? 'bg-[#FCF8F3] text-gray-900 shadow-sm'
+                  : 'bg-transparent text-gray-500'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {impegniFiltrati.length === 0 ? (
-        <div className="rounded-2xl border border-gray-100 bg-white py-8 text-center">
-          <p className="text-sm text-gray-400">
-            {filtro === 'programmato'
-              ? 'Nessun impegno programmato'
-              : filtro === 'completato'
-                ? 'Nessun impegno completato'
-                : 'Nessun impegno annullato'}
-          </p>
+        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
+            <p className="text-sm font-medium text-gray-400">{emptyLabel}</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -118,32 +126,32 @@ export function TabImpegni({
                 key={i.id}
                 href={`/impegni/${i.id}`}
                 className={cn(
-                  'flex items-center gap-3 rounded-2xl border p-4 transition-transform active:scale-[0.98]',
+                  'flex items-center gap-3 rounded-[28px] border p-4 shadow-sm transition-all active:scale-[0.98]',
                   scaduto
                     ? 'border-red-200 bg-red-50'
                     : imminente
                       ? 'border-amber-200 bg-amber-50'
-                      : 'border-gray-100 bg-white'
+                      : 'border-[#EADFD3] bg-white'
                 )}
               >
                 <div
                   className={cn(
-                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg',
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg',
                     scaduto
                       ? 'bg-red-100'
                       : imminente
                         ? 'bg-amber-100'
-                        : 'bg-gray-50'
+                        : 'bg-[#FCF8F3]'
                   )}
                 >
                   {iconaTipo[i.tipo] ?? '📌'}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-gray-800">
+                  <p className="truncate text-base font-extrabold text-gray-900">
                     {i.titolo}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="mt-1 text-sm text-gray-500">
                     {labelTipo[i.tipo] ?? i.tipo}
                   </p>
                 </div>
@@ -151,7 +159,7 @@ export function TabImpegni({
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span
                     className={cn(
-                      'text-xs font-semibold',
+                      'text-sm font-bold',
                       scaduto
                         ? 'text-red-500'
                         : imminente
@@ -175,7 +183,11 @@ export function TabImpegni({
                   )}
                 </div>
 
-                <ChevronRight size={16} className="shrink-0 text-gray-300" />
+                <ChevronRight
+                  size={18}
+                  strokeWidth={2.4}
+                  className="shrink-0 text-gray-300"
+                />
               </Link>
             )
           })}
