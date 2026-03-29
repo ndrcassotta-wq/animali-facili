@@ -439,6 +439,13 @@ export default async function ListaTerapiePage({
     ultimaSomministrazione: ultimaPerTerapia.get(t.id) ?? null,
   }))
 
+  const emptyLabel =
+    statoFiltro === 'attiva'
+      ? 'Nessuna terapia attiva.'
+      : statoFiltro === 'conclusa'
+        ? 'Nessuna terapia conclusa.'
+        : 'Nessuna terapia archiviata.'
+
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
       <header className="shrink-0 px-5 pb-2 pt-10">
@@ -458,59 +465,49 @@ export default async function ListaTerapiePage({
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col px-5 pb-32 pt-2">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filtri.map((f) => {
-            const param = paramDaStato[f.valore]
-            const href = param ? `/terapie?stato=${param}` : '/terapie'
-
-            return (
-              <Link
-                key={f.valore}
-                href={href}
-                className={cn(
-                  'rounded-full px-4 py-2 text-sm font-bold transition-colors',
-                  statoFiltro === f.valore
-                    ? 'bg-gray-900 text-white'
-                    : 'border border-[#E7DBCF] bg-white text-gray-500'
-                )}
-              >
-                {f.label}
-              </Link>
-            )
-          })}
+      <div className="flex flex-1 flex-col space-y-4 px-4 pb-32 pt-2">
+        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <Link
+            href="/terapie/nuovo"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 transition-transform active:scale-[0.98]"
+          >
+            <Plus size={18} strokeWidth={2.5} />
+            Aggiungi terapia
+          </Link>
         </div>
 
-        <Link
-          href="/terapie/nuovo"
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          Aggiungi terapia
-        </Link>
+        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="grid grid-cols-3 gap-2">
+            {filtri.map((f) => {
+              const param = paramDaStato[f.valore]
+              const href = param ? `/terapie?stato=${param}` : '/terapie'
+
+              return (
+                <Link
+                  key={f.valore}
+                  href={href}
+                  className={cn(
+                    'rounded-2xl px-3 py-3 text-center text-sm font-bold transition-all',
+                    statoFiltro === f.valore
+                      ? 'bg-[#FCF8F3] text-gray-900 shadow-sm'
+                      : 'bg-transparent text-gray-500'
+                  )}
+                >
+                  {f.label}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
 
         {terapie.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-[#E7DBCF] bg-white px-5 py-14 text-center shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-teal-700">
-              <Stethoscope size={24} strokeWidth={2.2} />
+          <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+            <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
+              <p className="text-sm font-medium text-gray-400">{emptyLabel}</p>
             </div>
-
-            <p className="text-sm font-semibold text-gray-700">
-              {statoFiltro === 'attiva'
-                ? 'Nessuna terapia attiva'
-                : statoFiltro === 'conclusa'
-                  ? 'Nessuna terapia conclusa'
-                  : 'Nessuna terapia archiviata'}
-            </p>
-
-            {statoFiltro === 'attiva' && (
-              <p className="mt-2 text-sm font-medium text-gray-400">
-                Aggiungi una nuova terapia per iniziare.
-              </p>
-            )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {terapie.map((t) => (
               <CardTerapia key={t.id} terapia={t} returnHref={returnHref} />
             ))}

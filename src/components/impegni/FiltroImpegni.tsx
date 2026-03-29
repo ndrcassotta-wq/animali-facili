@@ -11,6 +11,7 @@ import {
   Stethoscope,
   Ban,
   CircleCheck,
+  Plus,
 } from 'lucide-react'
 import type { ImpegnoConAnimale } from '@/lib/types/query.types'
 import { createClient } from '@/lib/supabase/client'
@@ -87,51 +88,17 @@ function deduplicaImpegni(impegni: ImpegnoConAnimale[]) {
 }
 
 function EmptyState({ statoAttivo }: { statoAttivo: string }) {
-  if (statoAttivo === 'programmato') {
-    return (
-      <Link
-        href="/impegni/nuovo"
-        className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-gray-200 bg-white py-14 text-center transition-transform active:scale-[0.98]"
-      >
-        <span className="text-4xl">📅</span>
-        <div>
-          <p className="text-sm font-semibold text-gray-700">
-            Nessun impegno programmato
-          </p>
-          <p className="mt-1 text-sm font-bold text-amber-500">
-            Tocca qui per aggiungerne uno →
-          </p>
-        </div>
-      </Link>
-    )
-  }
-
-  if (statoAttivo === 'completato') {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-emerald-100 bg-emerald-50/70 py-14 text-center">
-        <span className="text-4xl">✅</span>
-        <div>
-          <p className="text-sm font-semibold text-emerald-800">
-            Nessun impegno completato
-          </p>
-          <p className="mt-1 text-sm text-emerald-700/80">
-            Qui vedrai solo gli impegni già conclusi.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  const emptyLabel =
+    statoAttivo === 'programmato'
+      ? 'Nessun impegno programmato.'
+      : statoAttivo === 'completato'
+        ? 'Nessun impegno completato.'
+        : 'Nessun impegno annullato.'
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-gray-200 bg-gray-100/70 py-14 text-center">
-      <span className="text-4xl">🚫</span>
-      <div>
-        <p className="text-sm font-semibold text-gray-700">
-          Nessun impegno annullato
-        </p>
-        <p className="mt-1 text-sm text-gray-500">
-          Qui vedrai solo gli impegni annullati.
-        </p>
+    <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+      <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
+        <p className="text-sm font-medium text-gray-400">{emptyLabel}</p>
       </div>
     </div>
   )
@@ -142,7 +109,10 @@ function CardImpegno({
   onAggiornaStato,
 }: {
   impegno: ImpegnoConAnimale
-  onAggiornaStato: (id: string, stato: 'programmato' | 'completato' | 'annullato') => void
+  onAggiornaStato: (
+    id: string,
+    stato: 'programmato' | 'completato' | 'annullato'
+  ) => void
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -188,7 +158,7 @@ function CardImpegno({
   return (
     <div
       className={cn(
-        'rounded-[28px] border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-colors',
+        'rounded-[28px] border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all',
         isAnnullato
           ? 'border-gray-300 bg-gray-100/90'
           : isCompletato
@@ -239,12 +209,12 @@ function CardImpegno({
               <div className="flex flex-wrap items-center gap-2">
                 <p
                   className={cn(
-                    'truncate text-sm font-bold',
+                    'truncate text-base font-extrabold',
                     isAnnullato
                       ? 'text-gray-500 line-through'
                       : isCompletato
                         ? 'text-emerald-900'
-                        : 'text-gray-800'
+                        : 'text-gray-900'
                   )}
                 >
                   {impegno.titolo}
@@ -278,15 +248,16 @@ function CardImpegno({
 
               <p
                 className={cn(
-                  'mt-0.5 text-xs',
+                  'mt-1 text-sm',
                   isAnnullato
                     ? 'text-gray-500'
                     : isCompletato
                       ? 'text-emerald-700/80'
-                      : 'text-gray-400'
+                      : 'text-gray-500'
                 )}
               >
-                {impegno.animali?.nome ?? '—'} · {labelTipo[impegno.tipo] ?? impegno.tipo}
+                {impegno.animali?.nome ?? '—'} ·{' '}
+                {labelTipo[impegno.tipo] ?? impegno.tipo}
               </p>
 
               {isTerapia && !isAnnullato && (
@@ -301,12 +272,7 @@ function CardImpegno({
               )}
 
               {previewNota && (
-                <p
-                  className={cn(
-                    'mt-1 truncate text-[11px] leading-5',
-                    isAnnullato ? 'text-gray-500' : 'text-gray-500'
-                  )}
-                >
+                <p className="mt-1 truncate text-[11px] leading-5 text-gray-500">
                   {previewNota}
                 </p>
               )}
@@ -317,7 +283,7 @@ function CardImpegno({
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
             className={cn(
-              'text-xs font-semibold',
+              'text-sm font-bold',
               isAnnullato
                 ? 'text-gray-600'
                 : isCompletato
@@ -366,7 +332,8 @@ function CardImpegno({
         </div>
 
         <ChevronRight
-          size={16}
+          size={18}
+          strokeWidth={2.4}
           className={cn(
             'shrink-0',
             isAnnullato ? 'text-gray-400' : 'text-gray-300'
@@ -425,31 +392,44 @@ export function FiltroImpegni({
   }
 
   return (
-    <div className="flex flex-1 flex-col px-5 pb-32">
-      <div className="mb-5 flex justify-center gap-2">
-        {filtri.map((f) => (
-          <button
-            key={f.valore}
-            onClick={() => {
-              const param = paramDaStato[f.valore]
-              router.push(param ? `/impegni?stato=${param}` : '/impegni')
-            }}
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-bold transition-colors',
-              statoAttivo === f.valore
-                ? 'bg-gray-900 text-white'
-                : 'border border-gray-200 bg-white text-gray-500'
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
+    <div className="flex flex-1 flex-col space-y-4 px-4 py-4 pb-32">
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <Link
+          href="/impegni/nuovo"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50 py-4 text-sm font-bold text-amber-600 transition-transform active:scale-[0.98]"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+          Aggiungi impegno
+        </Link>
+      </div>
+
+      <div className="rounded-[28px] border border-[#EADFD3] bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="grid grid-cols-3 gap-2">
+          {filtri.map((f) => (
+            <button
+              key={f.valore}
+              type="button"
+              onClick={() => {
+                const param = paramDaStato[f.valore]
+                router.push(param ? `/impegni?stato=${param}` : '/impegni')
+              }}
+              className={cn(
+                'rounded-2xl px-3 py-3 text-sm font-bold transition-all',
+                statoAttivo === f.valore
+                  ? 'bg-[#FCF8F3] text-gray-900 shadow-sm'
+                  : 'bg-transparent text-gray-500'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {impegniFiltrati.length === 0 ? (
         <EmptyState statoAttivo={statoAttivo} />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {impegniFiltrati.map((impegno) => (
             <CardImpegno
               key={impegno.id}
