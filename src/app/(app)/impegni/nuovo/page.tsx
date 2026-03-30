@@ -21,11 +21,12 @@ import {
 } from '@/components/ui/select'
 import { AnimaleSelect } from '@/components/scadenze/AnimaleSelect'
 import {
+  ORARIO_DEFAULT_NOTIFICA_IMPEGNO,
   programmaNotificaImpegno,
   richiediPermessoNotifiche,
-  PREFERENZE_DEFAULT,
+  type ModalitaNotificaImpegno,
 } from '@/hooks/useNotifiche'
-import type { Database, PreferenzeNotifiche } from '@/lib/types/database.types'
+import type { Database } from '@/lib/types/database.types'
 import { ArrowLeft, PawPrint } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -152,6 +153,17 @@ function StepLayout({
   )
 }
 
+function sottraiUnOra(ora: string) {
+  const [ore, minuti] = ora.split(':').map(Number)
+  const data = new Date()
+  data.setHours(ore || 0, minuti || 0, 0, 0)
+  data.setHours(data.getHours() - 1)
+
+  return `${String(data.getHours()).padStart(2, '0')}:${String(
+    data.getMinutes()
+  ).padStart(2, '0')}`
+}
+
 export default function NuovoImpegnoPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -165,6 +177,8 @@ export default function NuovoImpegnoPage() {
   const [data, setData] = useState(oggi)
   const [ora, setOra] = useState('')
   const [frequenza, setFrequenza] = useState<FrequenzaImpegno>('nessuna')
+  const [modalitaNotifica, setModalitaNotifica] =
+    useState<ModalitaNotificaImpegno>('giorno_stesso')
   const [note, setNote] = useState('')
   const [erroreData, setErroreData] = useState('')
   const [erroreAnimale, setErroreAnimale] = useState('')
@@ -175,6 +189,79 @@ export default function NuovoImpegnoPage() {
   )
 
   const tipoSelezionato = tipi.find((t) => t.valore === tipo)
+
+  const opzioniNotifica: {
+    valore: ModalitaNotificaImpegno
+    label: string
+    descrizione: string
+  }[] = [
+    {
+      valore: 'nessuna',
+      label: 'Nessuna notifica',
+      descrizione: 'Salva l’impegno senza promemoria',
+    },
+    ...(ora
+      ? [
+          {
+            valore: 'all_orario' as const,
+            label: 'All’orario dell’impegno',
+            descrizione: `Alle ${ora}`,
+          },
+          {
+            valore: 'un_ora_prima' as const,
+            label: '1 ora prima',
+            descrizione: `Alle ${sottraiUnOra(ora)}`,
+          },
+        ]
+      : []),
+    {
+      valore: 'giorno_stesso',
+      label: 'Il giorno stesso',
+      descrizione: `Alle ${String(ORARIO_DEFAULT_NOTIFICA_IMPEGNO).padStart(
+        2,
+        '0'
+      )}:00`,
+    },
+    {
+      valore: 'giorno_prima',
+      label: '1 giorno prima',
+      descrizione: `Alle ${String(ORARIO_DEFAULT_NOTIFICA_IMPEGNO).padStart(
+        2,
+        '0'
+      )}:00`,
+    },
+  ]
+
+  useEffect(() => {
+    if (!animaleIdPreselezionato) {
+      setAnimaleNomePreselezionato('')
+      return
+    }
+
+    let isMounted = true
+
+    async function loadAnimalePreselezionato() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('animali')
+          .select('nome')
+          .eq('id', animaleIdPreselezionato)
+          .single()
+
+        if (!isMounted) return
+        setAnimaleNomePreselezionato(data?.nome ?? '')
+      } catch {
+        if (isMounted) setAnimaleNomePreselezionato('')
+      }
+    }
+
+    loadAnimalePreselezionato()
+
+    return () => {
+      isMounted = false
+    }
+  }, [animaleIdPreselezionato])
 
   useEffect(() => {
     if (animaleIdPreselezionato) {
@@ -212,37 +299,6 @@ export default function NuovoImpegnoPage() {
   }, [animaleIdPreselezionato])
 
   useEffect(() => {
-    if (!animaleIdPreselezionato) {
-      setAnimaleNomePreselezionato('')
-      return
-    }
-
-    let isMounted = true
-
-    async function loadAnimalePreselezionato() {
-      try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('animali')
-          .select('nome')
-          .eq('id', animaleIdPreselezionato)
-          .single()
-
-        if (!isMounted) return
-        setAnimaleNomePreselezionato(data?.nome ?? '')
-      } catch {
-        if (isMounted) setAnimaleNomePreselezionato('')
-      }
-    }
-
-    loadAnimalePreselezionato()
-
-    return () => {
-      isMounted = false
-    }
-  }, [animaleIdPreselezionato])
-
-  useEffect(() => {
     const resetScroll = () => {
       window.scrollTo({ top: 0, behavior: 'auto' })
       contenutoRef.current?.scrollTo({ top: 0, behavior: 'auto' })
@@ -253,6 +309,12 @@ export default function NuovoImpegnoPage() {
 
     return () => window.cancelAnimationFrame(frame)
   }, [step])
+
+  useEffect(() => {
+    if (!ora && (modalitaNotifica === 'all_orario' || modalitaNotifica === 'un_ora_prima')) {
+      setModalitaNotifica('giorno_stesso')
+    }
+  }, [ora, modalitaNotifica])
 
   function vaiAvanti(next: Step) {
     setStep(next)
@@ -281,23 +343,6 @@ export default function NuovoImpegnoPage() {
 
     try {
       const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      let preferenze: PreferenzeNotifiche = PREFERENZE_DEFAULT
-
-      if (user) {
-        const { data: profilo } = await supabase
-          .from('profili')
-          .select('preferenze_notifiche')
-          .eq('id', user.id)
-          .single()
-
-        if (profilo?.preferenze_notifiche) {
-          preferenze = profilo.preferenze_notifiche as PreferenzeNotifiche
-        }
-      }
 
       const { data: animaleData } = await supabase
         .from('animali')
@@ -314,8 +359,7 @@ export default function NuovoImpegnoPage() {
         data,
         ora: ora.trim() || null,
         frequenza,
-        notifiche_attive:
-          preferenze.attive && preferenze.tipi_abilitati.includes(tipo),
+        notifiche_attive: modalitaNotifica !== 'nessuna',
         stato: 'programmato',
         note: note.trim() || null,
       }
@@ -335,21 +379,20 @@ export default function NuovoImpegnoPage() {
       }
 
       try {
-        const permesso = await richiediPermessoNotifiche()
+        if (modalitaNotifica !== 'nessuna') {
+          const permesso = await richiediPermessoNotifiche()
 
-        if (
-          permesso &&
-          preferenze.attive &&
-          preferenze.tipi_abilitati.includes(tipo)
-        ) {
-          await programmaNotificaImpegno({
-            id: nuovoImpegno.id,
-            titolo: titoloDefault[tipo],
-            animaleNome,
-            data,
-            tipo,
-            preferenze,
-          })
+          if (permesso) {
+            await programmaNotificaImpegno({
+              id: nuovoImpegno.id,
+              titolo: titoloDefault[tipo],
+              animaleNome,
+              data,
+              ora: ora.trim() || null,
+              tipo,
+              modalita: modalitaNotifica,
+            })
+          }
         }
       } catch {
         console.warn('Notifica non programmata')
@@ -638,6 +681,50 @@ export default function NuovoImpegnoPage() {
 
           <div className="rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm">
             <div className="space-y-5">
+              <CampoForm label="Notifica" opzionale>
+                <div className="space-y-2">
+                  {opzioniNotifica.map((opzione) => {
+                    const attiva = modalitaNotifica === opzione.valore
+
+                    return (
+                      <button
+                        key={opzione.valore}
+                        type="button"
+                        onClick={() => setModalitaNotifica(opzione.valore)}
+                        className={cn(
+                          'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                          attiva
+                            ? 'border-amber-300 bg-amber-50'
+                            : 'border-gray-200 bg-gray-50 active:bg-gray-100'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {opzione.label}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {opzione.descrizione}
+                            </p>
+                          </div>
+                          <div
+                            className={cn(
+                              'mt-0.5 h-4 w-4 rounded-full border',
+                              attiva
+                                ? 'border-amber-500 bg-amber-500'
+                                : 'border-gray-300 bg-white'
+                            )}
+                          />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-gray-400">
+                  Per gli impegni normali la notifica si decide qui, volta per volta.
+                </p>
+              </CampoForm>
+
               <CampoForm label="Ripetizione" opzionale>
                 <Select
                   value={frequenza}
