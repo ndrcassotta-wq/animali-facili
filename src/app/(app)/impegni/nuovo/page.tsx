@@ -24,7 +24,7 @@ import {
   ORARIO_DEFAULT_NOTIFICA_IMPEGNO,
   programmaNotificaImpegno,
   richiediPermessoNotifiche,
-  type ModalitaNotificaImpegno,
+  type ConfigurazioneNotificaImpegno,
 } from '@/hooks/useNotifiche'
 import type { Database } from '@/lib/types/database.types'
 import { ArrowLeft, PawPrint } from 'lucide-react'
@@ -53,6 +53,14 @@ const frequenze: { valore: FrequenzaImpegno; label: string }[] = [
   { valore: 'trimestrale', label: 'Trimestrale' },
   { valore: 'semestrale', label: 'Semestrale' },
   { valore: 'annuale', label: 'Annuale' },
+]
+
+const giorniNotificaOptions = [
+  { valore: 0, label: 'Giorno stesso' },
+  { valore: 1, label: '1 giorno prima' },
+  { valore: 2, label: '2 giorni prima' },
+  { valore: 3, label: '3 giorni prima' },
+  { valore: 7, label: '1 settimana prima' },
 ]
 
 const titoloDefault: Record<TipoImpegno, string> = {
@@ -153,15 +161,11 @@ function StepLayout({
   )
 }
 
-function sottraiUnOra(ora: string) {
-  const [ore, minuti] = ora.split(':').map(Number)
-  const data = new Date()
-  data.setHours(ore || 0, minuti || 0, 0, 0)
-  data.setHours(data.getHours() - 1)
-
-  return `${String(data.getHours()).padStart(2, '0')}:${String(
-    data.getMinutes()
-  ).padStart(2, '0')}`
+function formattaDescrizioneGiorni(giorni: number) {
+  if (giorni === 0) return 'Il giorno stesso'
+  if (giorni === 1) return '1 giorno prima'
+  if (giorni === 7) return '1 settimana prima'
+  return `${giorni} giorni prima`
 }
 
 export default function NuovoImpegnoPage() {
@@ -178,7 +182,11 @@ export default function NuovoImpegnoPage() {
   const [ora, setOra] = useState('')
   const [frequenza, setFrequenza] = useState<FrequenzaImpegno>('nessuna')
   const [modalitaNotifica, setModalitaNotifica] =
-    useState<ModalitaNotificaImpegno>('giorno_stesso')
+    useState<ConfigurazioneNotificaImpegno['modalita']>('prima')
+  const [giorniPrimaNotifica, setGiorniPrimaNotifica] = useState(1)
+  const [oraNotifica, setOraNotifica] = useState(
+    `${String(ORARIO_DEFAULT_NOTIFICA_IMPEGNO).padStart(2, '0')}:00`
+  )
   const [note, setNote] = useState('')
   const [erroreData, setErroreData] = useState('')
   const [erroreAnimale, setErroreAnimale] = useState('')
@@ -191,7 +199,7 @@ export default function NuovoImpegnoPage() {
   const tipoSelezionato = tipi.find((t) => t.valore === tipo)
 
   const opzioniNotifica: {
-    valore: ModalitaNotificaImpegno
+    valore: ConfigurazioneNotificaImpegno['modalita']
     label: string
     descrizione: string
   }[] = [
@@ -207,28 +215,14 @@ export default function NuovoImpegnoPage() {
             label: 'All’orario dell’impegno',
             descrizione: `Alle ${ora}`,
           },
-          {
-            valore: 'un_ora_prima' as const,
-            label: '1 ora prima',
-            descrizione: `Alle ${sottraiUnOra(ora)}`,
-          },
         ]
       : []),
     {
-      valore: 'giorno_stesso',
-      label: 'Il giorno stesso',
-      descrizione: `Alle ${String(ORARIO_DEFAULT_NOTIFICA_IMPEGNO).padStart(
-        2,
-        '0'
-      )}:00`,
-    },
-    {
-      valore: 'giorno_prima',
-      label: '1 giorno prima',
-      descrizione: `Alle ${String(ORARIO_DEFAULT_NOTIFICA_IMPEGNO).padStart(
-        2,
-        '0'
-      )}:00`,
+      valore: 'prima',
+      label: 'Prima dell’impegno',
+      descrizione: `${formattaDescrizioneGiorni(
+        giorniPrimaNotifica
+      )} alle ${oraNotifica}`,
     },
   ]
 
@@ -311,8 +305,8 @@ export default function NuovoImpegnoPage() {
   }, [step])
 
   useEffect(() => {
-    if (!ora && (modalitaNotifica === 'all_orario' || modalitaNotifica === 'un_ora_prima')) {
-      setModalitaNotifica('giorno_stesso')
+    if (!ora && modalitaNotifica === 'all_orario') {
+      setModalitaNotifica('prima')
     }
   }, [ora, modalitaNotifica])
 
@@ -390,7 +384,16 @@ export default function NuovoImpegnoPage() {
               data,
               ora: ora.trim() || null,
               tipo,
-              modalita: modalitaNotifica,
+              configurazione:
+                modalitaNotifica === 'prima'
+                  ? {
+                      modalita: 'prima',
+                      giorni_prima: giorniPrimaNotifica,
+                      ora: oraNotifica,
+                    }
+                  : {
+                      modalita: 'all_orario',
+                    },
             })
           }
         }
@@ -720,10 +723,44 @@ export default function NuovoImpegnoPage() {
                     )
                   })}
                 </div>
-                <p className="text-xs text-gray-400">
-                  Per gli impegni normali la notifica si decide qui, volta per volta.
-                </p>
               </CampoForm>
+
+              {modalitaNotifica === 'prima' && (
+                <>
+                  <CampoForm label="Quando avvisarti" opzionale>
+                    <div className="flex flex-wrap gap-2">
+                      {giorniNotificaOptions.map((opzione) => {
+                        const attiva = giorniPrimaNotifica === opzione.valore
+
+                        return (
+                          <button
+                            key={opzione.valore}
+                            type="button"
+                            onClick={() => setGiorniPrimaNotifica(opzione.valore)}
+                            className={cn(
+                              'rounded-full border px-3 py-2 text-xs font-medium transition-colors',
+                              attiva
+                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                : 'border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100'
+                            )}
+                          >
+                            {opzione.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </CampoForm>
+
+                  <CampoForm label="Orario notifica" opzionale>
+                    <Input
+                      type="time"
+                      value={oraNotifica}
+                      onChange={(e) => setOraNotifica(e.target.value)}
+                      className="h-12 rounded-xl border-gray-200 bg-gray-50 px-4 text-base"
+                    />
+                  </CampoForm>
+                </>
+              )}
 
               <CampoForm label="Ripetizione" opzionale>
                 <Select
