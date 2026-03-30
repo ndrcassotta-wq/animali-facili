@@ -6,6 +6,13 @@ export type ModalitaNotificaImpegno =
   | 'giorno_prima'
   | 'all_orario'
   | 'un_ora_prima'
+  | 'prima'
+
+export type ConfigurazioneNotificaImpegno = {
+  modalita: 'nessuna' | 'all_orario' | 'prima'
+  giorni_prima?: number
+  ora?: string | null
+}
 
 export const ORARIO_DEFAULT_NOTIFICA_IMPEGNO = 9
 
@@ -67,7 +74,6 @@ export function normalizzaPreferenzeNotifiche(
   }
 }
 
-// Guard: le notifiche funzionano solo in Capacitor nativo, non su browser
 function isCapacitorNativo(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -96,11 +102,38 @@ function calcolaDataNotificaNormale({
   data,
   ora,
   modalita,
+  configurazione,
 }: {
   data: string
   ora?: string | null
   modalita?: ModalitaNotificaImpegno
+  configurazione?: ConfigurazioneNotificaImpegno
 }) {
+  if (configurazione) {
+    switch (configurazione.modalita) {
+      case 'nessuna':
+        return null
+
+      case 'all_orario':
+        if (!ora) return null
+        return creaDataConOra(data, ora)
+
+      case 'prima': {
+        const giorniPrima = Math.max(0, configurazione.giorni_prima ?? 1)
+        const dataNotifica = creaDataConOra(
+          data,
+          configurazione.ora?.trim() || null,
+          ORARIO_DEFAULT_NOTIFICA_IMPEGNO
+        )
+        dataNotifica.setDate(dataNotifica.getDate() - giorniPrima)
+        return dataNotifica
+      }
+
+      default:
+        return null
+    }
+  }
+
   switch (modalita) {
     case 'nessuna':
       return null
@@ -162,6 +195,7 @@ function creaCorpoNotifica({
   animaleNome,
   tipo,
   modalita,
+  configurazione,
   dataNotifica,
   dataEvento,
   ora,
@@ -170,6 +204,7 @@ function creaCorpoNotifica({
   animaleNome: string
   tipo: string
   modalita?: ModalitaNotificaImpegno
+  configurazione?: ConfigurazioneNotificaImpegno
   dataNotifica: Date
   dataEvento: Date
   ora?: string | null
@@ -188,6 +223,18 @@ function creaCorpoNotifica({
     return stessoGiorno
       ? `Oggi è il compleanno di ${animaleNome}`
       : `Si avvicina il compleanno di ${animaleNome}`
+  }
+
+  if (configurazione?.modalita === 'all_orario') {
+    return `È il momento di ${titolo.toLowerCase()} per ${animaleNome}`
+  }
+
+  if (configurazione?.modalita === 'prima') {
+    const giorniPrima = Math.max(0, configurazione.giorni_prima ?? 1)
+
+    if (giorniPrima === 0) return `Oggi: ${titolo} per ${animaleNome}`
+    if (giorniPrima === 1) return `Domani: ${titolo} per ${animaleNome}`
+    return `Tra ${giorniPrima} giorni: ${titolo} per ${animaleNome}`
   }
 
   switch (modalita) {
@@ -211,12 +258,14 @@ function calcolaDataNotifica({
   data,
   ora,
   modalita,
+  configurazione,
   preferenze,
 }: {
   tipo: string
   data: string
   ora?: string | null
   modalita?: ModalitaNotificaImpegno
+  configurazione?: ConfigurazioneNotificaImpegno
   preferenze: PreferenzeNotifiche
 }) {
   if (tipo === 'compleanno') {
@@ -231,12 +280,22 @@ function calcolaDataNotifica({
     return calcolaDataNotificaTerapia({ data, ora, preferenze })
   }
 
-  if (modalita) {
-    return calcolaDataNotificaNormale({ data, ora, modalita })
+  if (configurazione) {
+    return calcolaDataNotificaNormale({
+      data,
+      ora,
+      configurazione,
+    })
   }
 
-  // fallback legacy: se esistono ancora vecchi flussi che non passano la modalità,
-  // continua a usare la logica storica da profilo
+  if (modalita) {
+    return calcolaDataNotificaNormale({
+      data,
+      ora,
+      modalita,
+    })
+  }
+
   if (!preferenze.attive) return null
   if (!preferenze.tipi_abilitati.includes(tipo)) return null
 
@@ -265,6 +324,7 @@ export async function programmaNotificaImpegno({
   tipo,
   preferenze = PREFERENZE_DEFAULT,
   modalita,
+  configurazione,
 }: {
   id: string
   titolo: string
@@ -274,6 +334,7 @@ export async function programmaNotificaImpegno({
   tipo: string
   preferenze?: PreferenzeNotifiche
   modalita?: ModalitaNotificaImpegno
+  configurazione?: ConfigurazioneNotificaImpegno
 }): Promise<void> {
   if (!isCapacitorNativo()) return
 
@@ -289,6 +350,7 @@ export async function programmaNotificaImpegno({
     data,
     ora,
     modalita,
+    configurazione,
     preferenze: preferenzeNormalizzate,
   })
 
@@ -305,6 +367,7 @@ export async function programmaNotificaImpegno({
       animaleNome,
       tipo,
       modalita,
+      configurazione,
       dataNotifica,
       dataEvento,
       ora,
