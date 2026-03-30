@@ -286,13 +286,14 @@ export type Database = {
           }
         ]
       }
-      diario_voci: {
+            diario_voci: {
         Row: {
           id: string
           animale_id: string
           data: string
           titolo: string
           nota: string
+          foto_urls: string[] | null
           created_at: string
           updated_at: string
         }
@@ -302,6 +303,7 @@ export type Database = {
           data?: string
           titolo: string
           nota: string
+          foto_urls?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -311,6 +313,7 @@ export type Database = {
           data?: string
           titolo?: string
           nota?: string
+          foto_urls?: string[] | null
           created_at?: string
           updated_at?: string
         }
