@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Cake, Clock3, Info, Pill } from 'lucide-react'
+import {
+  Bell,
+  CalendarHeart,
+  Clock3,
+  Info,
+  Stethoscope,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -22,29 +28,77 @@ const opzioniGiorni = [
 
 const opzioniOre = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
-const cardClass =
-  'rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]'
-
-function getChipClass(attivo: boolean) {
-  return `rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
-    attivo
-      ? 'border-[#2F231A] bg-[#2F231A] text-white'
-      : 'border-[#E6DDD2] bg-[#FFFDFC] text-[#6B5B4D] hover:bg-[#F7F1E8]'
-  }`
-}
-
-function SectionBadge({
-  icon: Icon,
-  label,
+function Card({
+  children,
+  className = '',
 }: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
+  children: React.ReactNode
+  className?: string
 }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-[#F8F4EE] px-3 py-1 text-xs font-medium text-[#6B5B4D]">
-      <Icon className="h-3.5 w-3.5" />
-      <span>{label}</span>
+    <div
+      className={`rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${className}`}
+    >
+      {children}
     </div>
+  )
+}
+
+function SezioneHeader({
+  icona,
+  titolo,
+  descrizione,
+  children,
+}: {
+  icona: React.ReactNode
+  titolo: string
+  descrizione: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FCF3E8] text-amber-500">
+          {icona}
+        </div>
+
+        <div className="min-w-0">
+          <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+            {titolo}
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-gray-400">{descrizione}</p>
+        </div>
+      </div>
+
+      {children}
+    </div>
+  )
+}
+
+function Chip({
+  active,
+  children,
+  onClick,
+  disabled,
+}: {
+  active: boolean
+  children: React.ReactNode
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-full border px-3 py-2 text-xs font-semibold transition-all ${
+        active
+          ? 'border-amber-300 bg-amber-50 text-amber-700'
+          : 'border-gray-200 bg-gray-50 text-gray-600 active:bg-gray-100'
+      } ${disabled ? 'opacity-60' : ''}`}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -116,88 +170,82 @@ export function ImpostazioniNotifiche({
   const terapieAttive = preferenze.tipi_abilitati.includes('terapia')
 
   return (
-    <div className="space-y-5 px-5 py-5 pb-32">
-      <div className={cardClass}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 space-y-3">
-            <SectionBadge icon={Bell} label="Impostazione generale" />
-
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-[#2F231A]">
+    <div className="space-y-5 px-5 py-4 pb-32">
+      <Card>
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
+                Profilo
+              </p>
+              <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
                 Notifiche globali
-              </h2>
-              <p className="text-sm leading-6 text-[#6B5B4D]">
-                Qui gestisci solo le impostazioni generali per compleanni e
+              </h1>
+              <p className="mt-1 text-sm leading-5 text-gray-400">
+                Qui gestisci solo le impostazioni generali di compleanni e
                 terapie.
               </p>
             </div>
+
+            <Switch
+              checked={preferenze.attive}
+              onCheckedChange={(v) =>
+                setPreferenze((prev) => ({ ...prev, attive: v }))
+              }
+              disabled={isSubmitting}
+            />
           </div>
 
-          <Switch
-            checked={preferenze.attive}
-            onCheckedChange={(v) =>
-              setPreferenze((prev) => ({ ...prev, attive: v }))
-            }
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-[#EFE5D8] bg-[#FCF8F2] p-4">
-          <div className="flex items-start gap-3">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#8A6A45]" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[#2F231A]">
-                Gli impegni normali non si gestiscono qui
-              </p>
-              <p className="text-xs leading-5 text-[#6B5B4D]">
-                La notifica degli impegni normali si decide durante la creazione
-                del singolo impegno, così puoi sceglierla caso per caso.
-              </p>
+          <div className="rounded-2xl bg-[#FCF8F3] px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 text-amber-500">
+                <Info size={18} strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800">
+                  Gli impegni normali non si gestiscono qui
+                </p>
+                <p className="mt-1 text-sm leading-5 text-gray-500">
+                  Le notifiche di visite, controlli e altri impegni si scelgono
+                  durante la creazione del singolo impegno.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {preferenze.attive && (
         <>
-          <div className={cardClass}>
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <SectionBadge icon={Cake} label="Compleanni" />
-
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#2F231A]">
-                      Notifiche compleanni
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-[#6B5B4D]">
-                      Impostazione globale valida per tutti i compleanni
-                      registrati nell’app.
-                    </p>
-                  </div>
-
-                  <Switch
-                    checked={compleanniAttivi}
-                    onCheckedChange={() => toggleTipo('compleanno')}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
+          <Card>
+            <div className="space-y-5">
+              <SezioneHeader
+                icona={<CalendarHeart size={22} strokeWidth={2.2} />}
+                titolo="Compleanni"
+                descrizione="Impostazione globale valida per tutti i compleanni registrati nell’app."
+              >
+                <Switch
+                  checked={compleanniAttivi}
+                  onCheckedChange={() => toggleTipo('compleanno')}
+                  disabled={isSubmitting}
+                />
+              </SezioneHeader>
 
               {compleanniAttivi && (
-                <div className="rounded-2xl border border-[#EFE5D8] bg-[#FFFDFC] p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#8E7C6A]">
+                <div className="rounded-2xl bg-[#FCF8F3] px-4 py-4">
+                  <p className="text-sm font-semibold text-gray-800">
                     Anticipo notifica
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-[#6B5B4D]">
-                    Scegli con quanto anticipo avvisare per i compleanni.
+                  <p className="mt-1 text-sm text-gray-500">
+                    Scegli con quanto anticipo ricevere il promemoria del
+                    compleanno.
                   </p>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {opzioniGiorni.map((opzione) => (
-                      <button
+                      <Chip
                         key={opzione.valore}
-                        type="button"
+                        active={preferenze.giorni_prima === opzione.valore}
                         onClick={() =>
                           setPreferenze((prev) => ({
                             ...prev,
@@ -205,97 +253,105 @@ export function ImpostazioniNotifiche({
                           }))
                         }
                         disabled={isSubmitting}
-                        className={getChipClass(
-                          preferenze.giorni_prima === opzione.valore
-                        )}
                       >
                         {opzione.label}
-                      </button>
+                      </Chip>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className={cardClass}>
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <SectionBadge icon={Pill} label="Terapie" />
+          <Card>
+            <div className="space-y-5">
+              <SezioneHeader
+                icona={<Stethoscope size={22} strokeWidth={2.2} />}
+                titolo="Terapie"
+                descrizione="Questa impostazione resta un default globale e viene usata solo quando serve."
+              >
+                <Switch
+                  checked={terapieAttive}
+                  onCheckedChange={() => toggleTipo('terapia')}
+                  disabled={isSubmitting}
+                />
+              </SezioneHeader>
 
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#2F231A]">
-                      Notifiche terapie
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-[#6B5B4D]">
-                      Questa impostazione vale come default globale. Quando una
-                      terapia ha un suo orario, la notifica segue quello.
-                    </p>
-                  </div>
-
-                  <Switch
-                    checked={terapieAttive}
-                    onCheckedChange={() => toggleTipo('terapia')}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#EFE5D8] bg-[#FCF8F2] p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#8E7C6A]">
+              <div className="rounded-2xl bg-[#FCF8F3] px-4 py-4">
+                <p className="text-sm font-semibold text-gray-800">
                   Come funziona
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#6B5B4D]">
-                  Se nella singola terapia è presente un orario, viene usato
-                  quello. Se invece manca, l’app usa l’orario default globale
-                  qui sotto come fallback.
+                <p className="mt-1 text-sm leading-5 text-gray-500">
+                  Se una terapia ha già un suo orario, la notifica segue quello.
+                  Se invece non è presente un orario specifico, viene usato
+                  l’orario default qui sotto come fallback.
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className={cardClass}>
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <SectionBadge icon={Clock3} label="Orario default / fallback" />
-
-                <div>
-                  <p className="text-sm font-semibold text-[#2F231A]">
-                    Orario default globale
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[#6B5B4D]">
-                    Usato per i compleanni attivi e come fallback per le terapie
-                    senza orario specifico.
-                  </p>
-                </div>
-              </div>
+          <Card>
+            <div className="space-y-5">
+              <SezioneHeader
+                icona={<Clock3 size={22} strokeWidth={2.2} />}
+                titolo="Orario default"
+                descrizione="Usato per i compleanni attivi e come fallback per le terapie senza orario specifico."
+              />
 
               <div className="flex flex-wrap gap-2">
                 {opzioniOre.map((ora) => (
-                  <button
+                  <Chip
                     key={ora}
-                    type="button"
+                    active={preferenze.ore === ora}
                     onClick={() =>
                       setPreferenze((prev) => ({ ...prev, ore: ora }))
                     }
                     disabled={isSubmitting}
-                    className={getChipClass(preferenze.ore === ora)}
                   >
                     {String(ora).padStart(2, '0')}:00
-                  </button>
+                  </Chip>
                 ))}
               </div>
+
+              <div className="rounded-2xl bg-[#FCF8F3] px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 text-amber-500">
+                    <Bell size={18} strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">
+                      Fallback, non regola rigida
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-gray-500">
+                      Questo orario non sostituisce quello già impostato dentro
+                      una terapia. Entra in gioco solo quando manca un orario
+                      specifico.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </Card>
         </>
       )}
 
       {messaggio && (
-        <p className="text-center text-sm text-muted-foreground">{messaggio}</p>
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+            messaggio.includes('Errore') || messaggio.includes('negato')
+              ? 'border-red-200 bg-red-50 text-red-600'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          {messaggio}
+        </div>
       )}
 
-      <Button className="w-full" onClick={handleSalva} disabled={isSubmitting}>
+      <Button
+        className="h-14 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-base font-bold text-white shadow-md shadow-orange-200 transition-all hover:opacity-100 active:scale-[0.98] disabled:opacity-60"
+        onClick={handleSalva}
+        disabled={isSubmitting}
+      >
         {isSubmitting ? 'Salvataggio...' : 'Salva impostazioni'}
       </Button>
     </div>
