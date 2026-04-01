@@ -28,6 +28,11 @@ import { CropFoto } from '@/components/ui/CropFoto'
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
 import { SUGGERIMENTI_ANIMALE_PER_CATEGORIA } from '@/lib/utils/specieSuggerimenti'
 import { cn } from '@/lib/utils'
+import {
+  normalizzaPreferenzeNotifiche,
+  programmaNotificaImpegno,
+  richiediPermessoNotifiche,
+} from '@/hooks/useNotifiche'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleInsert = Database['public']['Tables']['animali']['Insert']
@@ -610,6 +615,24 @@ export default function NuovoAnimalePage() {
         return
       }
 
+      const { data: profiloData } = await supabase
+        .from('profili')
+        .select('notifiche_attive, preferenze_notifiche')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      const preferenzeCompleanno = normalizzaPreferenzeNotifiche(
+        profiloData?.preferenze_notifiche
+          ? {
+              ...profiloData.preferenze_notifiche,
+              attive:
+                typeof profiloData.notifiche_attive === 'boolean'
+                  ? profiloData.notifiche_attive
+                  : profiloData.preferenze_notifiche.attive,
+            }
+          : undefined
+      )
+
       const nuovoId = generaUuidCompatibile()
 
       let fotoUrl: string | null = null
@@ -664,18 +687,48 @@ export default function NuovoAnimalePage() {
       }
 
       if (dataNascita) {
+        const dataCompleanno = prossimoCompleanno(dataNascita)
+
         const impegnoCompleanno: ImpegnoInsert = {
           animale_id: nuovoId,
           titolo: 'Compleanno',
           tipo: 'compleanno',
-          data: prossimoCompleanno(dataNascita),
+          data: dataCompleanno,
           frequenza: 'annuale',
           notifiche_attive: true,
           stato: 'programmato',
           note: `Compleanno di ${nomePulito}`,
         }
 
-        await supabase.from('impegni').insert(impegnoCompleanno)
+        const { data: nuovoImpegnoCompleanno, error: erroreCompleanno } =
+          await supabase
+            .from('impegni')
+            .insert(impegnoCompleanno)
+            .select('id')
+            .single()
+
+        if (erroreCompleanno) {
+          throw new Error(
+            `Errore durante il salvataggio del compleanno: ${erroreCompleanno.message}`
+          )
+        }
+
+        try {
+          const permesso = await richiediPermessoNotifiche()
+
+          if (permesso && nuovoImpegnoCompleanno) {
+            await programmaNotificaImpegno({
+              id: nuovoImpegnoCompleanno.id,
+              titolo: 'Compleanno',
+              animaleNome: nomePulito,
+              data: dataCompleanno,
+              tipo: 'compleanno',
+              preferenze: preferenzeCompleanno,
+            })
+          }
+        } catch {
+          console.warn('Notifica compleanno non programmata')
+        }
       }
 
       router.push(`/animali/${nuovoId}`)

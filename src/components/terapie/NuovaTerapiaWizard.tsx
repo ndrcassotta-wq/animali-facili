@@ -3,6 +3,7 @@
 import type { ReactNode, HTMLAttributes } from 'react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   CalendarDays,
@@ -15,6 +16,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
+import {
+  cancellaNotificaImpegno,
+  programmaNotificaImpegno,
+  richiediPermessoNotifiche,
+} from '@/hooks/useNotifiche'
 
 type AnimaleOption = {
   id: string
@@ -36,6 +42,17 @@ type FormatoSomministrazione =
   | 'sciroppo'
   | 'crema'
   | 'spray'
+
+type SubmitActionResult = {
+  success: true
+  redirectTo: string
+  autoImpegnoId?: string | null
+  notificationOperation?: 'schedule' | 'cancel' | 'none'
+  animaleNome?: string
+  titoloNotifica?: string
+  dataNotifica?: string
+  oraNotifica?: string | null
+}
 
 const FREQUENZE = [
   { value: 'una_volta_giorno', label: '1× al giorno' },
@@ -614,6 +631,29 @@ function parseDoseIniziale(doseRaw: string): {
   }
 }
 
+function generaUuidCompatibile() {
+  if (
+    typeof globalThis.crypto !== 'undefined' &&
+    typeof globalThis.crypto.randomUUID === 'function'
+  ) {
+    return globalThis.crypto.randomUUID()
+  }
+
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
+
+  return [
+    hex.slice(0, 4).join(''),
+    hex.slice(4, 6).join(''),
+    hex.slice(6, 8).join(''),
+    hex.slice(8, 10).join(''),
+    hex.slice(10, 16).join(''),
+  ].join('-')
+}
+
 export function NuovaTerapiaWizard({
   title,
   subtitle,
@@ -627,7 +667,9 @@ export function NuovaTerapiaWizard({
   title: string
   subtitle: string
   backHref: string
-  submitAction: (formData: FormData) => void | Promise<void>
+  submitAction: (
+    formData: FormData
+  ) => void | Promise<void | SubmitActionResult> | SubmitActionResult
   animali: AnimaleOption[]
   preselectedAnimalId?: string
   valoriIniziali?: {
@@ -642,6 +684,7 @@ export function NuovaTerapiaWizard({
   }
   variant?: WizardVariant
 }) {
+  const router = useRouter()
   const isEditMode = Boolean(valoriIniziali)
   const isGeneralVariant = variant === 'generale'
   const hasAnimalStep = !preselectedAnimalId
@@ -656,6 +699,7 @@ export function NuovaTerapiaWizard({
 
   const frequenzaIniziale = valoriIniziali?.frequenza ?? 'una_volta_giorno'
   const doseInizialeParsata = parseDoseIniziale(valoriIniziali?.dose ?? '')
+  const [autoImpegnoId] = useState(() => generaUuidCompatibile())
 
   const [step, setStep] = useState<Step>(hasAnimalStep ? 'animale' : 'farmaco')
   const [animaleId, setAnimaleId] = useState(preselectedAnimalId ?? '')
@@ -699,6 +743,8 @@ export function NuovaTerapiaWizard({
   )
   const [note, setNote] = useState(valoriIniziali?.note ?? '')
   const [errori, setErrori] = useState<Partial<Record<Step, string>>>({})
+  const [erroreSubmit, setErroreSubmit] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const dataFineCalcolata = useMemo(() => {
     const durataNumero = Number(durataGiorni)
@@ -810,6 +856,98 @@ export function NuovaTerapiaWizard({
     }
   }
 
+  async function handleFinalSubmit(formData: FormData) {
+    setErroreSubmit(null)
+    setIsSubmitting(true)
+
+    try {
+      const result = await submitAction(formData)
+
+      const redirectTo =
+        result && typeof result === 'object' && 'redirectTo' in result
+          ? result.redirectTo
+          : null
+
+      const autoImpegnoIdResult =
+        result && typeof result === 'object' && 'autoImpegnoId' in result
+          ? result.autoImpegnoId
+          : null
+
+      const notificationOperation =
+        result && typeof result === 'object' && 'notificationOperation' in result
+          ? result.notificationOperation
+          : !isEditMode && autoImpegnoIdResult
+            ? 'schedule'
+            : 'none'
+
+      const orarioPrincipale = isGeneralVariant
+        ? normalizzaOrariPerFrequenza(orariSomministrazione, frequenza).find(
+            (orario) => orario.trim() !== ''
+          ) ?? null
+        : oraSomministrazione.trim() || null
+
+      const animaleNomeNotifica =
+        result && typeof result === 'object' && 'animaleNome' in result && result.animaleNome
+          ? result.animaleNome
+          : animaleSelezionato?.nome ?? ''
+
+      const titoloNotifica =
+        result && typeof result === 'object' && 'titoloNotifica' in result && result.titoloNotifica
+          ? result.titoloNotifica
+          : `Terapia: ${nomeFarmaco.trim()}`
+
+      const dataNotifica =
+        result && typeof result === 'object' && 'dataNotifica' in result && result.dataNotifica
+          ? result.dataNotifica
+          : dataInizio
+
+      const oraNotifica =
+        result && typeof result === 'object' && 'oraNotifica' in result
+          ? result.oraNotifica
+          : orarioPrincipale
+
+      if (notificationOperation === 'cancel' && autoImpegnoIdResult) {
+        try {
+          await cancellaNotificaImpegno(autoImpegnoIdResult)
+        } catch {
+          console.warn('Notifica terapia non cancellata')
+        }
+      }
+
+      if (
+        notificationOperation === 'schedule' &&
+        autoImpegnoIdResult &&
+        animaleNomeNotifica
+      ) {
+        try {
+          const permesso = await richiediPermessoNotifiche()
+
+          if (permesso) {
+            await programmaNotificaImpegno({
+              id: autoImpegnoIdResult,
+              titolo: titoloNotifica,
+              animaleNome: animaleNomeNotifica,
+              data: dataNotifica,
+              ora: oraNotifica,
+              tipo: 'terapia',
+            })
+          }
+        } catch {
+          console.warn('Notifica terapia non programmata')
+        }
+      }
+
+      if (redirectTo) {
+        router.push(redirectTo)
+        router.refresh()
+      }
+    } catch (error) {
+      console.error(error)
+      setErroreSubmit('Errore durante il salvataggio della terapia.')
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col bg-[#F7F1EA]" style={{ minHeight: '100dvh' }}>
       <header className="shrink-0 rounded-b-[34px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-5 pt-10">
@@ -861,7 +999,7 @@ export function NuovaTerapiaWizard({
         </div>
       </header>
 
-      <form action={submitAction} className="flex-1 px-5 pb-12 pt-4">
+      <form action={handleFinalSubmit} className="flex-1 px-5 pb-12 pt-4">
         <input type="hidden" name="animale_id" value={animaleId} />
         <input type="hidden" name="nome_farmaco" value={nomeFarmaco} />
         <input type="hidden" name="dose" value={doseComposta} />
@@ -871,6 +1009,11 @@ export function NuovaTerapiaWizard({
         <input type="hidden" name="data_fine" value={dataFineCalcolata} />
         <input type="hidden" name="ora_somministrazione" value={orariCompattati} />
         <input type="hidden" name="note" value={note} />
+        <input
+          type="hidden"
+          name="auto_impegno_id"
+          value={!isEditMode && frequenza !== 'al_bisogno' ? autoImpegnoId : ''}
+        />
         {isGeneralVariant && (
           <>
             <input
@@ -1359,13 +1502,26 @@ export function NuovaTerapiaWizard({
                   />
                 </div>
               </SectionCard>
+
+              {erroreSubmit && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-medium text-red-600">
+                    {erroreSubmit}
+                  </p>
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+              disabled={isSubmitting}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-4 text-base font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
             >
-              {isEditMode ? 'Salva modifiche' : 'Salva terapia'}
+              {isSubmitting
+                ? 'Salvataggio in corso...'
+                : isEditMode
+                  ? 'Salva modifiche'
+                  : 'Salva terapia'}
             </button>
           </>
         )}

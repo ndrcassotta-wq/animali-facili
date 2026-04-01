@@ -22,9 +22,9 @@ export function NotificaImpegno({
   data: string
   tipo: string
 }) {
-  const [attiva,      setAttiva]      = useState(false)
+  const [attiva, setAttiva] = useState(false)
   const [caricamento, setCaricamento] = useState(false)
-  const [messaggio,   setMessaggio]   = useState<string | null>(null)
+  const [messaggio, setMessaggio] = useState<string | null>(null)
 
   async function handleAttiva() {
     setCaricamento(true)
@@ -32,14 +32,17 @@ export function NotificaImpegno({
 
     try {
       const permesso = await richiediPermessoNotifiche()
+
       if (!permesso) {
-        setMessaggio('Permesso notifiche negato. Abilitalo nelle impostazioni.')
+        setMessaggio(
+          'Notifiche non disponibili. Controlla permesso notifiche e allarmi precisi nelle impostazioni Android.'
+        )
         setCaricamento(false)
         return
       }
 
       await programmaNotificaImpegno({
-        id:          impegnoId,
+        id: impegnoId,
         titolo,
         animaleNome,
         data,
@@ -47,7 +50,7 @@ export function NotificaImpegno({
       })
 
       setAttiva(true)
-      setMessaggio('Riceverai una notifica prima dell\'impegno.')
+      setMessaggio("Riceverai una notifica prima dell'impegno.")
     } catch {
       setMessaggio('Errore durante la programmazione della notifica.')
     } finally {
@@ -78,13 +81,19 @@ export function NotificaImpegno({
         onClick={attiva ? handleDisattiva : handleAttiva}
         disabled={caricamento}
       >
-        {attiva
-          ? <><BellOff className="w-4 h-4" /> Rimuovi notifica</>
-          : <><Bell className="w-4 h-4" /> Attiva notifica</>
-        }
+        {attiva ? (
+          <>
+            <BellOff className="h-4 w-4" /> Rimuovi notifica
+          </>
+        ) : (
+          <>
+            <Bell className="h-4 w-4" /> Attiva notifica
+          </>
+        )}
       </Button>
+
       {messaggio && (
-        <p className="text-xs text-center text-muted-foreground">{messaggio}</p>
+        <p className="text-center text-xs text-muted-foreground">{messaggio}</p>
       )}
     </div>
   )

@@ -28,9 +28,16 @@ import { ArrowLeft, Camera, Images } from 'lucide-react'
 import { CropFoto } from '@/components/ui/CropFoto'
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput'
 import { SUGGERIMENTI_ANIMALE_PER_CATEGORIA } from '@/lib/utils/specieSuggerimenti'
+import {
+  cancellaNotificaImpegno,
+  normalizzaPreferenzeNotifiche,
+  programmaNotificaImpegno,
+  richiediPermessoNotifiche,
+} from '@/hooks/useNotifiche'
 
 type FormValori = z.infer<typeof animaleSchema>
 type AnimaleUpdate = Database['public']['Tables']['animali']['Update']
+type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
 
 const BUCKET_FOTO_ANIMALI = 'foto-animali'
 const MAX_FOTO_SIZE_MB = 10
@@ -153,6 +160,43 @@ function placeholderCampoPrincipale(categoria: CategoriaAnimale): string {
   }
 
   return mappa[categoria] ?? ''
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function prossimoCompleanno(dataNascita: string): string {
+  const parts = dataNascita.split('-')
+
+  if (parts.length !== 3) {
+    return dataNascita
+  }
+
+  const mese = Number(parts[1]) - 1
+  const giorno = Number(parts[2])
+
+  const oggi = new Date()
+  const oggiLocale = new Date(
+    oggi.getFullYear(),
+    oggi.getMonth(),
+    oggi.getDate(),
+    12,
+    0,
+    0,
+    0
+  )
+
+  const candidato = new Date(oggi.getFullYear(), mese, giorno, 12, 0, 0, 0)
+
+  if (candidato < oggiLocale) {
+    candidato.setFullYear(candidato.getFullYear() + 1)
+  }
+
+  return formatLocalDate(candidato)
 }
 
 function CampoForm({
@@ -297,6 +341,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
       } = await supabase.auth.getUser()
 
       if (!user) {
+        setIsSubmitting(false)
         router.push('/login')
         return
       }
@@ -362,6 +407,138 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
 
       if (error) {
         throw new Error(`Errore durante il salvataggio: ${error.message}`)
+      }
+
+      const dataNascitaPrecedente = animale.data_nascita ?? null
+      const nomePrecedente = animale.nome ?? ''
+      const dataNascitaCambiata = dataNascitaPrecedente !== dataNascita
+      const nomeCambiato = nomePrecedente !== nomePulito
+
+      if (dataNascitaCambiata || nomeCambiato) {
+        const { data: compleannoEsistente, error: erroreCompleannoEsistente } =
+          await supabase
+            .from('impegni')
+            .select('id')
+            .eq('animale_id', animale.id)
+            .eq('tipo', 'compleanno')
+            .maybeSingle()
+
+        if (erroreCompleannoEsistente) {
+          throw new Error(
+            `Errore durante il recupero del compleanno: ${erroreCompleannoEsistente.message}`
+          )
+        }
+
+        if (!dataNascita) {
+          if (compleannoEsistente) {
+            const { error: erroreDeleteCompleanno } = await supabase
+              .from('impegni')
+              .delete()
+              .eq('id', compleannoEsistente.id)
+
+            if (erroreDeleteCompleanno) {
+              throw new Error(
+                `Errore durante la rimozione del compleanno: ${erroreDeleteCompleanno.message}`
+              )
+            }
+
+            try {
+              await cancellaNotificaImpegno(compleannoEsistente.id)
+            } catch {
+              console.warn('Notifica compleanno non cancellata')
+            }
+          }
+        } else {
+          const dataCompleanno = prossimoCompleanno(dataNascita)
+
+          const payloadCompleanno: ImpegnoInsert = {
+            animale_id: animale.id,
+            titolo: 'Compleanno',
+            tipo: 'compleanno',
+            data: dataCompleanno,
+            frequenza: 'annuale',
+            notifiche_attive: true,
+            stato: 'programmato',
+            note: `Compleanno di ${nomePulito}`,
+          }
+
+          let compleannoId = compleannoEsistente?.id ?? null
+
+          if (compleannoEsistente) {
+            const { error: erroreUpdateCompleanno } = await supabase
+              .from('impegni')
+              .update({
+                titolo: 'Compleanno',
+                tipo: 'compleanno',
+                data: dataCompleanno,
+                frequenza: 'annuale',
+                notifiche_attive: true,
+                stato: 'programmato',
+                note: `Compleanno di ${nomePulito}`,
+              })
+              .eq('id', compleannoEsistente.id)
+
+            if (erroreUpdateCompleanno) {
+              throw new Error(
+                `Errore durante l'aggiornamento del compleanno: ${erroreUpdateCompleanno.message}`
+              )
+            }
+          } else {
+            const { data: nuovoCompleanno, error: erroreInsertCompleanno } =
+              await supabase
+                .from('impegni')
+                .insert(payloadCompleanno)
+                .select('id')
+                .single()
+
+            if (erroreInsertCompleanno || !nuovoCompleanno) {
+              throw new Error(
+                `Errore durante la creazione del compleanno: ${erroreInsertCompleanno?.message ?? 'sconosciuto'}`
+              )
+            }
+
+            compleannoId = nuovoCompleanno.id
+          }
+
+          if (compleannoId) {
+            const { data: profiloData } = await supabase
+              .from('profili')
+              .select('notifiche_attive, preferenze_notifiche')
+              .eq('id', user.id)
+              .maybeSingle()
+
+            const preferenzeCompleanno = normalizzaPreferenzeNotifiche(
+              profiloData?.preferenze_notifiche
+                ? {
+                    ...profiloData.preferenze_notifiche,
+                    attive:
+                      typeof profiloData.notifiche_attive === 'boolean'
+                        ? profiloData.notifiche_attive
+                        : profiloData.preferenze_notifiche.attive,
+                  }
+                : undefined
+            )
+
+            try {
+              await cancellaNotificaImpegno(compleannoId)
+
+              const permesso = await richiediPermessoNotifiche()
+
+              if (permesso) {
+                await programmaNotificaImpegno({
+                  id: compleannoId,
+                  titolo: 'Compleanno',
+                  animaleNome: nomePulito,
+                  data: dataCompleanno,
+                  tipo: 'compleanno',
+                  preferenze: preferenzeCompleanno,
+                })
+              }
+            } catch {
+              console.warn('Notifica compleanno non programmata')
+            }
+          }
+        }
       }
 
       router.push(`/animali/${animale.id}`)

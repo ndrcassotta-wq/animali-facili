@@ -90,6 +90,7 @@ export default async function NuovaTerapiaGenericaPage() {
       formData.get('ora_somministrazione') ?? ''
     ).trim()
     const noteRaw = String(formData.get('note') ?? '').trim()
+    const autoImpegnoIdRaw = String(formData.get('auto_impegno_id') ?? '').trim()
 
     if (!animaleId || !nomeFarmaco || !dose || !frequenza || !dataInizio) {
       throw new Error('Compila tutti i campi obbligatori.')
@@ -135,18 +136,21 @@ export default async function NuovaTerapiaGenericaPage() {
     }
 
     const terapiaId = terapiaCreata.id
+    let autoImpegnoId: string | null = null
 
     if (
       terapiaCreata.stato === 'attiva' &&
       terapiaCreata.frequenza !== 'al_bisogno'
     ) {
       const payloadImpegno: ImpegnoInsert = {
+        ...(autoImpegnoIdRaw ? { id: autoImpegnoIdRaw } : {}),
         animale_id: animaleId,
         titolo: `Terapia: ${nomeFarmaco}`,
         tipo: 'terapia',
         data: dataInizio,
+        ora: oraSomministrazioneRaw || null,
         frequenza: 'nessuna',
-        notifiche_attive: false,
+        notifiche_attive: true,
         stato: 'programmato',
         note: buildAutoImpegnoNote(
           terapiaId,
@@ -157,13 +161,17 @@ export default async function NuovaTerapiaGenericaPage() {
         ),
       }
 
-      const { error: impegnoError } = await supabase
+      const { data: impegnoCreato, error: impegnoError } = await supabase
         .from('impegni')
         .insert(payloadImpegno)
+        .select('id')
+        .single()
 
-      if (impegnoError) {
-        throw new Error(impegnoError.message)
+      if (impegnoError || !impegnoCreato) {
+        throw new Error(impegnoError?.message || 'Errore durante la creazione del promemoria terapia.')
       }
+
+      autoImpegnoId = impegnoCreato.id
     }
 
     revalidatePath('/terapie')
@@ -174,7 +182,11 @@ export default async function NuovaTerapiaGenericaPage() {
     revalidatePath('/impegni')
     revalidatePath('/home')
 
-    redirect(`/terapie/${terapiaId}`)
+    return {
+      success: true as const,
+      redirectTo: `/terapie/${terapiaId}`,
+      autoImpegnoId,
+    }
   }
 
   if (animali.length === 0) {

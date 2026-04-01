@@ -81,6 +81,42 @@ function isCapacitorNativo(): boolean {
   )
 }
 
+function generaIdNotificaSicuro(id: string): number {
+  const input = id.replace(/-/g, '')
+  let hash = 0
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0
+  }
+
+  return (hash % 2147483646) + 1
+}
+
+async function verificaPermessiSchedulingNotifiche(): Promise<boolean> {
+  if (!isCapacitorNativo()) return false
+
+  const { LocalNotifications } = await import('@capacitor/local-notifications')
+
+  const stato = await LocalNotifications.checkPermissions()
+  let display = stato.display
+
+  if (display !== 'granted') {
+    const richiesti = await LocalNotifications.requestPermissions()
+    display = richiesti.display
+  }
+
+  if (display !== 'granted') return false
+
+  const exactStatus = await (LocalNotifications as any).checkExactNotificationSetting?.()
+  const exactValue = exactStatus?.value ?? exactStatus
+
+  if (typeof exactValue === 'string' && exactValue !== 'granted') {
+    return false
+  }
+
+  return true
+}
+
 function creaDataConOra(
   data: string,
   ora?: string | null,
@@ -305,11 +341,8 @@ function calcolaDataNotifica({
 }
 
 export async function richiediPermessoNotifiche(): Promise<boolean> {
-  if (!isCapacitorNativo()) return false
   try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    const { display } = await LocalNotifications.requestPermissions()
-    return display === 'granted'
+    return await verificaPermessiSchedulingNotifiche()
   } catch {
     return false
   }
@@ -338,6 +371,11 @@ export async function programmaNotificaImpegno({
 }): Promise<void> {
   if (!isCapacitorNativo()) return
 
+  const permessiOk = await verificaPermessiSchedulingNotifiche()
+  if (!permessiOk) {
+    throw new Error('NOTIFICHE_NON_AUTORIZZATE_O_EXACT_ALARM_DISABILITATO')
+  }
+
   const preferenzeNormalizzate = normalizzaPreferenzeNotifiche(preferenze)
   const dataEvento = creaDataConOra(
     data,
@@ -360,7 +398,7 @@ export async function programmaNotificaImpegno({
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
 
-    const idNumerico = parseInt(id.replace(/-/g, '').substring(0, 8), 16)
+    const idNumerico = generaIdNotificaSicuro(id)
 
     const corpo = creaCorpoNotifica({
       titolo,
@@ -373,13 +411,20 @@ export async function programmaNotificaImpegno({
       ora,
     })
 
+    await LocalNotifications.cancel({
+      notifications: [{ id: idNumerico }],
+    })
+
     await LocalNotifications.schedule({
       notifications: [
         {
           id: idNumerico,
           title: `📅 ${titolo}`,
           body: corpo,
-          schedule: { at: dataNotifica },
+          schedule: {
+            at: dataNotifica,
+            allowWhileIdle: true,
+          },
           sound: undefined,
           actionTypeId: '',
           extra: { impegnoId: id },
@@ -388,6 +433,7 @@ export async function programmaNotificaImpegno({
     })
   } catch (e) {
     console.warn('Notifica non programmata:', e)
+    throw e
   }
 }
 
@@ -395,9 +441,13 @@ export async function cancellaNotificaImpegno(id: string): Promise<void> {
   if (!isCapacitorNativo()) return
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    const idNumerico = parseInt(id.replace(/-/g, '').substring(0, 8), 16)
-    await LocalNotifications.cancel({ notifications: [{ id: idNumerico }] })
+    const idNumerico = generaIdNotificaSicuro(id)
+
+    await LocalNotifications.cancel({
+      notifications: [{ id: idNumerico }],
+    })
   } catch (e) {
     console.warn('Notifica non cancellata:', e)
+    throw e
   }
 }
