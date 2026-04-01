@@ -155,7 +155,6 @@ export default async function HomePage() {
     supabase
       .from('animali')
       .select('id, nome, categoria, foto_url')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: true }),
 
     supabase

@@ -126,6 +126,74 @@ export type Database = {
           }
         ]
       }
+      animali_condivisioni: {
+        Row: {
+          id: string
+          animale_id: string
+          owner_user_id: string
+          shared_user_id: string
+          status: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id: string | null
+          created_at: string
+          updated_at: string
+          accepted_at: string | null
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          animale_id: string
+          owner_user_id?: string
+          shared_user_id: string
+          status?: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+          accepted_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          animale_id?: string
+          owner_user_id?: string
+          shared_user_id?: string
+          status?: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+          accepted_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'animali_condivisioni_animale_id_fkey'
+            columns: ['animale_id']
+            isOneToOne: false
+            referencedRelation: 'animali'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'animali_condivisioni_owner_user_id_fkey'
+            columns: ['owner_user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'animali_condivisioni_shared_user_id_fkey'
+            columns: ['shared_user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'animali_condivisioni_invited_by_user_id_fkey'
+            columns: ['invited_by_user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       impegni: {
         Row: {
           id: string
@@ -286,7 +354,7 @@ export type Database = {
           }
         ]
       }
-            diario_voci: {
+      diario_voci: {
         Row: {
           id: string
           animale_id: string
@@ -484,6 +552,7 @@ export type Database = {
         | 'piccoli_mammiferi'
         | 'altri_animali'
       sesso_animale: 'maschio' | 'femmina' | 'non_specificato'
+      stato_condivisione_animale: 'pending' | 'accepted' | 'revoked'
       tipo_impegno:
         | 'visita'
         | 'controllo'
