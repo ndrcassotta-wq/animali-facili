@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, RefreshCcw, Users, Link2Off } from 'lucide-react'
 
@@ -22,25 +22,23 @@ type CondivisioneItem = {
 function labelStato(status: StatoCondivisione) {
   if (status === 'accepted') return 'Attiva'
   if (status === 'pending') return 'In attesa'
-  return 'Revocata'
+  return 'Rimossa'
 }
 
 function statoClasses(status: StatoCondivisione) {
   if (status === 'accepted') {
-    return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    return 'border border-emerald-200 bg-emerald-50 text-emerald-700'
   }
   if (status === 'pending') {
-    return 'bg-amber-50 text-amber-700 border border-amber-200'
+    return 'border border-amber-200 bg-amber-50 text-amber-700'
   }
-  return 'bg-slate-100 text-slate-600 border border-slate-200'
+  return 'border border-slate-200 bg-slate-100 text-slate-600'
 }
 
 export function CondivisioniAnimaleCard({
   animaleId,
-  ownerUserId,
 }: {
   animaleId: string
-  ownerUserId: string
 }) {
   const supabase = createClient()
 
@@ -52,11 +50,6 @@ export function CondivisioniAnimaleCard({
   const [azioneId, setAzioneId] = useState<string | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [messaggio, setMessaggio] = useState<string | null>(null)
-
-  const isOwner = useMemo(
-    () => currentUserId !== null && currentUserId === ownerUserId,
-    [currentUserId, ownerUserId]
-  )
 
   async function caricaCondivisioni() {
     setIsLoading(true)
@@ -128,7 +121,7 @@ export function CondivisioniAnimaleCard({
     setIsInviting(false)
   }
 
-  async function revocaCondivisione(condivisioneId: string) {
+  async function annullaInvito(condivisioneId: string) {
     setErrore(null)
     setMessaggio(null)
     setAzioneId(condivisioneId)
@@ -143,7 +136,7 @@ export function CondivisioniAnimaleCard({
       return
     }
 
-    setMessaggio('Condivisione revocata.')
+    setMessaggio('Invito annullato.')
     await caricaCondivisioni()
     setAzioneId(null)
   }
@@ -159,7 +152,12 @@ export function CondivisioniAnimaleCard({
             Condivisione familiari
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            Condividi questo animale con altri account senza creare copie.
+            Tutti gli account collegati vedono lo stesso animale e le stesse
+            modifiche. La rimozione resta sempre solo personale.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-gray-400">
+            Se l’account invitato ha già un possibile animale duplicato, il
+            sistema blocca l’invito e richiede una gestione manuale.
           </p>
         </div>
 
@@ -173,43 +171,41 @@ export function CondivisioniAnimaleCard({
         </button>
       </div>
 
-      {isOwner && (
-        <div className="mt-4 rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] p-4">
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            Invita tramite email
-          </label>
+      <div className="mt-4 rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] p-4">
+        <label className="mb-2 block text-sm font-semibold text-gray-700">
+          Invita tramite email
+        </label>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Mail
-                size={16}
-                strokeWidth={2.2}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  setErrore(null)
-                  setMessaggio(null)
-                }}
-                placeholder="email del familiare"
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-800 outline-none ring-0 placeholder:text-gray-400"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={invitaFamiliare}
-              disabled={isInviting}
-              className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
-            >
-              {isInviting ? 'Invio...' : 'Invita'}
-            </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Mail
+              size={16}
+              strokeWidth={2.2}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setErrore(null)
+                setMessaggio(null)
+              }}
+              placeholder="email del familiare"
+              className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-800 outline-none placeholder:text-gray-400"
+            />
           </div>
+
+          <button
+            type="button"
+            onClick={invitaFamiliare}
+            disabled={isInviting}
+            className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            {isInviting ? 'Invio...' : 'Invita'}
+          </button>
         </div>
-      )}
+      </div>
 
       {errore && (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
@@ -233,12 +229,10 @@ export function CondivisioniAnimaleCard({
         ) : condivisioni.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#EADFD3] bg-[#FCF8F3] px-4 py-5 text-center">
             <p className="text-sm font-semibold text-gray-700">
-              Nessuna condivisione attiva
+              Nessun altro account collegato
             </p>
             <p className="mt-1 text-xs leading-5 text-gray-500">
-              {isOwner
-                ? 'Invita un familiare inserendo l’email del suo account.'
-                : 'Questo animale non è condiviso con altri account.'}
+              Puoi invitare un familiare inserendo l’email del suo account.
             </p>
           </div>
         ) : (
@@ -264,19 +258,20 @@ export function CondivisioniAnimaleCard({
                 </span>
               </div>
 
-              {isOwner && (item.status === 'accepted' || item.status === 'pending') && (
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => revocaCondivisione(item.id)}
-                    disabled={azioneId === item.id}
-                    className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all active:scale-[0.98] disabled:opacity-60"
-                  >
-                    <Link2Off size={14} strokeWidth={2.4} />
-                    {azioneId === item.id ? 'Revoca...' : 'Revoca'}
-                  </button>
-                </div>
-              )}
+              {item.status === 'pending' &&
+                item.invited_by_user_id === currentUserId && (
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => annullaInvito(item.id)}
+                      disabled={azioneId === item.id}
+                      className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all active:scale-[0.98] disabled:opacity-60"
+                    >
+                      <Link2Off size={14} strokeWidth={2.4} />
+                      {azioneId === item.id ? 'Annullamento...' : 'Annulla invito'}
+                    </button>
+                  </div>
+                )}
             </div>
           ))
         )}

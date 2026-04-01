@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Trash2 } from 'lucide-react'
@@ -8,40 +8,17 @@ import { Trash2 } from 'lucide-react'
 export function AzioniAnimale({
   animaleId,
   animaleNome,
-  ownerUserId,
 }: {
   animaleId: string
   animaleNome: string
-  ownerUserId: string
 }) {
   const router = useRouter()
   const [caricamento, setCaricamento] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
-  const [isOwner, setIsOwner] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    let mounted = true
-
-    async function loadUser() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!mounted) return
-      setIsOwner(user?.id === ownerUserId)
-    }
-
-    loadUser()
-
-    return () => {
-      mounted = false
-    }
-  }, [ownerUserId])
-
-  async function eliminaAnimale() {
+  async function rimuoviAnimale() {
     const conferma = window.confirm(
-      `Vuoi davvero eliminare ${animaleNome}? Verranno rimossi anche i dati collegati.`
+      `Vuoi rimuovere ${animaleNome} solo dal tuo account?\n\nL'animale resterà agli altri utenti collegati. Se sei l'ultimo account collegato, verranno rimossi definitivamente anche i dati dell'animale.`
     )
     if (!conferma) return
 
@@ -50,10 +27,9 @@ export function AzioniAnimale({
 
     const supabase = createClient()
 
-    const { error } = await supabase
-      .from('animali')
-      .delete()
-      .eq('id', animaleId)
+    const { error } = await supabase.rpc('rimuovi_animale_dal_mio_account', {
+      p_animale_id: animaleId,
+    })
 
     if (error) {
       setErrore(error.message)
@@ -66,18 +42,15 @@ export function AzioniAnimale({
     router.refresh()
   }
 
-  if (isOwner === false) return null
-  if (isOwner === null) return null
-
   return (
     <div className="space-y-3">
       <button
-        onClick={eliminaAnimale}
+        onClick={rimuoviAnimale}
         disabled={caricamento}
         className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-4 text-sm font-bold text-red-600 transition-all active:scale-[0.98] disabled:opacity-60"
       >
         <Trash2 size={16} strokeWidth={2.5} />
-        {caricamento ? 'Eliminazione...' : 'Elimina animale'}
+        {caricamento ? 'Rimozione...' : 'Rimuovi dal mio account'}
       </button>
 
       {errore && (

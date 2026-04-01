@@ -127,10 +127,7 @@ export function TabProfilo({ animale }: { animale: Animale }) {
         {animale.note && <RigaInfo label="Note" valore={animale.note} multilinea />}
       </div>
 
-      <CondivisioniAnimaleCard
-        animaleId={animale.id}
-        ownerUserId={animale.user_id}
-      />
+      <CondivisioniAnimaleCard animaleId={animale.id} />
 
       <Link
         href={`/animali/${animale.id}/modifica`}
@@ -140,11 +137,7 @@ export function TabProfilo({ animale }: { animale: Animale }) {
         Modifica animale
       </Link>
 
-      <AzioniAnimale
-        animaleId={animale.id}
-        animaleNome={animale.nome}
-        ownerUserId={animale.user_id}
-      />
+      <AzioniAnimale animaleId={animale.id} animaleNome={animale.nome} />
     </div>
   )
 }

@@ -194,6 +194,64 @@ export type Database = {
           }
         ]
       }
+      animali_utenti: {
+        Row: {
+          id: string
+          animale_id: string
+          user_id: string
+          status: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id: string | null
+          created_at: string
+          updated_at: string
+          accepted_at: string | null
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          animale_id: string
+          user_id: string
+          status?: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+          accepted_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          animale_id?: string
+          user_id?: string
+          status?: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+          accepted_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'animali_utenti_animale_id_fkey'
+            columns: ['animale_id']
+            isOneToOne: false
+            referencedRelation: 'animali'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'animali_utenti_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'animali_utenti_invited_by_user_id_fkey'
+            columns: ['invited_by_user_id']
+            isOneToOne: false
+            referencedRelation: 'profili'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       impegni: {
         Row: {
           id: string
@@ -572,7 +630,7 @@ export type Database = {
           condivisione_id: string
           animale_id: string
           animale_nome: string
-          owner_user_id: string
+          owner_user_id: string | null
           owner_nome: string | null
           owner_email: string | null
           created_at: string
@@ -588,6 +646,12 @@ export type Database = {
       revoca_condivisione_animale: {
         Args: {
           p_condivisione_id: string
+        }
+        Returns: string
+      }
+      rimuovi_animale_dal_mio_account: {
+        Args: {
+          p_animale_id: string
         }
         Returns: string
       }
