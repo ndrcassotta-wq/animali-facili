@@ -9,6 +9,7 @@ import type { Animale } from '@/lib/types/query.types'
 import { User, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TutorialPrimoAccesso } from '@/components/home/TutorialPrimoAccesso'
+import { InvitiCondivisioneCard } from '@/components/home/InvitiCondivisioneCard'
 
 function iconaCategoria(categoria: string): string {
   const m: Record<string, string> = {
@@ -74,7 +75,7 @@ function AvatarAnimale({
   return (
     <Link
       href={`/animali/${animale.id}`}
-      className="flex flex-col items-center gap-3 active:scale-95 transition-transform"
+      className="flex flex-col items-center gap-3 transition-transform active:scale-95"
     >
       {animale.foto_url ? (
         <img
@@ -126,7 +127,10 @@ function GrigliaAnimali({
   else if (n === 5)
     righe = [[animali[0], animali[1]], [animali[2], animali[3], animali[4]]]
   else if (n === 6)
-    righe = [[animali[0], animali[1], animali[2]], [animali[3], animali[4], animali[5]]]
+    righe = [
+      [animali[0], animali[1], animali[2]],
+      [animali[3], animali[4], animali[5]],
+    ]
   else {
     for (let i = 0; i < n; i += 3) righe.push(animali.slice(i, i + 3))
   }
@@ -172,10 +176,10 @@ export default async function HomePage() {
   const badge = notificheNonLette ?? 0
 
   return (
-    <div className="flex flex-col bg-[#FDF8F3]" style={{ height: '100dvh' }}>
+    <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
       <TutorialPrimoAccesso haAnimali={!nessunAnimale} />
 
-      <header className="shrink-0 px-5 pt-10 pb-2">
+      <header className="shrink-0 px-5 pb-2 pt-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -209,7 +213,11 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <section className="flex flex-1 items-center justify-center px-6 pb-16">
+      <div className="px-5 pt-2">
+        <InvitiCondivisioneCard />
+      </div>
+
+      <section className="flex flex-1 items-center justify-center px-6 pb-16 pt-4">
         {nessunAnimale ? (
           <Link href="/animali/nuovo">
             <div className="mx-4 flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-amber-200 bg-white px-10 py-20 text-center transition-transform active:scale-[0.98]">

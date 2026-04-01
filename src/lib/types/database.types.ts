@@ -541,7 +541,57 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_animale_condivisioni: {
+        Args: {
+          p_animale_id: string
+        }
+        Returns: {
+          id: string
+          shared_user_id: string
+          shared_nome: string | null
+          shared_email: string | null
+          status: 'pending' | 'accepted' | 'revoked'
+          invited_by_user_id: string | null
+          created_at: string
+          updated_at: string
+          accepted_at: string | null
+          revoked_at: string | null
+        }[]
+      }
+      invita_condivisione_animale: {
+        Args: {
+          p_animale_id: string
+          p_email: string
+        }
+        Returns: string
+      }
+      get_inviti_condivisione_ricevuti: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          condivisione_id: string
+          animale_id: string
+          animale_nome: string
+          owner_user_id: string
+          owner_nome: string | null
+          owner_email: string | null
+          created_at: string
+        }[]
+      }
+      rispondi_invito_condivisione: {
+        Args: {
+          p_condivisione_id: string
+          p_azione: 'accepted' | 'revoked'
+        }
+        Returns: string
+      }
+      revoca_condivisione_animale: {
+        Args: {
+          p_condivisione_id: string
+        }
+        Returns: string
+      }
+    }
     Enums: {
       categoria_animale:
         | 'cani'
