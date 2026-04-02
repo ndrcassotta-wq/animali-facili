@@ -358,6 +358,7 @@ export async function programmaNotificaImpegno({
   preferenze = PREFERENZE_DEFAULT,
   modalita,
   configurazione,
+  routeDettaglio,
 }: {
   id: string
   titolo: string
@@ -368,6 +369,7 @@ export async function programmaNotificaImpegno({
   preferenze?: PreferenzeNotifiche
   modalita?: ModalitaNotificaImpegno
   configurazione?: ConfigurazioneNotificaImpegno
+  routeDettaglio?: string
 }): Promise<void> {
   if (!isCapacitorNativo()) return
 
@@ -427,7 +429,12 @@ export async function programmaNotificaImpegno({
           },
           sound: undefined,
           actionTypeId: '',
-          extra: { impegnoId: id },
+          extra: {
+            entityType: 'impegno',
+            entityId: id,
+            impegnoId: id,
+            route: routeDettaglio ?? null,
+          },
         },
       ],
     })

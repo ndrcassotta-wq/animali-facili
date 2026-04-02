@@ -20,6 +20,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#fdf8ec',
       showSpinner: false,
     },
+    LocalNotifications: {
+      smallIcon: 'ic_stat_animali_facili',
+      iconColor: '#8C6A43',
+    },
   },
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   programmaNotificaImpegno,
@@ -15,13 +16,16 @@ export function NotificaImpegno({
   animaleNome,
   data,
   tipo,
+  routeDettaglio,
 }: {
   impegnoId: string
   titolo: string
   animaleNome: string
   data: string
   tipo: string
+  routeDettaglio?: string
 }) {
+  const pathname = usePathname()
   const [attiva, setAttiva] = useState(false)
   const [caricamento, setCaricamento] = useState(false)
   const [messaggio, setMessaggio] = useState<string | null>(null)
@@ -47,6 +51,7 @@ export function NotificaImpegno({
         animaleNome,
         data,
         tipo,
+        routeDettaglio: routeDettaglio ?? pathname,
       })
 
       setAttiva(true)
