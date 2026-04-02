@@ -230,6 +230,32 @@ export function ProfiloContent({
       </Card>
 
       <Card>
+        <div className="space-y-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FCF3E8] text-amber-500">
+              <Info size={22} strokeWidth={2.2} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+                Aiuto e supporto
+              </h2>
+              <p className="mt-1 text-sm leading-5 text-gray-400">
+                Consulta la guida pubblica con spiegazioni semplici, FAQ e contatto supporto.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/guida"
+            className="flex w-full items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 py-4 text-sm font-bold text-gray-800 transition-all active:scale-[0.98]"
+          >
+            Apri guida e supporto
+          </Link>
+        </div>
+      </Card>
+
+      <Card>
         <div className="space-y-4">
           <div>
             <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
