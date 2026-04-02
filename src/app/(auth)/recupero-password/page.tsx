@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { TurnstileCaptcha } from '@/components/auth/TurnstileCaptcha'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,15 +11,31 @@ import { Label } from '@/components/ui/label'
 export default function RecuperoPasswordPage() {
   const [email, setEmail] = useState('')
   const [stato, setStato] = useState<'idle' | 'loading' | 'inviato' | 'errore'>('idle')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
+
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email) return
+
+    if (captchaEnabled && !captchaToken) {
+      setStato('errore')
+      return
+    }
+
     setStato('loading')
+
     const supabase = createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/aggiorna-password`,
+      ...(captchaEnabled && captchaToken ? { captchaToken } : {}),
     })
+
+    setCaptchaToken(null)
+    setCaptchaResetKey(prev => prev + 1)
+
     setStato(error ? 'errore' : 'inviato')
   }
 
@@ -50,13 +67,24 @@ export default function RecuperoPasswordPage() {
         />
       </div>
 
+      <TurnstileCaptcha
+        onTokenChange={setCaptchaToken}
+        resetKey={captchaResetKey}
+        className="pt-1"
+        enabled={captchaEnabled}
+      />
+
       {stato === 'errore' && (
         <p className="text-sm text-destructive text-center">
-          Qualcosa è andato storto. Riprova.
+          Qualcosa è andato storto. Riprova e completa il controllo di sicurezza.
         </p>
       )}
 
-      <Button type="submit" className="w-full" disabled={stato === 'loading' || !email}>
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={stato === 'loading' || !email}
+      >
         {stato === 'loading' ? 'Invio...' : 'Invia link di recupero'}
       </Button>
 

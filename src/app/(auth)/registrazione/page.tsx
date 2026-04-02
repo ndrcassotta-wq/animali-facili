@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from '@/hooks/useForm'
 import { registrazioneSchema } from '@/lib/utils/validation'
+import { TurnstileCaptcha } from '@/components/auth/TurnstileCaptcha'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,28 +15,46 @@ export default function RegistrazionePage() {
   const router = useRouter()
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [confermaEmail, setConfermaEmail] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
+
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+
   const { values, errors, isSubmitting, setValue, validate, setSubmitting } =
     useForm(registrazioneSchema, { nome: '', email: '', password: '' })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErroreSrv(null)
+
     const data = validate()
     if (!data) return
 
+    if (captchaEnabled && !captchaToken) {
+      setErroreSrv('Completa il controllo di sicurezza.')
+      return
+    }
+
     setSubmitting(true)
+
     const supabase = createClient()
     const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
-      options: { data: { nome: data.nome } },
+      options: {
+        data: { nome: data.nome },
+        ...(captchaEnabled && captchaToken ? { captchaToken } : {}),
+      },
     })
+
     setSubmitting(false)
+    setCaptchaToken(null)
+    setCaptchaResetKey(prev => prev + 1)
 
     if (error) {
-  setErroreSrv(error.message)
-  return
-}
+      setErroreSrv(error.message)
+      return
+    }
 
     if (authData.session) {
       router.push('/onboarding')
@@ -49,8 +68,7 @@ export default function RegistrazionePage() {
       <div className="text-center space-y-3">
         <h2 className="text-lg font-semibold">Controlla la tua email</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Abbiamo inviato un link di conferma a{' '}
-          <strong>{values.email}</strong>.
+          Abbiamo inviato un link di conferma a <strong>{values.email}</strong>.
           Clicca il link per attivare il tuo account.
         </p>
         <p className="text-xs text-muted-foreground">
@@ -102,6 +120,13 @@ export default function RegistrazionePage() {
         />
         {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
       </div>
+
+      <TurnstileCaptcha
+        onTokenChange={setCaptchaToken}
+        resetKey={captchaResetKey}
+        className="pt-1"
+        enabled={captchaEnabled}
+      />
 
       {erroreSrv && (
         <p className="text-sm text-destructive text-center">{erroreSrv}</p>

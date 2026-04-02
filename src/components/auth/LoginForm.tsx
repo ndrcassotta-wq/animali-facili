@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from '@/hooks/useForm'
 import { loginSchema } from '@/lib/utils/validation'
+import { TurnstileCaptcha } from '@/components/auth/TurnstileCaptcha'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -60,6 +61,10 @@ export function LoginForm() {
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [mostraPassword, setMostraPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
+
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
   const { values, errors, isSubmitting, setValue, validate, setSubmitting } =
     useForm(loginSchema, { email: '', password: '' })
@@ -78,15 +83,23 @@ export function LoginForm() {
     const data = validate()
     if (!data) return
 
+    if (captchaEnabled && !captchaToken) {
+      setErroreSrv('Completa il controllo di sicurezza.')
+      return
+    }
+
     setSubmitting(true)
     const supabase = createClient()
 
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
+      ...(captchaEnabled && captchaToken ? { captchaToken } : {}),
     })
 
     setSubmitting(false)
+    setCaptchaToken(null)
+    setCaptchaResetKey(prev => prev + 1)
 
     if (error) {
       setErroreSrv('Email o password non corretti.')
@@ -279,6 +292,13 @@ export function LoginForm() {
             <p className="text-xs text-destructive">{errors.password}</p>
           )}
         </div>
+
+        <TurnstileCaptcha
+          onTokenChange={setCaptchaToken}
+          resetKey={captchaResetKey}
+          className="pt-1"
+          enabled={captchaEnabled}
+        />
 
         {erroreSrv && (
           <p className="text-center text-sm text-destructive">{erroreSrv}</p>
