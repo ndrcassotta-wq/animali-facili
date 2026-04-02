@@ -14,6 +14,14 @@ export type ConfigurazioneNotificaImpegno = {
   ora?: string | null
 }
 
+type PayloadNotificaImpegno = {
+  entityType: 'impegno'
+  entityId: string
+  impegnoId: string
+  route: string
+  deepLink: string
+}
+
 export const ORARIO_DEFAULT_NOTIFICA_IMPEGNO = 9
 
 export const PREFERENZE_DEFAULT: PreferenzeNotifiche = {
@@ -90,6 +98,35 @@ function generaIdNotificaSicuro(id: string): number {
   }
 
   return (hash % 2147483646) + 1
+}
+
+function generaRouteDettaglioImpegno(id: string): string {
+  return `/impegni/${id}`
+}
+
+function generaDeepLinkNotificaImpegno(id: string, route: string): string {
+  const params = new URLSearchParams({
+    type: 'impegno',
+    id,
+    route,
+  })
+
+  return `com.animalifacili.app://notification?${params.toString()}`
+}
+
+function creaPayloadNotificaImpegno(
+  id: string,
+  routeDettaglio?: string
+): PayloadNotificaImpegno {
+  const route = routeDettaglio?.trim() || generaRouteDettaglioImpegno(id)
+
+  return {
+    entityType: 'impegno',
+    entityId: id,
+    impegnoId: id,
+    route,
+    deepLink: generaDeepLinkNotificaImpegno(id, route),
+  }
 }
 
 async function verificaPermessiSchedulingNotifiche(): Promise<boolean> {
@@ -401,6 +438,7 @@ export async function programmaNotificaImpegno({
     const { LocalNotifications } = await import('@capacitor/local-notifications')
 
     const idNumerico = generaIdNotificaSicuro(id)
+    const payload = creaPayloadNotificaImpegno(id, routeDettaglio)
 
     const corpo = creaCorpoNotifica({
       titolo,
@@ -429,12 +467,7 @@ export async function programmaNotificaImpegno({
           },
           sound: undefined,
           actionTypeId: '',
-          extra: {
-            entityType: 'impegno',
-            entityId: id,
-            impegnoId: id,
-            route: routeDettaglio ?? null,
-          },
+          extra: payload,
         },
       ],
     })
