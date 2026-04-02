@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ExternalLink, FileText } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { BottoneDownload } from '@/components/documenti/BottoneDownload'
 import { formatData } from '@/lib/utils/date'
 import type { Documento } from '@/lib/types/query.types'
 import { AzioniDocumento } from '@/components/documenti/AzioniDocumento'
+import { AzioniEsterneDocumento } from '@/components/documenti/AzioniEsterneDocumento'
 
 const labelCategoria: Record<string, string> = {
   ricetta: 'Ricetta',
@@ -140,23 +140,11 @@ export default async function DettaglioDocumentoPage({
 
         {signedUrl ? (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <a
-                href={signedUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] px-4 py-3 text-sm font-semibold text-gray-900 transition-all active:scale-[0.98]"
-              >
-                <ExternalLink size={16} strokeWidth={2.2} />
-                Apri documento
-              </a>
-
-              <BottoneDownload
-                signedUrl={signedUrl}
-                titolo={doc.titolo}
-                filePath={doc.file_url}
-              />
-            </div>
+            <AzioniEsterneDocumento
+              signedUrl={signedUrl}
+              titolo={doc.titolo}
+              filePath={doc.file_url}
+            />
 
             <div className="overflow-hidden rounded-[28px] border border-[#EADFD3] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
               <div className="border-b border-[#F1E7DC] px-5 py-4">
