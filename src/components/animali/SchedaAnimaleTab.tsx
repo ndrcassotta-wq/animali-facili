@@ -19,6 +19,7 @@ import { TabProfilo } from '@/components/animali/TabProfilo'
 import { TabImpegni } from '@/components/animali/TabImpegni'
 import { TabDocumenti } from '@/components/animali/TabDocumenti'
 import TabTerapie from '@/components/animali/TabTerapie'
+import TabStorico from '@/components/animali/TabStorico'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,7 +39,14 @@ type DiarioVoce = Database['public']['Tables']['diario_voci']['Row']
 type DiarioVoceInsert = Database['public']['Tables']['diario_voci']['Insert']
 type DiarioVoceUpdate = Database['public']['Tables']['diario_voci']['Update']
 
-type TabId = 'home' | 'profilo' | 'impegni' | 'documenti' | 'terapie' | 'diario'
+type TabId =
+  | 'home'
+  | 'profilo'
+  | 'impegni'
+  | 'documenti'
+  | 'terapie'
+  | 'diario'
+  | 'storico'
 
 type DiarioFotoDraft = {
   id: string
@@ -87,6 +95,7 @@ interface Props {
   impegni: Impegno[]
   documenti: Documento[]
   terapie: TerapiaConUltimaSomministrazione[]
+  somministrazioni: SomministrazioneTerapia[]
   diarioVoci: DiarioVoce[]
   tabIniziale: TabId
 }
@@ -927,6 +936,7 @@ export function SchedaAnimaleTab({
   impegni,
   documenti,
   terapie,
+  somministrazioni,
   diarioVoci,
   tabIniziale,
 }: Props) {
@@ -940,7 +950,8 @@ export function SchedaAnimaleTab({
       tabIniziale === 'impegni' ||
       tabIniziale === 'documenti' ||
       tabIniziale === 'terapie' ||
-      tabIniziale === 'diario'
+      tabIniziale === 'diario' ||
+      tabIniziale === 'storico'
       ? tabIniziale
       : 'home'
   )
@@ -978,6 +989,12 @@ export function SchedaAnimaleTab({
     (i) => i.stato === 'programmato' && i.tipo !== 'terapia'
   ).length
   const terapieAttive = terapie.filter((t) => t.stato === 'attiva').length
+  const eventiStorico =
+    documenti.length +
+    impegni.filter((i) => i.tipo !== 'terapia').length +
+    terapie.length +
+    somministrazioni.length
+
   const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
   const sottotitoloHeader = [categoriaLabel, animale.specie, animale.razza]
     .filter(Boolean)
@@ -1219,6 +1236,15 @@ export function SchedaAnimaleTab({
           {tabAttivo === 'terapie' && (
             <TabTerapie animaleId={animale.id} terapie={terapie} />
           )}
+          {tabAttivo === 'storico' && (
+            <TabStorico
+              animaleId={animale.id}
+              documenti={documenti}
+              impegni={impegni}
+              terapie={terapie}
+              somministrazioni={somministrazioni}
+            />
+          )}
           {tabAttivo === 'diario' && (
             <TabDiario
               animaleId={animale.id}
@@ -1379,6 +1405,20 @@ export function SchedaAnimaleTab({
             tone="border-amber-100 bg-amber-50 text-amber-900"
             icon={
               <BookOpen size={24} strokeWidth={2} className="text-amber-600" />
+            }
+          />
+
+          <QuickCard
+            title="Storico"
+            subtitle={
+              eventiStorico > 0
+                ? `${eventiStorico} eventi registrati`
+                : 'Ancora vuoto'
+            }
+            onClick={() => cambiaTab('storico')}
+            tone="border-slate-200 bg-[#FCF8F3] text-slate-800"
+            icon={
+              <Calendar size={24} strokeWidth={2} className="text-slate-600" />
             }
           />
         </div>

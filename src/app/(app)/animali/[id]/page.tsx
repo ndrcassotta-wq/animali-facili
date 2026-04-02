@@ -22,6 +22,7 @@ type TabId =
   | 'documenti'
   | 'terapie'
   | 'diario'
+  | 'storico'
 
 const TAB_VALIDE: TabId[] = [
   'home',
@@ -30,6 +31,7 @@ const TAB_VALIDE: TabId[] = [
   'documenti',
   'terapie',
   'diario',
+  'storico',
 ]
 
 function getTabValida(tab?: string | string[]): TabId {
@@ -132,6 +134,7 @@ export default async function AnimalePage({ params, searchParams }: PageProps) {
       impegni={impegni}
       documenti={documenti}
       terapie={terapie}
+      somministrazioni={tutteLeSomministrazioni}
       diarioVoci={diarioVoci}
       tabIniziale={tabIniziale}
     />
