@@ -28,6 +28,8 @@ export type PartnerProfile = {
   email: string | null
   sito: string | null
   zona_servita: string | null
+  image_path: string | null
+  image_updated_at: string | null
   status: PartnerStatus
   created_source: string
   submitted_at: string
@@ -41,6 +43,12 @@ export type ApprovedPartnerFilters = {
   categoria?: PartnerCategory
   luogo?: string
   specie?: PartnerSpecies
+}
+
+type CreatePartnerSubmissionOptions = {
+  slug?: string
+  imagePath?: string | null
+  imageUpdatedAt?: string | null
 }
 
 function normalizeText(value?: string | null) {
@@ -112,11 +120,23 @@ export async function getPartnerBySlug(slug: string) {
   return (data ?? null) as PartnerProfile | null
 }
 
-export async function createPartnerSubmission(payload: PartnerSubmissionInput) {
+export async function createPartnerSubmission(
+  payload: PartnerSubmissionInput,
+  options: CreatePartnerSubmissionOptions = {}
+) {
   const supabase = await createClient()
 
   const baseSlug = buildPartnerBaseSlug(payload.nome, payload.citta)
-  const candidates = buildPartnerSlugCandidates(baseSlug, 20)
+  const generatedCandidates = buildPartnerSlugCandidates(baseSlug, 20)
+
+  const candidates = Array.from(
+    new Set(
+      [
+        options.slug?.trim(),
+        ...generatedCandidates,
+      ].filter((value): value is string => Boolean(value))
+    )
+  )
 
   for (const slug of candidates) {
     const { error } = await supabase.from('partner_profiles').insert({
@@ -134,6 +154,8 @@ export async function createPartnerSubmission(payload: PartnerSubmissionInput) {
       email: payload.email ?? null,
       sito: payload.sito ?? null,
       zona_servita: payload.zona_servita ?? null,
+      image_path: options.imagePath ?? null,
+      image_updated_at: options.imageUpdatedAt ?? null,
       status: 'in_revisione',
       created_source: 'public_form',
     })
@@ -142,10 +164,12 @@ export async function createPartnerSubmission(payload: PartnerSubmissionInput) {
       return { slug }
     }
 
+    const errorMessage = error.message.toLowerCase()
+
     const isUniqueViolation =
       error.code === '23505' ||
-      error.message.toLowerCase().includes('duplicate key') ||
-      error.message.toLowerCase().includes('partner_profiles_slug_key')
+      errorMessage.includes('duplicate key') ||
+      errorMessage.includes('partner_profiles_slug_key')
 
     if (isUniqueViolation) {
       continue

@@ -3,6 +3,12 @@ import {
   PARTNER_CATEGORY_VALUES,
   PARTNER_SPECIES_VALUES,
 } from '@/lib/constants/partners'
+import {
+  getPartnerImageValidationMessage,
+  isPartnerImageFile,
+  isPartnerImageMimeTypeAllowed,
+  isPartnerImageSizeAllowed,
+} from '@/lib/partners/images'
 
 const emptyToUndefined = (value: unknown) => {
   if (typeof value !== 'string') return value
@@ -119,4 +125,33 @@ export function normalizePartnerSubmissionFormData(formData: FormData) {
   }
 
   return partnerSubmissionSchema.safeParse(payload)
+}
+
+export function validatePartnerImage(
+  value: FormDataEntryValue | null
+):
+  | { success: true; data: File | null }
+  | { success: false; error: string } {
+  if (!isPartnerImageFile(value)) {
+    return { success: true, data: null }
+  }
+
+  if (!isPartnerImageMimeTypeAllowed(value.type)) {
+    return {
+      success: false,
+      error: getPartnerImageValidationMessage(),
+    }
+  }
+
+  if (!isPartnerImageSizeAllowed(value.size)) {
+    return {
+      success: false,
+      error: getPartnerImageValidationMessage(),
+    }
+  }
+
+  return {
+    success: true,
+    data: value,
+  }
 }

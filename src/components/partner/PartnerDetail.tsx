@@ -5,6 +5,10 @@ import {
 import type { PartnerProfile } from '@/lib/partners/queries'
 import { PartnerContactActions } from '@/components/partner/PartnerContactActions'
 import {
+  getPartnerImagePlaceholderInitial,
+  getPartnerImagePublicUrl,
+} from '@/lib/partners/images'
+import {
   Mail,
   MapPin,
   MessageCircle,
@@ -17,9 +21,26 @@ import {
 } from 'lucide-react'
 
 export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
+  const imageUrl = getPartnerImagePublicUrl(partner.image_path)
+  const imageFallback = getPartnerImagePlaceholderInitial(partner.nome)
+
   return (
     <section className="rounded-[32px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:p-8">
       <div className="flex flex-col gap-5">
+        <div className="overflow-hidden rounded-[28px] border border-[#EADFD3] bg-[#FAF7F2] p-4">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={`Immagine partner ${partner.nome}`}
+              className="h-[220px] w-full rounded-[20px] object-contain bg-white md:h-[280px]"
+            />
+          ) : (
+            <div className="flex h-[220px] w-full items-center justify-center rounded-[20px] border border-dashed border-[#D8C7B2] bg-white text-6xl font-semibold text-[#8B6F47] md:h-[280px] md:text-7xl">
+              {imageFallback}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-[#F7EFE7] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#8B5E3C]">
             {getPartnerCategoryLabel(partner.categoria)}

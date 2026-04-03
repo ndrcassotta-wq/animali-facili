@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Building2, CheckCircle2, PhoneCall } from 'lucide-react'
+import { Building2, CheckCircle2, PhoneCall, Image as ImageIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   getPartnerCategoryLabel,
   getPartnerSpeciesLabel,
 } from '@/lib/constants/partners'
+import { PARTNER_IMAGE_INPUT_ACCEPT } from '@/lib/partners/images'
 
 type SubmissionState = {
   status: 'idle' | 'success' | 'error'
@@ -90,7 +91,11 @@ export function PartnerSubmissionForm({
   const [state, formAction] = useActionState(action, initialState)
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={formAction}
+      encType="multipart/form-data"
+      className="space-y-6"
+    >
       {state.status === 'success' ? (
         <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
           {state.message}
@@ -173,6 +178,33 @@ export function PartnerSubmissionForm({
             className="min-h-[140px]"
           />
           <FieldError errors={state.fieldErrors?.descrizione} />
+        </div>
+
+        <div className="mt-4 rounded-[24px] border border-[#EADFD3] bg-[#FFF9F5] p-4 md:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#8B5E3C]">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <label htmlFor="image" className="block text-sm font-semibold text-slate-900">
+                Logo o foto attività/profilo
+              </label>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Facoltativa. JPG, PNG, WEBP – max 5 MB.
+              </p>
+
+              <input
+                id="image"
+                name="image"
+                type="file"
+                accept={PARTNER_IMAGE_INPUT_ACCEPT}
+                className="mt-3 block w-full rounded-xl border border-[#EADFD3] bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[#F4EFE7] file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-800"
+              />
+
+              <FieldError errors={state.fieldErrors?.image} />
+            </div>
+          </div>
         </div>
       </SectionCard>
 
