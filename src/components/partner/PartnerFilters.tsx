@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,22 +27,33 @@ export function PartnerFilters({
     <form
       action={basePath}
       method="GET"
-      className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+      className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:p-6"
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div>
-          <label htmlFor="partner-q" className="mb-2 block text-sm font-medium text-slate-700">
+      <div className="mb-4">
+        <p className="text-sm font-medium text-[#8B5E3C]">Ricerca partner</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Filtra per nome, luogo, categoria o specie trattata.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0">
+          <label
+            htmlFor="partner-q"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
             Cerca
           </label>
           <Input
             id="partner-q"
             name="q"
             defaultValue={values.q}
-            placeholder="Nome, indirizzo, città"
+            placeholder="Nome, indirizzo o città"
+            className="h-11"
           />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor="partner-categoria"
             className="mb-2 block text-sm font-medium text-slate-700"
@@ -52,7 +64,7 @@ export function PartnerFilters({
             id="partner-categoria"
             name="categoria"
             defaultValue={values.categoria ?? ''}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-slate-700"
           >
             <option value="">Tutte le categorie</option>
             {PARTNER_CATEGORY_VALUES.map((categoria) => (
@@ -63,22 +75,23 @@ export function PartnerFilters({
           </select>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor="partner-luogo"
             className="mb-2 block text-sm font-medium text-slate-700"
           >
-            Città / provincia
+            Città o provincia
           </label>
           <Input
             id="partner-luogo"
             name="luogo"
             defaultValue={values.luogo}
             placeholder="Es. Roma o RM"
+            className="h-11"
           />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor="partner-specie"
             className="mb-2 block text-sm font-medium text-slate-700"
@@ -89,7 +102,7 @@ export function PartnerFilters({
             id="partner-specie"
             name="specie"
             defaultValue={values.specie ?? ''}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-slate-700"
           >
             <option value="">Tutte le specie</option>
             {PARTNER_SPECIES_VALUES.map((specie) => (
@@ -101,11 +114,15 @@ export function PartnerFilters({
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Button type="submit">Cerca partner</Button>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <Button type="submit" className="h-11 gap-2 px-5">
+          <Search className="h-4 w-4" />
+          Cerca partner
+        </Button>
+
         <Link
           href={basePath}
-          className="inline-flex h-10 items-center justify-center rounded-md border border-[#EADFD3] px-4 text-sm font-medium text-slate-700 transition hover:bg-[#FFF9F5]"
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-[#EADFD3] px-5 text-sm font-medium text-slate-700 transition hover:bg-[#FFF9F5]"
         >
           Reset filtri
         </Link>
