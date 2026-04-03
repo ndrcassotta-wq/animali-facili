@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Animale } from '@/lib/types/query.types'
-import { User, Bell } from 'lucide-react'
+import { User, Bell, MapPinned } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TutorialPrimoAccesso } from '@/components/home/TutorialPrimoAccesso'
 import { InvitiCondivisioneCard } from '@/components/home/InvitiCondivisioneCard'
@@ -222,6 +222,29 @@ export default async function HomePage() {
 
       <div className="px-5 pt-2">
         <InvitiCondivisioneCard />
+      </div>
+
+      <div className="px-5 pt-2">
+        <Link
+          href="/partner"
+          className="block rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-transform active:scale-[0.98]"
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FDF7F2] text-[#8B5E3C]">
+              <MapPinned className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#8B5E3C]">Partner</p>
+              <h2 className="mt-1 text-base font-bold text-gray-900">
+                Trova professionisti utili
+              </h2>
+              <p className="mt-1 text-sm leading-5 text-gray-500">
+                Cerca veterinari, toelettatori, pet sitter e altri servizi per il tuo animale.
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <section className="flex flex-1 items-center justify-center px-6 pb-16 pt-4">

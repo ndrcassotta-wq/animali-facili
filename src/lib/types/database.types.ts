@@ -607,6 +607,99 @@ export type Database = {
           }
         ]
       }
+      partner_profiles: {
+        Row: {
+          id: string
+          slug: string
+          nome: string
+          categoria:
+            | 'veterinario'
+            | 'toelettatore'
+            | 'pet_sitter'
+            | 'educatore'
+            | 'pensione_asilo'
+            | 'allevatore'
+            | 'negozio_animali'
+          citta: string
+          provincia: string
+          descrizione: string
+          specie_trattate: string[]
+          servizi_principali: string[]
+          indirizzo_completo: string | null
+          telefono: string | null
+          whatsapp: string | null
+          email: string | null
+          sito: string | null
+          zona_servita: string | null
+          status: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
+          created_source: string
+          submitted_at: string
+          published_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          nome: string
+          categoria:
+            | 'veterinario'
+            | 'toelettatore'
+            | 'pet_sitter'
+            | 'educatore'
+            | 'pensione_asilo'
+            | 'allevatore'
+            | 'negozio_animali'
+          citta: string
+          provincia: string
+          descrizione: string
+          specie_trattate: string[]
+          servizi_principali: string[]
+          indirizzo_completo?: string | null
+          telefono?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          sito?: string | null
+          zona_servita?: string | null
+          status?: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
+          created_source?: string
+          submitted_at?: string
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          nome?: string
+          categoria?:
+            | 'veterinario'
+            | 'toelettatore'
+            | 'pet_sitter'
+            | 'educatore'
+            | 'pensione_asilo'
+            | 'allevatore'
+            | 'negozio_animali'
+          citta?: string
+          provincia?: string
+          descrizione?: string
+          specie_trattate?: string[]
+          servizi_principali?: string[]
+          indirizzo_completo?: string | null
+          telefono?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          sito?: string | null
+          zona_servita?: string | null
+          status?: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
+          created_source?: string
+          submitted_at?: string
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -709,6 +802,15 @@ export type Database = {
         | 'documento_sanitario'
         | 'ricevuta'
         | 'altro'
+      partner_category:
+        | 'veterinario'
+        | 'toelettatore'
+        | 'pet_sitter'
+        | 'educatore'
+        | 'pensione_asilo'
+        | 'allevatore'
+        | 'negozio_animali'
+      partner_status: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
     }
     CompositeTypes: Record<string, never>
   }
