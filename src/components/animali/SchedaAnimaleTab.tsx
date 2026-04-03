@@ -1080,12 +1080,14 @@ function TabDiario({
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-amber-600">
                 <BookOpen size={24} strokeWidth={2.2} />
               </div>
+
               <h3 className="text-lg font-extrabold text-gray-900">
-                Nessuna voce nel diario
+                Il diario serve per annotare momenti importanti
               </h3>
+
               <p className="mt-2 text-sm leading-6 text-gray-500">
-                Inizia con una nota semplice per ricordare un’osservazione, un
-                cambiamento o un momento importante.
+                Puoi salvare note, osservazioni, aggiornamenti e foto utili sul
+                tuo animale, anche per ricordarti cambiamenti nel tempo.
               </p>
 
               <button
@@ -1094,7 +1096,7 @@ function TabDiario({
                 className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
               >
                 <Plus size={16} strokeWidth={2.5} />
-                Crea la prima voce
+                Aggiungi la prima nota
               </button>
             </div>
           ) : (
@@ -1133,8 +1135,7 @@ function TabDiario({
                       <div className="mt-4">
                         <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-amber-700">
                           <Images size={14} strokeWidth={2.2} />
-                          {fotoVoce.length}{' '}
-                          {fotoVoce.length === 1 ? 'foto' : 'foto'}
+                          {fotoVoce.length} foto
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
@@ -1639,7 +1640,7 @@ export function SchedaAnimaleTab({
             subtitle={
               vociDiario > 0
                 ? `${vociDiario} ${vociDiario === 1 ? 'voce salvata' : 'voci salvate'}`
-                : 'Note personali e manuali'
+                : 'Note, foto e osservazioni'
             }
             onClick={() => cambiaTab('diario')}
             tone="border-amber-100 bg-amber-50 text-amber-900"
@@ -1653,7 +1654,7 @@ export function SchedaAnimaleTab({
             subtitle={
               eventiStorico > 0
                 ? `${eventiStorico} eventi registrati`
-                : 'Ancora vuoto'
+                : 'Si popola con l’app'
             }
             onClick={() => cambiaTab('storico')}
             tone="border-slate-200 bg-[#FCF8F3] text-slate-800"

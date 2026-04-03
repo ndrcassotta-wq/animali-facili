@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { formatData, isScaduta, isImminente } from '@/lib/utils/date'
 import { cn } from '@/lib/utils'
-import { ChevronRight, Plus } from 'lucide-react'
+import { CalendarClock, ChevronRight, Plus } from 'lucide-react'
 import type { Impegno } from '@/lib/types/query.types'
 
 type FiltroStato = 'programmato' | 'completato' | 'annullato'
@@ -112,13 +112,6 @@ export function TabImpegni({
     (i) => i.stato === filtro && i.tipo !== 'terapia'
   )
 
-  const emptyLabel =
-    filtro === 'programmato'
-      ? 'Nessun impegno programmato.'
-      : filtro === 'completato'
-        ? 'Nessun impegno completato.'
-        : 'Nessun impegno annullato.'
-
   return (
     <div className="space-y-4 px-4 py-4 pb-32">
       <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
@@ -156,9 +149,42 @@ export function TabImpegni({
 
       {impegniFiltrati.length === 0 ? (
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
-            <p className="text-sm font-medium text-gray-400">{emptyLabel}</p>
-          </div>
+          {filtro === 'programmato' ? (
+            <div className="rounded-[24px] border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-5 py-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                <CalendarClock size={26} strokeWidth={2.2} />
+              </div>
+
+              <h3 className="mt-4 text-lg font-extrabold tracking-tight text-gray-900">
+                Qui vedrai promemoria e scadenze
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-gray-500">
+                Visite, vaccini, controlli o qualsiasi impegno importante da non
+                dimenticare.
+              </p>
+
+              <Link
+                href={`/impegni/nuovo?animale_id=${animaleId}`}
+                className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 text-sm font-bold text-amber-700 transition-all active:scale-[0.98]"
+              >
+                <Plus size={16} strokeWidth={2.4} />
+                Crea il primo impegno
+              </Link>
+            </div>
+          ) : filtro === 'completato' ? (
+            <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
+              <p className="text-sm font-medium text-gray-400">
+                Nessun impegno completato.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#E7DBCF] bg-[#FCF8F3] px-4 py-8 text-center">
+              <p className="text-sm font-medium text-gray-400">
+                Nessun impegno annullato.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

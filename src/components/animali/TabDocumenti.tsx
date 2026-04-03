@@ -25,6 +25,8 @@ export function TabDocumenti({
   animaleId: string
   documenti: Documento[]
 }) {
+  const nessunDocumento = documenti.length === 0
+
   return (
     <div className="space-y-4 px-5 py-5 pb-32">
       <div className="rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_12px_30px_rgba(245,158,11,0.12)]">
@@ -62,7 +64,30 @@ export function TabDocumenti({
         </Link>
       </div>
 
-      {documenti.length > 0 && (
+      {nessunDocumento ? (
+        <div className="rounded-[28px] border border-dashed border-amber-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+            <FileText size={26} strokeWidth={2.2} />
+          </div>
+
+          <h3 className="mt-4 text-lg font-extrabold tracking-tight text-gray-900">
+            Qui troverai i documenti del tuo animale
+          </h3>
+
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Libretto, referti, ricette, analisi o qualsiasi file utile da avere
+            sempre a portata di mano.
+          </p>
+
+          <Link
+            href={`/documenti/carica?animale_id=${animaleId}`}
+            className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 text-sm font-bold text-amber-700 transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} strokeWidth={2.4} />
+            Carica il primo documento
+          </Link>
+        </div>
+      ) : (
         <div className="space-y-3">
           {documenti.map((documento) => (
             <Link

@@ -533,12 +533,18 @@ export default function TabStorico({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-slate-600">
             <CalendarDays size={24} strokeWidth={2.2} />
           </div>
+
           <h3 className="text-lg font-extrabold text-gray-900">
-            Nessun evento nello storico
+            Qui si costruisce la storia del tuo animale
           </h3>
+
           <p className="mt-2 text-sm leading-6 text-gray-500">
-            Lo storico si popola automaticamente con documenti, impegni passati,
-            terapie e somministrazioni già registrati.
+            Lo storico si popola man mano con eventi, documenti, impegni,
+            terapie e attività registrate nell’app.
+          </p>
+
+          <p className="mt-3 text-xs font-medium leading-5 text-gray-400">
+            Inizia aggiungendo un documento, un impegno o una nota nel diario.
           </p>
         </div>
       ) : (

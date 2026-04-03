@@ -173,12 +173,11 @@ export default async function HomePage() {
     'id' | 'nome' | 'categoria' | 'foto_url'
   >[]
   const nessunAnimale = animaliList.length === 0
+  const primoAnimale = animaliList[0]
   const badge = notificheNonLette ?? 0
 
   return (
     <div className="flex flex-col bg-[#FDF8F3]" style={{ minHeight: '100dvh' }}>
-      <TutorialPrimoAccesso haAnimali={!nessunAnimale} />
-
       <header className="shrink-0 px-5 pb-2 pt-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -212,6 +211,14 @@ export default async function HomePage() {
           </div>
         </div>
       </header>
+
+      <div className="px-5 pt-2">
+        <TutorialPrimoAccesso
+          haAnimali={!nessunAnimale}
+          primoAnimaleId={primoAnimale?.id}
+          primoAnimaleNome={primoAnimale?.nome}
+        />
+      </div>
 
       <div className="px-5 pt-2">
         <InvitiCondivisioneCard />
