@@ -416,6 +416,7 @@ export type Database = {
         Row: {
           id: string
           animale_id: string
+          created_by: string
           data: string
           titolo: string
           nota: string
@@ -426,6 +427,7 @@ export type Database = {
         Insert: {
           id?: string
           animale_id: string
+          created_by?: string
           data?: string
           titolo: string
           nota: string
@@ -436,6 +438,7 @@ export type Database = {
         Update: {
           id?: string
           animale_id?: string
+          created_by?: string
           data?: string
           titolo?: string
           nota?: string
@@ -449,6 +452,13 @@ export type Database = {
             columns: ['animale_id']
             isOneToOne: false
             referencedRelation: 'animali'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'diario_voci_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profili'
             referencedColumns: ['id']
           }
         ]

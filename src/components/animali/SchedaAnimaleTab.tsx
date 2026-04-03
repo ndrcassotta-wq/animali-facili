@@ -12,7 +12,6 @@ import {
   BookOpen,
   Plus,
   Camera,
-  Images,
   X,
 } from 'lucide-react'
 import { TabProfilo } from '@/components/animali/TabProfilo'
@@ -47,14 +46,6 @@ type TabId =
   | 'terapie'
   | 'diario'
   | 'storico'
-
-type DiarioFotoDraft = {
-  id: string
-  source: 'existing' | 'new'
-  previewUrl: string
-  storageUrl?: string
-  file?: File
-}
 
 const BUCKET_FOTO_ANIMALI = 'foto-animali'
 const MAX_FOTO_SIZE_MB = 10
@@ -129,48 +120,6 @@ function ordinaVociDiario(voci: DiarioVoce[]) {
   )
 }
 
-function getFotoUrlsVoce(voce: DiarioVoce) {
-  return Array.isArray(voce.foto_urls)
-    ? voce.foto_urls.filter(
-        (url): url is string => typeof url === 'string' && url.trim().length > 0
-      )
-    : []
-}
-
-function creaDraftFotoEsistente(url: string): DiarioFotoDraft {
-  return {
-    id: `existing-${url}-${Math.random().toString(16).slice(2)}`,
-    source: 'existing',
-    previewUrl: url,
-    storageUrl: url,
-  }
-}
-
-function creaDraftFotoNuova(file: File): DiarioFotoDraft {
-  return {
-    id: `new-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    source: 'new',
-    previewUrl: URL.createObjectURL(file),
-    file,
-  }
-}
-
-function revocaPreviewFotoDiario(drafts: DiarioFotoDraft[]) {
-  for (const draft of drafts) {
-    if (draft.source === 'new') {
-      URL.revokeObjectURL(draft.previewUrl)
-    }
-  }
-}
-
-function generaIdVoceDiario() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-
-  throw new Error('Impossibile generare un ID per la voce del diario.')
-}
-
 function QuickCard({
   title,
   subtitle,
@@ -217,6 +166,17 @@ function formatDataDiario(data: string) {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+  })
+}
+
+function formatDataOraDiario(data?: string | null) {
+  if (!data) return ''
+  return new Date(data).toLocaleString('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -295,7 +255,7 @@ function FotoSourceSheet({
             className="flex w-full items-center gap-3 rounded-2xl border border-[#EADFD3] bg-white px-4 py-4 text-left transition-all active:scale-[0.99] disabled:opacity-60"
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F4F4F5] text-slate-700 shadow-sm">
-              <Images size={20} strokeWidth={2.2} />
+              <BookOpen size={20} strokeWidth={2.2} />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">{galleryLabel}</p>
@@ -318,51 +278,68 @@ function TabDiario({
   vociIniziali: DiarioVoce[]
 }) {
   const router = useRouter()
-  const inputDiarioCameraRef = useRef<HTMLInputElement | null>(null)
-  const inputDiarioGalleriaRef = useRef<HTMLInputElement | null>(null)
-  const fotoDiarioDraftsRef = useRef<DiarioFotoDraft[]>([])
 
   const [voci, setVoci] = useState<DiarioVoce[]>(ordinaVociDiario(vociIniziali))
-  const [mostraForm, setMostraForm] = useState(false)
+  const [modalita, setModalita] = useState<'lista' | 'dettaglio' | 'form'>(
+    'lista'
+  )
+  const [voceSelezionataId, setVoceSelezionataId] = useState<string | null>(null)
   const [voceInModificaId, setVoceInModificaId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
   const [data, setData] = useState(getDataOggi())
   const [titolo, setTitolo] = useState('')
   const [nota, setNota] = useState('')
   const [erroreTitolo, setErroreTitolo] = useState('')
   const [erroreNota, setErroreNota] = useState('')
-  const [erroreFoto, setErroreFoto] = useState<string | null>(null)
   const [erroreSrv, setErroreSrv] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [mostraSceltaFoto, setMostraSceltaFoto] = useState(false)
-  const [fotoDiarioDrafts, setFotoDiarioDrafts] = useState<DiarioFotoDraft[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const isEditing = voceInModificaId !== null
+  const voceSelezionata =
+    voci.find((voce) => voce.id === voceSelezionataId) ?? null
+  const puoModificareVoceSelezionata =
+    !!currentUserId &&
+    !!voceSelezionata &&
+    voceSelezionata.created_by === currentUserId
 
   useEffect(() => {
-    setVoci(ordinaVociDiario(vociIniziali))
-  }, [vociIniziali])
+    const vociOrdinate = ordinaVociDiario(vociIniziali)
+    setVoci(vociOrdinate)
 
-  useEffect(() => {
-    fotoDiarioDraftsRef.current = fotoDiarioDrafts
-  }, [fotoDiarioDrafts])
+    if (voceSelezionataId) {
+      const esiste = vociOrdinate.some((voce) => voce.id === voceSelezionataId)
+      if (!esiste) {
+        setVoceSelezionataId(null)
+        setModalita('lista')
+      }
+    }
+  }, [vociIniziali, voceSelezionataId])
 
   useEffect(() => {
     resetAppScrollToTop()
-  }, [])
+  }, [modalita])
 
   useEffect(() => {
+    let isMounted = true
+
+    async function caricaUtenteCorrente() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!isMounted) return
+      setCurrentUserId(user?.id ?? null)
+    }
+
+    caricaUtenteCorrente()
+
     return () => {
-      revocaPreviewFotoDiario(fotoDiarioDraftsRef.current)
+      isMounted = false
     }
   }, [])
-
-  function resetFotoDiario() {
-    revocaPreviewFotoDiario(fotoDiarioDraftsRef.current)
-    fotoDiarioDraftsRef.current = []
-    setFotoDiarioDrafts([])
-    setErroreFoto(null)
-    setMostraSceltaFoto(false)
-  }
 
   function resetForm() {
     setData(getDataOggi())
@@ -372,23 +349,33 @@ function TabDiario({
     setErroreNota('')
     setErroreSrv(null)
     setVoceInModificaId(null)
-    resetFotoDiario()
   }
 
-  function chiudiFormDiario() {
-    setMostraForm(false)
+  function apriLista() {
     resetForm()
-    resetAppScrollToTop()
+    setVoceSelezionataId(null)
+    setModalita('lista')
   }
 
   function apriNuovaVoce() {
     resetForm()
-    setMostraForm(true)
-    resetAppScrollToTop()
+    setModalita('form')
+  }
+
+  function apriDettaglioVoce(voce: DiarioVoce) {
+    setVoceSelezionataId(voce.id)
+    setVoceInModificaId(null)
+    setErroreSrv(null)
+    setModalita('dettaglio')
   }
 
   function apriModificaVoce(voce: DiarioVoce) {
-    resetFotoDiario()
+    if (!currentUserId || voce.created_by !== currentUserId) {
+      setErroreSrv('Puoi modificare solo le voci che hai creato tu.')
+      return
+    }
+
+    setVoceSelezionataId(voce.id)
     setVoceInModificaId(voce.id)
     setData(voce.data)
     setTitolo(voce.titolo ?? '')
@@ -396,105 +383,7 @@ function TabDiario({
     setErroreTitolo('')
     setErroreNota('')
     setErroreSrv(null)
-    setErroreFoto(null)
-    setFotoDiarioDrafts(getFotoUrlsVoce(voce).map(creaDraftFotoEsistente))
-    setMostraForm(true)
-    resetAppScrollToTop()
-  }
-
-  function aggiungiFotoDiario(files: FileList | null) {
-    if (!files || files.length === 0) return
-
-    const nuoviDrafts: DiarioFotoDraft[] = []
-    let messaggioErrore: string | null = null
-
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) {
-        messaggioErrore = 'Puoi allegare solo immagini.'
-        continue
-      }
-
-      if (file.size > MAX_FOTO_SIZE_BYTES) {
-        messaggioErrore = `Ogni foto non può superare ${MAX_FOTO_SIZE_MB}MB.`
-        continue
-      }
-
-      nuoviDrafts.push(creaDraftFotoNuova(file))
-    }
-
-    if (nuoviDrafts.length > 0) {
-      setFotoDiarioDrafts((current) => [...current, ...nuoviDrafts])
-    }
-
-    setErroreFoto(messaggioErrore)
-  }
-
-  function rimuoviFotoDiario(draftId: string) {
-    setFotoDiarioDrafts((current) => {
-      const draftDaRimuovere = current.find((draft) => draft.id === draftId)
-
-      if (draftDaRimuovere?.source === 'new') {
-        URL.revokeObjectURL(draftDaRimuovere.previewUrl)
-      }
-
-      return current.filter((draft) => draft.id !== draftId)
-    })
-  }
-
-  async function caricaFotoDiario(
-    drafts: DiarioFotoDraft[],
-    voceId: string
-  ): Promise<string[]> {
-    const urlEsistenti = drafts
-      .filter((draft) => draft.source === 'existing')
-      .map((draft) => draft.storageUrl)
-      .filter((url): url is string => Boolean(url))
-
-    const nuoviDrafts = drafts.filter(
-      (draft): draft is DiarioFotoDraft & { file: File } =>
-        draft.source === 'new' && Boolean(draft.file)
-    )
-
-    if (nuoviDrafts.length === 0) {
-      return urlEsistenti
-    }
-
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      router.push('/login')
-      throw new Error('Sessione non valida. Effettua di nuovo l’accesso.')
-    }
-
-    const nuoveUrls: string[] = []
-
-    for (const [index, draft] of nuoviDrafts.entries()) {
-      const estensione = getEstensioneFile(draft.file)
-      const filePath = `${user.id}/animali/${animaleId}/diario/${voceId}/foto-${Date.now()}-${index}.${estensione}`
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_FOTO_ANIMALI)
-        .upload(filePath, draft.file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: draft.file.type || undefined,
-        })
-
-      if (uploadError) {
-        throw new Error(`Upload foto diario non riuscito: ${uploadError.message}`)
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from(BUCKET_FOTO_ANIMALI)
-        .getPublicUrl(filePath)
-
-      nuoveUrls.push(publicUrlData.publicUrl)
-    }
-
-    return [...urlEsistenti, ...nuoveUrls]
+    setModalita('form')
   }
 
   async function salvaVoce() {
@@ -503,18 +392,17 @@ function TabDiario({
 
     setErroreTitolo('')
     setErroreNota('')
-    setErroreFoto(null)
     setErroreSrv(null)
 
     let hasError = false
 
     if (!titoloPulito) {
-      setErroreTitolo('Inserisci un titolo o una categoria.')
+      setErroreTitolo('Inserisci un titolo.')
       hasError = true
     }
 
     if (!notaPulita) {
-      setErroreNota('Scrivi una nota.')
+      setErroreNota('Scrivi il contenuto della voce.')
       hasError = true
     }
 
@@ -526,13 +414,17 @@ function TabDiario({
       const supabase = createClient()
 
       if (isEditing && voceInModificaId) {
-        const fotoUrls = await caricaFotoDiario(fotoDiarioDrafts, voceInModificaId)
+        if (!currentUserId) {
+          setErroreSrv('Sessione non valida. Ricarica la pagina e riprova.')
+          setIsSaving(false)
+          return
+        }
 
         const payload: DiarioVoceUpdate = {
           data,
           titolo: titoloPulito,
           nota: notaPulita,
-          foto_urls: fotoUrls,
+          updated_at: new Date().toISOString(),
         }
 
         const response = await supabase
@@ -540,6 +432,7 @@ function TabDiario({
           .update(payload)
           .eq('id', voceInModificaId)
           .eq('animale_id', animaleId)
+          .eq('created_by', currentUserId)
           .select('*')
           .single()
 
@@ -561,21 +454,18 @@ function TabDiario({
         )
 
         setVoci(next)
-        chiudiFormDiario()
+        setVoceSelezionataId(voceAggiornata.id)
+        setVoceInModificaId(null)
+        setModalita('dettaglio')
         router.refresh()
         return
       }
 
-      const nuovaVoceId = generaIdVoceDiario()
-      const fotoUrls = await caricaFotoDiario(fotoDiarioDrafts, nuovaVoceId)
-
       const payload: DiarioVoceInsert = {
-        id: nuovaVoceId,
         animale_id: animaleId,
         data,
         titolo: titoloPulito,
         nota: notaPulita,
-        foto_urls: fotoUrls,
       }
 
       const response = await supabase
@@ -598,7 +488,9 @@ function TabDiario({
       const next = ordinaVociDiario([nuovaVoce, ...voci])
 
       setVoci(next)
-      chiudiFormDiario()
+      setVoceSelezionataId(nuovaVoce.id)
+      setModalita('dettaglio')
+      resetForm()
       router.refresh()
     } catch (error) {
       console.error(error)
@@ -609,6 +501,55 @@ function TabDiario({
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function eliminaVoce(voce: DiarioVoce) {
+    if (!currentUserId || voce.created_by !== currentUserId) {
+      setErroreSrv('Puoi eliminare solo le voci che hai creato tu.')
+      return
+    }
+
+    const conferma = window.confirm(
+      'Vuoi eliminare questa voce del diario? Questa azione non si può annullare.'
+    )
+
+    if (!conferma) return
+
+    setErroreSrv(null)
+    setIsDeleting(true)
+
+    try {
+      const supabase = createClient()
+
+      const { error } = await supabase
+        .from('diario_voci')
+        .delete()
+        .eq('id', voce.id)
+        .eq('animale_id', animaleId)
+        .eq('created_by', currentUserId)
+
+      if (error) {
+        setErroreSrv(`Errore durante l’eliminazione: ${error.message}`)
+        setIsDeleting(false)
+        return
+      }
+
+      const next = voci.filter((item) => item.id !== voce.id)
+      setVoci(next)
+      setVoceSelezionataId(null)
+      setVoceInModificaId(null)
+      setModalita('lista')
+      router.refresh()
+    } catch (error) {
+      console.error(error)
+      setErroreSrv(
+        error instanceof Error
+          ? error.message
+          : 'Errore durante l’eliminazione. Riprova.'
+      )
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -627,83 +568,49 @@ function TabDiario({
               Le note di {animaleNome}
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Tieni traccia di peso, sintomi, cambiamenti, progressi e note
-              utili nel tempo.
+              Uno spazio personale per osservazioni, momenti importanti e cose
+              da ricordare, separato dallo Storico automatico dell’app.
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (mostraForm) {
-              chiudiFormDiario()
-              return
-            }
+        {modalita === 'lista' && (
+          <button
+            type="button"
+            onClick={apriNuovaVoce}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Nuova voce
+          </button>
+        )}
 
-            apriNuovaVoce()
-          }}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          {mostraForm ? (isEditing ? 'Annulla modifica' : 'Chiudi') : 'Nuova voce'}
-        </button>
+        {modalita !== 'lista' && (
+          <button
+            type="button"
+            onClick={apriLista}
+            className="mt-5 w-full rounded-2xl border border-[#EADFD3] bg-white py-3.5 text-sm font-bold text-gray-700 transition-all active:scale-[0.98]"
+          >
+            Torna all’elenco
+          </button>
+        )}
       </div>
 
-      {mostraForm && (
+      {erroreSrv && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
+        </div>
+      )}
+
+      {modalita === 'form' && (
         <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <FotoSourceSheet
-            isOpen={mostraSceltaFoto}
-            isUploading={isSaving}
-            onClose={() => setMostraSceltaFoto(false)}
-            onPickCamera={() => {
-              setMostraSceltaFoto(false)
-              inputDiarioCameraRef.current?.click()
-            }}
-            onPickGallery={() => {
-              setMostraSceltaFoto(false)
-              inputDiarioGalleriaRef.current?.click()
-            }}
-            title="Aggiungi foto al diario"
-            description="Scegli se scattare una foto o selezionarla dalla galleria."
-            cameraLabel="Scatta foto"
-            cameraDescription="Usa la fotocamera per allegare una nuova immagine."
-            galleryLabel="Scegli dalla galleria"
-            galleryDescription="Seleziona una o più foto già presenti sul dispositivo."
-          />
-
-          <input
-            ref={inputDiarioCameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              aggiungiFotoDiario(e.target.files)
-              e.target.value = ''
-            }}
-          />
-
-          <input
-            ref={inputDiarioGalleriaRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              aggiungiFotoDiario(e.target.files)
-              e.target.value = ''
-            }}
-          />
-
           <div className="mb-5">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-500">
               {isEditing ? 'Modifica voce' : 'Nuova voce'}
             </p>
             <h3 className="mt-1 text-lg font-extrabold text-gray-900">
               {isEditing
-                ? 'Aggiorna la voce del diario'
+                ? 'Aggiorna questa nota personale'
                 : 'Aggiungi una nuova nota'}
             </h3>
           </div>
@@ -722,10 +629,10 @@ function TabDiario({
 
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-gray-700">
-                Titolo o categoria
+                Titolo
               </Label>
               <Input
-                placeholder="es. Peso, Feci molli, Umore, Nota generale..."
+                placeholder="es. Prima passeggiata tranquilla"
                 value={titolo}
                 onChange={(e) => {
                   setTitolo(e.target.value)
@@ -742,10 +649,12 @@ function TabDiario({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-semibold text-gray-700">Nota</Label>
+              <Label className="text-sm font-semibold text-gray-700">
+                Contenuto
+              </Label>
               <Textarea
-                rows={4}
-                placeholder="Scrivi cosa è successo o cosa vuoi ricordare..."
+                rows={6}
+                placeholder="Scrivi qui la tua osservazione o il momento che vuoi ricordare..."
                 value={nota}
                 onChange={(e) => {
                   setNota(e.target.value)
@@ -758,80 +667,6 @@ function TabDiario({
                 <p className="text-xs font-medium text-red-500">{erroreNota}</p>
               )}
             </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Foto
-                </Label>
-
-                <button
-                  type="button"
-                  onClick={() => setMostraSceltaFoto(true)}
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#EADFD3] bg-[#FCF8F3] px-3.5 py-2 text-xs font-bold text-amber-700 transition-all active:scale-[0.98] disabled:opacity-60"
-                >
-                  <Plus size={14} strokeWidth={2.4} />
-                  Aggiungi foto
-                </button>
-              </div>
-
-              {fotoDiarioDrafts.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#EADFD3] bg-[#FCF8F3] px-4 py-5 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm">
-                    <Images size={22} strokeWidth={2.2} />
-                  </div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    Nessuna foto allegata
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
-                    Puoi aggiungere una o più immagini per documentare meglio la
-                    voce del diario.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  {fotoDiarioDrafts.map((draft) => (
-                    <div
-                      key={draft.id}
-                      className="relative overflow-hidden rounded-2xl border border-[#EADFD3] bg-[#FCF8F3]"
-                    >
-                      <div className="aspect-square">
-                        <img
-                          src={draft.previewUrl}
-                          alt="Anteprima foto diario"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-
-                      <div className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white">
-                        {draft.source === 'existing' ? 'Salvata' : 'Nuova'}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => rimuoviFotoDiario(draft.id)}
-                        disabled={isSaving}
-                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-gray-700 shadow-md transition-all active:scale-95 disabled:opacity-60"
-                        aria-label="Rimuovi foto"
-                      >
-                        <X size={14} strokeWidth={2.4} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {erroreFoto && (
-                <p className="text-xs font-medium text-red-500">{erroreFoto}</p>
-              )}
-            </div>
-
-            {erroreSrv && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                <p className="text-sm font-medium text-red-600">{erroreSrv}</p>
-              </div>
-            )}
 
             <div className="space-y-3">
               <button
@@ -847,85 +682,140 @@ function TabDiario({
                     : 'Salva voce'}
               </button>
 
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={chiudiFormDiario}
-                  disabled={isSaving}
-                  className="w-full rounded-2xl border border-[#EADFD3] bg-white py-3.5 text-sm font-bold text-gray-700 transition-all active:scale-[0.98] disabled:opacity-60"
-                >
-                  Annulla
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (voceSelezionataId) {
+                    setModalita('dettaglio')
+                    return
+                  }
+                  apriLista()
+                }}
+                disabled={isSaving}
+                className="w-full rounded-2xl border border-[#EADFD3] bg-white py-3.5 text-sm font-bold text-gray-700 transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                Annulla
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {voci.length === 0 ? (
-        <div className="rounded-[28px] border border-dashed border-[#EADFD3] bg-white px-6 py-10 text-center shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-amber-600">
-            <BookOpen size={24} strokeWidth={2.2} />
+      {modalita === 'dettaglio' && voceSelezionata && (
+        <div className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className="inline-flex rounded-full bg-[#FCF8F3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600">
+                {formatDataDiario(voceSelezionata.data)}
+              </span>
+              <h3 className="mt-3 text-xl font-extrabold text-gray-900">
+                {voceSelezionata.titolo}
+              </h3>
+            </div>
           </div>
-          <h3 className="text-lg font-extrabold text-gray-900">
-            Nessuna voce nel diario
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-gray-500">
-            Inizia con una nota semplice per ricordare peso, sintomi, progressi
-            o qualsiasi cambiamento utile.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {voci.map((voce) => (
-            <div
-              key={voce.id}
-              className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
-            >
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded-full bg-[#FCF8F3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600">
-                  {voce.titolo}
-                </span>
-                <span className="text-xs font-semibold text-gray-400">
-                  {formatDataDiario(voce.data)}
-                </span>
-              </div>
 
-              <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
-                {voce.nota}
+          <div className="rounded-2xl bg-[#FCF8F3] px-4 py-4">
+            <p className="whitespace-pre-wrap text-sm leading-7 text-gray-700">
+              {voceSelezionata.nota}
+            </p>
+          </div>
+
+          <div className="mt-4 space-y-1 text-xs text-gray-400">
+            {voceSelezionata.created_at && (
+              <p>Creata il {formatDataOraDiario(voceSelezionata.created_at)}</p>
+            )}
+            {voceSelezionata.updated_at &&
+              voceSelezionata.updated_at !== voceSelezionata.created_at && (
+                <p>
+                  Modificata il {formatDataOraDiario(voceSelezionata.updated_at)}
+                </p>
+              )}
+            {!puoModificareVoceSelezionata && (
+              <p>Questa voce è stata creata da un altro account collegato.</p>
+            )}
+          </div>
+
+          {puoModificareVoceSelezionata && (
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => apriModificaVoce(voceSelezionata)}
+                disabled={isDeleting}
+                className="rounded-2xl border border-[#EADFD3] bg-[#FCF8F3] py-3 text-sm font-bold text-amber-700 transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                Modifica
+              </button>
+
+              <button
+                type="button"
+                onClick={() => eliminaVoce(voceSelezionata)}
+                disabled={isDeleting}
+                className="rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-bold text-red-600 transition-all active:scale-[0.98] disabled:opacity-60"
+              >
+                {isDeleting ? 'Eliminazione...' : 'Elimina'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {modalita === 'lista' && (
+        <>
+          {voci.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-[#EADFD3] bg-white px-6 py-10 text-center shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCF8F3] text-amber-600">
+                <BookOpen size={24} strokeWidth={2.2} />
+              </div>
+              <h3 className="text-lg font-extrabold text-gray-900">
+                Nessuna voce nel diario
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-gray-500">
+                Inizia con una nota semplice per ricordare un’osservazione, un
+                cambiamento o un momento importante.
               </p>
 
-              {getFotoUrlsVoce(voce).length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {getFotoUrlsVoce(voce).map((url, index) => (
-                    <div
-                      key={`${voce.id}-${index}`}
-                      className="overflow-hidden rounded-2xl border border-[#EADFD3] bg-[#FCF8F3]"
-                    >
-                      <div className="aspect-square">
-                        <img
-                          src={url}
-                          alt={`Foto diario ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => apriModificaVoce(voce)}
-                  className="rounded-full border border-[#EADFD3] bg-[#FCF8F3] px-4 py-2 text-xs font-bold text-amber-700 transition-all active:scale-[0.98]"
-                >
-                  Modifica
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={apriNuovaVoce}
+                className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-bold text-white shadow-md shadow-orange-200 transition-all active:scale-[0.98]"
+              >
+                <Plus size={16} strokeWidth={2.5} />
+                Crea la prima voce
+              </button>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-4">
+              {voci.map((voce) => (
+                <button
+                  key={voce.id}
+                  type="button"
+                  onClick={() => apriDettaglioVoce(voce)}
+                  className="w-full rounded-[28px] border border-[#EADFD3] bg-white p-5 text-left shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all active:scale-[0.99]"
+                >
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <span className="rounded-full bg-[#FCF8F3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-600">
+                      {formatDataDiario(voce.data)}
+                    </span>
+
+                    <ChevronRight
+                      size={18}
+                      strokeWidth={2.4}
+                      className="text-gray-400"
+                    />
+                  </div>
+
+                  <h3 className="text-base font-extrabold text-gray-900">
+                    {voce.titolo}
+                  </h3>
+
+                  <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                    {voce.nota}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -994,6 +884,7 @@ export function SchedaAnimaleTab({
     impegni.filter((i) => i.tipo !== 'terapia').length +
     terapie.length +
     somministrazioni.length
+  const vociDiario = diarioVoci.length
 
   const categoriaLabel = labelCategoria[animale.categoria] ?? 'Animale'
   const sottotitoloHeader = [categoriaLabel, animale.specie, animale.razza]
@@ -1400,7 +1291,11 @@ export function SchedaAnimaleTab({
 
           <QuickCard
             title="Diario"
-            subtitle="Peso, sintomi e note"
+            subtitle={
+              vociDiario > 0
+                ? `${vociDiario} ${vociDiario === 1 ? 'voce salvata' : 'voci salvate'}`
+                : 'Note personali e manuali'
+            }
             onClick={() => cambiaTab('diario')}
             tone="border-amber-100 bg-amber-50 text-amber-900"
             icon={
