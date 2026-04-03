@@ -54,61 +54,59 @@ export function PartnerCard({
         </Link>
       </div>
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <p className="text-sm leading-6 text-slate-700">
-            {partner.descrizione}
+      <p className="mt-4 text-sm leading-6 text-slate-700">
+        {partner.descrizione}
+      </p>
+
+      <div className="mt-4 space-y-3">
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-start gap-3 rounded-[22px] bg-[#FFF9F5] p-3">
+          <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Specie trattate
           </p>
 
-          <PartnerContactActions partner={partner} compact />
+          <div className="flex flex-wrap gap-2">
+            {speciePreview.map((specie) => (
+              <span
+                key={specie}
+                className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700"
+              >
+                {getPartnerSpeciesLabel(specie)}
+              </span>
+            ))}
+
+            {specieRestanti > 0 ? (
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                +{specieRestanti}
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="min-w-0 space-y-4 rounded-[22px] bg-[#FFF9F5] p-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Specie trattate
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {speciePreview.map((specie) => (
-                <span
-                  key={specie}
-                  className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700"
-                >
-                  {getPartnerSpeciesLabel(specie)}
-                </span>
-              ))}
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-start gap-3 rounded-[22px] bg-[#FFF9F5] p-3">
+          <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Servizi principali
+          </p>
 
-              {specieRestanti > 0 ? (
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                  +{specieRestanti}
-                </span>
-              ) : null}
-            </div>
-          </div>
+          <div className="flex flex-wrap gap-2">
+            {serviziPreview.map((servizio) => (
+              <span
+                key={servizio}
+                className="rounded-full border border-[#EADFD3] bg-white px-3 py-1 text-xs font-medium text-slate-700"
+              >
+                {servizio}
+              </span>
+            ))}
 
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Servizi principali
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {serviziPreview.map((servizio) => (
-                <span
-                  key={servizio}
-                  className="rounded-full border border-[#EADFD3] bg-white px-3 py-1 text-xs font-medium text-slate-700"
-                >
-                  {servizio}
-                </span>
-              ))}
-
-              {serviziRestanti > 0 ? (
-                <span className="rounded-full border border-[#EADFD3] bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                  +{serviziRestanti}
-                </span>
-              ) : null}
-            </div>
+            {serviziRestanti > 0 ? (
+              <span className="rounded-full border border-[#EADFD3] bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                +{serviziRestanti}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
+
+      <PartnerContactActions partner={partner} compact />
     </article>
   )
 }

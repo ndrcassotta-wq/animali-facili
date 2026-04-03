@@ -4,7 +4,17 @@ import {
 } from '@/lib/constants/partners'
 import type { PartnerProfile } from '@/lib/partners/queries'
 import { PartnerContactActions } from '@/components/partner/PartnerContactActions'
-import { Mail, MapPin, MessageCircle, Phone, Globe, BadgeCheck } from 'lucide-react'
+import {
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Globe,
+  BadgeCheck,
+  FileText,
+  Stethoscope,
+  PawPrint,
+} from 'lucide-react'
 
 export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
   return (
@@ -44,18 +54,28 @@ export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
         <PartnerContactActions partner={partner} />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.45fr_0.75fr]">
-        <div className="space-y-6">
-          <div className="rounded-[24px] border border-[#F1E5DA] bg-[#FFFDFB] p-5">
-            <h2 className="text-lg font-semibold text-slate-900">Descrizione</h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700 md:text-[15px]">
+      <div className="mt-8 space-y-4">
+        <div className="rounded-[24px] border border-[#F1E5DA] bg-[#FFFDFB] p-4 md:p-5">
+          <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4">
+            <div className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-slate-900">
+              <FileText className="h-4 w-4 text-[#8B5E3C]" />
+              Descrizione
+            </div>
+
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-700 md:text-[15px]">
               {partner.descrizione}
             </p>
           </div>
+        </div>
 
-          <div className="rounded-[24px] border border-[#F1E5DA] bg-white p-5">
-            <h3 className="text-lg font-semibold text-slate-900">Servizi principali</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+        <div className="rounded-[24px] border border-[#F1E5DA] bg-white p-4 md:p-5">
+          <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4">
+            <div className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-slate-900">
+              <Stethoscope className="h-4 w-4 text-[#8B5E3C]" />
+              Servizi principali
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               {partner.servizi_principali.map((servizio) => (
                 <span
                   key={servizio}
@@ -66,10 +86,16 @@ export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
               ))}
             </div>
           </div>
+        </div>
 
-          <div className="rounded-[24px] border border-[#F1E5DA] bg-white p-5">
-            <h3 className="text-lg font-semibold text-slate-900">Specie trattate</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+        <div className="rounded-[24px] border border-[#F1E5DA] bg-white p-4 md:p-5">
+          <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4">
+            <div className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-slate-900">
+              <PawPrint className="h-4 w-4 text-[#8B5E3C]" />
+              Specie trattate
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               {partner.specie_trattate.map((specie) => (
                 <span
                   key={specie}
@@ -82,83 +108,71 @@ export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
           </div>
         </div>
 
-        <aside className="rounded-[24px] border border-[#EADFD3] bg-[#FFF9F5] p-5">
+        <div className="rounded-[24px] border border-[#EADFD3] bg-[#FFF9F5] p-4 md:p-5">
           <h2 className="text-lg font-semibold text-slate-900">Contatti e info</h2>
 
-          <div className="mt-4 space-y-4 text-sm text-slate-700">
+          <div className="mt-4 space-y-3">
             {partner.indirizzo_completo ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Indirizzo</p>
-                    <p className="mt-1 leading-6 text-slate-700">{partner.indirizzo_completo}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <MapPin className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  Indirizzo
                 </div>
+                <p className="text-sm leading-6 text-slate-700">{partner.indirizzo_completo}</p>
               </div>
             ) : null}
 
             {partner.telefono ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Telefono</p>
-                    <p className="mt-1 leading-6 text-slate-700">{partner.telefono}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <Phone className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  Telefono
                 </div>
+                <p className="text-sm leading-6 text-slate-700">{partner.telefono}</p>
               </div>
             ) : null}
 
             {partner.whatsapp ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">WhatsApp</p>
-                    <p className="mt-1 leading-6 text-slate-700">{partner.whatsapp}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <MessageCircle className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  WhatsApp
                 </div>
+                <p className="text-sm leading-6 text-slate-700">{partner.whatsapp}</p>
               </div>
             ) : null}
 
             {partner.email ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Email</p>
-                    <p className="mt-1 break-all leading-6 text-slate-700">{partner.email}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <Mail className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  Email
                 </div>
+                <p className="break-all text-sm leading-6 text-slate-700">{partner.email}</p>
               </div>
             ) : null}
 
             {partner.sito ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <Globe className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Sito</p>
-                    <p className="mt-1 break-all leading-6 text-slate-700">{partner.sito}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <Globe className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  Sito
                 </div>
+                <p className="break-all text-sm leading-6 text-slate-700">{partner.sito}</p>
               </div>
             ) : null}
 
             {partner.zona_servita ? (
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5E3C]" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Zona servita</p>
-                    <p className="mt-1 leading-6 text-slate-700">{partner.zona_servita}</p>
-                  </div>
+              <div className="grid grid-cols-[140px_minmax(0,1fr)] items-start gap-4 rounded-2xl bg-white px-4 py-3">
+                <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <MapPin className="h-4 w-4 shrink-0 text-[#8B5E3C]" />
+                  Zona servita
                 </div>
+                <p className="text-sm leading-6 text-slate-700">{partner.zona_servita}</p>
               </div>
             ) : null}
           </div>
-        </aside>
+        </div>
       </div>
     </section>
   )
