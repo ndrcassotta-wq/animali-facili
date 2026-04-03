@@ -1,9 +1,17 @@
 import Link from 'next/link'
 import { ArrowLeft, Home, Send } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import { PartnerSubmissionForm } from '@/components/partner/PartnerSubmissionForm'
 import { submitPartnerApplication } from './actions'
 
-export default function PartnerCandidaturaPage() {
+export default async function PartnerCandidaturaPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const isAuthenticated = Boolean(user)
+
   return (
     <main className="mx-auto w-full max-w-4xl px-4 pb-24 pt-4 md:px-5 md:pb-10 md:pt-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -57,12 +65,20 @@ export default function PartnerCandidaturaPage() {
                   controllo manuale, la scheda potrà comparire nella directory
                   partner.
                 </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {isAuthenticated
+                    ? 'Sei loggato: la candidatura verrà collegata al tuo account.'
+                    : 'Puoi candidarti anche senza login. In questa fase, però, la candidatura non verrà collegata automaticamente a un account.'}
+                </p>
               </div>
             </div>
           </div>
 
           <div className="pt-1">
-            <PartnerSubmissionForm action={submitPartnerApplication} />
+            <PartnerSubmissionForm
+              action={submitPartnerApplication}
+              isAuthenticated={isAuthenticated}
+            />
           </div>
         </div>
       </section>

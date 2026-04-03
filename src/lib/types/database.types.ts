@@ -631,6 +631,8 @@ export type Database = {
           email: string | null
           sito: string | null
           zona_servita: string | null
+          image_path: string | null
+          image_updated_at: string | null
           status: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
           created_source: string
           submitted_at: string
@@ -661,6 +663,8 @@ export type Database = {
           email?: string | null
           sito?: string | null
           zona_servita?: string | null
+          image_path?: string | null
+          image_updated_at?: string | null
           status?: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
           created_source?: string
           submitted_at?: string
@@ -691,6 +695,8 @@ export type Database = {
           email?: string | null
           sito?: string | null
           zona_servita?: string | null
+          image_path?: string | null
+          image_updated_at?: string | null
           status?: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
           created_source?: string
           submitted_at?: string
@@ -699,6 +705,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      partner_members: {
+        Row: {
+          id: string
+          partner_profile_id: string
+          user_id: string
+          role: 'owner' | 'editor'
+          status: 'pending' | 'active' | 'revoked'
+          created_via: string
+          created_at: string
+          updated_at: string
+          activated_at: string | null
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          partner_profile_id: string
+          user_id: string
+          role?: 'owner' | 'editor'
+          status?: 'pending' | 'active' | 'revoked'
+          created_via?: string
+          created_at?: string
+          updated_at?: string
+          activated_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          partner_profile_id?: string
+          user_id?: string
+          role?: 'owner' | 'editor'
+          status?: 'pending' | 'active' | 'revoked'
+          created_via?: string
+          created_at?: string
+          updated_at?: string
+          activated_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'partner_members_partner_profile_id_fkey'
+            columns: ['partner_profile_id']
+            isOneToOne: false
+            referencedRelation: 'partner_profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
     }
     Views: Record<string, never>
@@ -811,6 +864,8 @@ export type Database = {
         | 'allevatore'
         | 'negozio_animali'
       partner_status: 'bozza' | 'in_revisione' | 'approvato' | 'sospeso'
+      partner_member_role: 'owner' | 'editor'
+      partner_member_status: 'pending' | 'active' | 'revoked'
     }
     CompositeTypes: Record<string, never>
   }

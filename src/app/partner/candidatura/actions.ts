@@ -1,7 +1,11 @@
 'use server'
 
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { createPartnerSubmission } from '@/lib/partners/queries'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import {
+  createPartnerSubmission,
+  createPendingPartnerOwnerMembership,
+} from '@/lib/partners/queries'
 import {
   buildPartnerImagePath,
   PARTNER_IMAGE_BUCKET,
@@ -44,6 +48,26 @@ function getSupabaseStorageAdmin() {
   })
 }
 
+async function getAuthenticatedUserIdOrNull() {
+  try {
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
+
+    if (error) {
+      console.error('[partner application auth getUser error]', error)
+      return null
+    }
+
+    return user?.id ?? null
+  } catch (error) {
+    console.error('[partner application auth unexpected error]', error)
+    return null
+  }
+}
+
 export async function submitPartnerApplication(
   _prevState: SubmissionState,
   formData: FormData
@@ -75,8 +99,10 @@ export async function submitPartnerApplication(
   const imageFile = imageValidation.data
   const slug = slugifyPartnerName(parsed.data.nome)
   const storageAdmin = getSupabaseStorageAdmin()
+  const authenticatedUserId = await getAuthenticatedUserIdOrNull()
 
   let uploadedImagePath: string | null = null
+  let createdPartnerProfileId: string | null = null
 
   try {
     if (imageFile) {
@@ -101,11 +127,20 @@ export async function submitPartnerApplication(
       }
     }
 
-    await createPartnerSubmission(parsed.data, {
+    const createdPartner = await createPartnerSubmission(parsed.data, {
       slug,
       imagePath: uploadedImagePath,
       imageUpdatedAt: uploadedImagePath ? new Date().toISOString() : null,
     })
+
+    createdPartnerProfileId = createdPartner.id
+
+    if (authenticatedUserId) {
+      await createPendingPartnerOwnerMembership(
+        createdPartner.id,
+        authenticatedUserId
+      )
+    }
 
     return {
       status: 'success',
@@ -114,13 +149,24 @@ export async function submitPartnerApplication(
       fieldErrors: {},
     }
   } catch (error) {
+    if (createdPartnerProfileId) {
+      try {
+        await storageAdmin
+          .from('partner_profiles')
+          .delete()
+          .eq('id', createdPartnerProfileId)
+      } catch (cleanupDbError) {
+        console.error('[partner profile cleanup error]', cleanupDbError)
+      }
+    }
+
     if (uploadedImagePath) {
       try {
         await storageAdmin.storage
           .from(PARTNER_IMAGE_BUCKET)
           .remove([uploadedImagePath])
-      } catch (cleanupError) {
-        console.error('[partner image cleanup error]', cleanupError)
+      } catch (cleanupStorageError) {
+        console.error('[partner image cleanup error]', cleanupStorageError)
       }
     }
 

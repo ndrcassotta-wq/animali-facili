@@ -2,7 +2,12 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Building2, CheckCircle2, PhoneCall, Image as ImageIcon } from 'lucide-react'
+import {
+  Building2,
+  CheckCircle2,
+  PhoneCall,
+  Image as ImageIcon,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -58,9 +63,13 @@ function SectionCard({
         ) : null}
 
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-900 md:text-lg">{title}</h2>
+          <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+            {title}
+          </h2>
           {description ? (
-            <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              {description}
+            </p>
           ) : null}
         </div>
       </div>
@@ -82,11 +91,13 @@ function SubmitButton() {
 
 export function PartnerSubmissionForm({
   action,
+  isAuthenticated,
 }: {
   action: (
     prevState: SubmissionState,
     formData: FormData
   ) => Promise<SubmissionState>
+  isAuthenticated: boolean
 }) {
   const [state, formAction] = useActionState(action, initialState)
 
@@ -115,7 +126,10 @@ export function PartnerSubmissionForm({
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="nome" className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="nome"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
               Nome *
             </label>
             <Input
@@ -128,7 +142,10 @@ export function PartnerSubmissionForm({
           </div>
 
           <div>
-            <label htmlFor="categoria" className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="categoria"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
               Categoria *
             </label>
             <select
@@ -150,24 +167,43 @@ export function PartnerSubmissionForm({
           </div>
 
           <div>
-            <label htmlFor="citta" className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="citta"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
               Città *
             </label>
-            <Input id="citta" name="citta" placeholder="Es. Roma" className="h-11" />
+            <Input
+              id="citta"
+              name="citta"
+              placeholder="Es. Roma"
+              className="h-11"
+            />
             <FieldError errors={state.fieldErrors?.citta} />
           </div>
 
           <div>
-            <label htmlFor="provincia" className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="provincia"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
               Provincia *
             </label>
-            <Input id="provincia" name="provincia" placeholder="Es. RM" className="h-11" />
+            <Input
+              id="provincia"
+              name="provincia"
+              placeholder="Es. RM"
+              className="h-11"
+            />
             <FieldError errors={state.fieldErrors?.provincia} />
           </div>
         </div>
 
         <div className="mt-4">
-          <label htmlFor="descrizione" className="mb-2 block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="descrizione"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
             Descrizione *
           </label>
           <Textarea
@@ -187,7 +223,10 @@ export function PartnerSubmissionForm({
             </div>
 
             <div className="min-w-0 flex-1">
-              <label htmlFor="image" className="block text-sm font-semibold text-slate-900">
+              <label
+                htmlFor="image"
+                className="block text-sm font-semibold text-slate-900"
+              >
                 Logo o foto attività/profilo
               </label>
               <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -214,7 +253,9 @@ export function PartnerSubmissionForm({
         icon={<CheckCircle2 className="h-5 w-5" />}
       >
         <div>
-          <p className="mb-3 text-sm font-medium text-slate-700">Specie trattate *</p>
+          <p className="mb-3 text-sm font-medium text-slate-700">
+            Specie trattate *
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PARTNER_SPECIES_VALUES.map((specie) => (
               <label
@@ -227,7 +268,9 @@ export function PartnerSubmissionForm({
                   value={specie}
                   className="h-4 w-4 shrink-0"
                 />
-                <span className="leading-5">{getPartnerSpeciesLabel(specie)}</span>
+                <span className="leading-5">
+                  {getPartnerSpeciesLabel(specie)}
+                </span>
               </label>
             ))}
           </div>
@@ -235,7 +278,9 @@ export function PartnerSubmissionForm({
         </div>
 
         <div className="mt-6">
-          <p className="mb-3 text-sm font-medium text-slate-700">Servizi principali *</p>
+          <p className="mb-3 text-sm font-medium text-slate-700">
+            Servizi principali *
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PARTNER_SERVICE_SUGGESTIONS.map((service) => (
               <label
@@ -318,15 +363,26 @@ export function PartnerSubmissionForm({
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="telefono" className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="telefono"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Telefono
               </label>
-              <Input id="telefono" name="telefono" placeholder="Es. 06 1234567" className="h-11" />
+              <Input
+                id="telefono"
+                name="telefono"
+                placeholder="Es. 06 1234567"
+                className="h-11"
+              />
               <FieldError errors={state.fieldErrors?.telefono} />
             </div>
 
             <div>
-              <label htmlFor="whatsapp" className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="whatsapp"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 WhatsApp
               </label>
               <Input
@@ -339,7 +395,10 @@ export function PartnerSubmissionForm({
             </div>
 
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Email
               </label>
               <Input
@@ -353,7 +412,10 @@ export function PartnerSubmissionForm({
             </div>
 
             <div>
-              <label htmlFor="sito" className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="sito"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Sito
               </label>
               <Input
@@ -371,8 +433,16 @@ export function PartnerSubmissionForm({
       </SectionCard>
 
       <div className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-        La candidatura non viene pubblicata automaticamente. Prima entra in revisione e poi,
-        se approvata manualmente, comparirà nella directory partner.
+        <p>
+          La candidatura non viene pubblicata automaticamente. Prima entra in
+          revisione e poi, se approvata manualmente, comparirà nella directory
+          partner.
+        </p>
+        <p className="mt-2">
+          {isAuthenticated
+            ? 'La candidatura verrà collegata al tuo account.'
+            : 'Puoi candidarti anche senza login, ma in questa fase la candidatura non verrà collegata automaticamente a un account.'}
+        </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

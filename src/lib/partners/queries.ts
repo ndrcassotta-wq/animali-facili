@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/types/database.types'
 import type {
   PartnerCategory,
   PartnerStatus,
@@ -11,6 +12,9 @@ import {
   buildPartnerBaseSlug,
   buildPartnerSlugCandidates,
 } from '@/lib/partners/slug'
+
+type PartnerMemberRole = Database['public']['Enums']['partner_member_role']
+type PartnerMemberStatus = Database['public']['Enums']['partner_member_status']
 
 export type PartnerProfile = {
   id: string
@@ -36,6 +40,19 @@ export type PartnerProfile = {
   published_at: string | null
   created_at: string
   updated_at: string
+}
+
+export type PartnerMember = {
+  id: string
+  partner_profile_id: string
+  user_id: string
+  role: PartnerMemberRole
+  status: PartnerMemberStatus
+  created_via: 'application' | 'claim' | 'invite' | 'admin'
+  created_at: string
+  updated_at: string
+  activated_at: string | null
+  revoked_at: string | null
 }
 
 export type ApprovedPartnerFilters = {
@@ -131,15 +148,17 @@ export async function createPartnerSubmission(
 
   const candidates = Array.from(
     new Set(
-      [
-        options.slug?.trim(),
-        ...generatedCandidates,
-      ].filter((value): value is string => Boolean(value))
+      [options.slug?.trim(), ...generatedCandidates].filter(
+        (value): value is string => Boolean(value)
+      )
     )
   )
 
   for (const slug of candidates) {
+    const partnerProfileId = crypto.randomUUID()
+
     const { error } = await supabase.from('partner_profiles').insert({
+      id: partnerProfileId,
       slug,
       nome: payload.nome,
       categoria: payload.categoria,
@@ -161,7 +180,10 @@ export async function createPartnerSubmission(
     })
 
     if (!error) {
-      return { slug }
+      return {
+        id: partnerProfileId,
+        slug,
+      }
     }
 
     const errorMessage = error.message.toLowerCase()
@@ -181,4 +203,95 @@ export async function createPartnerSubmission(
   throw new Error(
     'Non sono riuscito a generare uno slug univoco per questa candidatura.'
   )
+}
+
+export async function createPendingPartnerOwnerMembership(
+  partnerProfileId: string,
+  userId: string
+) {
+  const supabase = await createClient()
+
+  const membershipId = crypto.randomUUID()
+
+  const { data, error } = await supabase
+    .from('partner_members')
+    .insert({
+      id: membershipId,
+      partner_profile_id: partnerProfileId,
+      user_id: userId,
+      role: 'owner',
+      status: 'pending',
+      created_via: 'application',
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(
+      `Errore creazione collegamento partner-account: ${error.message}`
+    )
+  }
+
+  return (data ?? {
+    id: membershipId,
+    partner_profile_id: partnerProfileId,
+    user_id: userId,
+    role: 'owner',
+    status: 'pending',
+    created_via: 'application',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    activated_at: null,
+    revoked_at: null,
+  }) as PartnerMember
+}
+
+export async function getPartnerMembershipsByUserId(userId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('partner_members')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Errore caricamento membership partner: ${error.message}`)
+  }
+
+  return (data ?? []) as PartnerMember[]
+}
+
+export async function getActiveOwnedPartnerByUserId(userId: string) {
+  const supabase = await createClient()
+
+  const { data: membership, error: membershipError } = await supabase
+    .from('partner_members')
+    .select('partner_profile_id')
+    .eq('user_id', userId)
+    .eq('role', 'owner')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (membershipError) {
+    throw new Error(`Errore caricamento ownership partner: ${membershipError.message}`)
+  }
+
+  if (!membership) {
+    return null
+  }
+
+  const { data: partner, error: partnerError } = await supabase
+    .from('partner_profiles')
+    .select('*')
+    .eq('id', membership.partner_profile_id)
+    .maybeSingle()
+
+  if (partnerError) {
+    throw new Error(`Errore caricamento partner associato: ${partnerError.message}`)
+  }
+
+  return (partner ?? null) as PartnerProfile | null
 }
