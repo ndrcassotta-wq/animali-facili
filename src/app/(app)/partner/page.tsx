@@ -53,10 +53,11 @@ export default async function PartnerPage({
         </Link>
 
         <Link
-          href="/partner/candidatura"
-          className="inline-flex h-10 items-center justify-center rounded-full border border-[#EADFD3] bg-[#FFF9F5] px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white"
+          href="/home"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#EADFD3] bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-[#FFF9F5]"
         >
-          Candidati
+          <Home className="h-4 w-4" />
+          Torna alla home
         </Link>
       </div>
 
@@ -79,14 +80,6 @@ export default async function PartnerPage({
               className="inline-flex h-11 items-center justify-center rounded-full border border-[#EADFD3] bg-[#FFF9F5] px-5 text-sm font-medium text-slate-700 transition hover:bg-white"
             >
               Sei un professionista? Candidati
-            </Link>
-
-            <Link
-              href="/home"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#EADFD3] bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-[#FFF9F5]"
-            >
-              <Home className="h-4 w-4" />
-              Torna alla home
             </Link>
           </div>
         </div>
@@ -126,7 +119,7 @@ export default async function PartnerPage({
           </div>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-4">
           {partners.map((partner) => (
             <PartnerCard key={partner.id} partner={partner} hrefBase="/partner" />
           ))}
