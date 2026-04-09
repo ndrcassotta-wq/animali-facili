@@ -37,7 +37,7 @@ export function PartnerCard({
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={`Immagine partner ${partner.nome}`}
+              alt={`Immagine attività ${partner.nome}`}
               className="h-full w-full object-contain bg-white"
               loading="lazy"
             />
@@ -73,7 +73,7 @@ export function PartnerCard({
               href={`${hrefBase}/${partner.slug}`}
               className="inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-full border border-[#EADFD3] px-4 text-sm font-medium text-slate-700 transition hover:bg-[#FFF9F5]"
             >
-              Dettagli
+              Scheda attività
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

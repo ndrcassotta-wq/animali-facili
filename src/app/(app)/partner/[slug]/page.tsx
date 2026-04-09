@@ -28,7 +28,7 @@ export default async function PartnerDetailPage({
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#EADFD3] bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-[#FFF9F5]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Torna ai partner
+          Torna ai professionisti
         </Link>
 
         <Link

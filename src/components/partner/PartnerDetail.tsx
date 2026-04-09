@@ -31,7 +31,7 @@ export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={`Immagine partner ${partner.nome}`}
+              alt={`Immagine attività ${partner.nome}`}
               className="h-[220px] w-full rounded-[20px] object-contain bg-white md:h-[280px]"
             />
           ) : (
@@ -48,7 +48,7 @@ export function PartnerDetail({ partner }: { partner: PartnerProfile }) {
 
           <span className="inline-flex items-center gap-1 rounded-full border border-[#EADFD3] bg-white px-3 py-1 text-xs font-medium text-slate-600">
             <BadgeCheck className="h-3.5 w-3.5 text-[#8B5E3C]" />
-            Partner approvato
+            Scheda pubblicata
           </span>
         </div>
 

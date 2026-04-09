@@ -84,7 +84,7 @@ function SubmitButton() {
 
   return (
     <Button type="submit" disabled={pending} className="h-11 rounded-xl px-5">
-      {pending ? 'Invio in corso...' : 'Invia candidatura'}
+      {pending ? 'Invio in corso...' : 'Invia richiesta'}
     </Button>
   )
 }
@@ -121,7 +121,7 @@ export function PartnerSubmissionForm({
 
       <SectionCard
         title="Informazioni principali"
-        description="Inserisci i dati base della tua attività o del tuo profilo professionale."
+        description="Inserisci i dati base della tua attività."
         icon={<Building2 className="h-5 w-5" />}
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -227,7 +227,7 @@ export function PartnerSubmissionForm({
                 htmlFor="image"
                 className="block text-sm font-semibold text-slate-900"
               >
-                Logo o foto attività/profilo
+                Logo o foto attività
               </label>
               <p className="mt-1 text-sm leading-6 text-slate-600">
                 Facoltativa. JPG, PNG, WEBP – max 5 MB.
@@ -249,7 +249,7 @@ export function PartnerSubmissionForm({
 
       <SectionCard
         title="Animali e servizi"
-        description="Seleziona le specie trattate e i servizi principali che vuoi mostrare nella scheda."
+        description="Seleziona le specie trattate e i servizi principali che vuoi mostrare nella scheda attività."
         icon={<CheckCircle2 className="h-5 w-5" />}
       >
         <div>
@@ -405,7 +405,7 @@ export function PartnerSubmissionForm({
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Es. info@partner.it"
+                placeholder="Es. info@attivita.it"
                 className="h-11"
               />
               <FieldError errors={state.fieldErrors?.email} />
@@ -421,7 +421,7 @@ export function PartnerSubmissionForm({
               <Input
                 id="sito"
                 name="sito"
-                placeholder="Es. www.partner.it"
+                placeholder="Es. www.attivita.it"
                 className="h-11"
               />
               <FieldError errors={state.fieldErrors?.sito} />
@@ -434,14 +434,14 @@ export function PartnerSubmissionForm({
 
       <div className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
         <p>
-          La candidatura non viene pubblicata automaticamente. Prima entra in
-          revisione e poi, se approvata manualmente, comparirà nella directory
-          partner.
+          La richiesta non viene pubblicata automaticamente. Prima entra in
+          revisione e poi, se approvata manualmente, la scheda attività
+          comparirà tra i professionisti.
         </p>
         <p className="mt-2">
           {isAuthenticated
-            ? 'La candidatura verrà collegata al tuo account.'
-            : 'Puoi candidarti anche senza login, ma in questa fase la candidatura non verrà collegata automaticamente a un account.'}
+            ? 'La richiesta verrà collegata al tuo account.'
+            : 'Puoi inviare la richiesta anche senza login, ma in questa fase la richiesta non verrà collegata automaticamente a un account.'}
         </p>
       </div>
 

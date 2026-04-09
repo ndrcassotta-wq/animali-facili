@@ -20,7 +20,7 @@ export default async function PartnerCandidaturaPage() {
           className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#EADFD3] bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-[#FFF9F5]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Torna ai partner
+          Torna ai professionisti
         </Link>
 
         <Link
@@ -36,17 +36,17 @@ export default async function PartnerCandidaturaPage() {
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-[#F7EFE7] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#8B5E3C]">
-              Sezione partner
+              Professionisti
             </span>
           </div>
 
           <div>
             <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900 md:text-4xl">
-              Candidati come partner
+              Inserisci la tua attività
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
-              Compila il form in modo semplice e chiaro. La tua scheda non verrà
+              Compila il form in modo semplice e chiaro. La tua scheda attività non verrà
               pubblicata subito: entrerà prima in revisione e sarà approvata
               manualmente.
             </p>
@@ -61,14 +61,13 @@ export default async function PartnerCandidaturaPage() {
               <div>
                 <p className="font-medium text-slate-900">Come funziona</p>
                 <p className="mt-1">
-                  Invia la candidatura, noi la salviamo in revisione e, dopo il
-                  controllo manuale, la scheda potrà comparire nella directory
-                  partner.
+                  Invia la richiesta, noi la salviamo in revisione e, dopo il
+                  controllo manuale, la tua scheda attività potrà comparire tra i professionisti.
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
                   {isAuthenticated
-                    ? 'Sei loggato: la candidatura verrà collegata al tuo account.'
-                    : 'Puoi candidarti anche senza login. In questa fase, però, la candidatura non verrà collegata automaticamente a un account.'}
+                    ? 'Sei loggato: la richiesta verrà collegata al tuo account.'
+                    : 'Puoi inviare la richiesta anche senza login. In questa fase, però, la richiesta non verrà collegata automaticamente a un account.'}
                 </p>
               </div>
             </div>

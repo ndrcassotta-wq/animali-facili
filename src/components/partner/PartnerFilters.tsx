@@ -30,7 +30,7 @@ export function PartnerFilters({
       className="rounded-[28px] border border-[#EADFD3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:p-6"
     >
       <div className="mb-4">
-        <p className="text-sm font-medium text-[#8B5E3C]">Ricerca partner</p>
+        <p className="text-sm font-medium text-[#8B5E3C]">Ricerca professionisti</p>
         <p className="mt-1 text-sm text-slate-600">
           Filtra per nome, luogo, categoria o specie trattata.
         </p>
@@ -117,7 +117,7 @@ export function PartnerFilters({
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Button type="submit" className="h-11 gap-2 px-5">
           <Search className="h-4 w-4" />
-          Cerca partner
+          Cerca professionisti
         </Button>
 
         <Link
