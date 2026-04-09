@@ -33,18 +33,28 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const PUBLIC_ROUTES = [
+  const AUTH_ROUTES = [
     '/login',
     '/registrazione',
     '/recupero-password',
     '/aggiorna-password',
     '/auth/callback',
+  ]
+
+  const PUBLIC_ROUTES = [
     '/app',
     '/privacy',
     '/terms',
+    '/partner',
+    '/partner/candidatura',
+    '/professionisti',
   ]
 
-  const isPublic = PUBLIC_ROUTES.some(
+  const isAuthRoute = AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  )
+
+  const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   )
 
@@ -54,13 +64,13 @@ export async function middleware(request: NextRequest) {
     )
   }
 
-  if (!user && !isPublic) {
+  if (!user && !isAuthRoute && !isPublicRoute) {
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && isPublic) {
+  if (user && isAuthRoute) {
     return NextResponse.redirect(new URL('/home', request.url))
   }
 
