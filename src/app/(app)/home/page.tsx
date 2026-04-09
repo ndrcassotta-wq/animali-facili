@@ -236,12 +236,12 @@ export default async function HomePage() {
               </div>
 
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[#8B5E3C]">Partner</p>
-                <h2 className="mt-1 text-base font-bold leading-tight text-gray-900">
+                <h2 className="text-base font-bold leading-tight text-gray-900">
                   Trova professionisti utili
                 </h2>
                 <p className="mt-1 text-sm leading-5 text-gray-500">
-                  Cerca veterinari, toelettatori, pet sitter e altri servizi per il tuo animale.
+                  Cerca veterinari, toelettatori, pet sitter e altri servizi per
+                  il tuo animale.
                 </p>
               </div>
             </div>
