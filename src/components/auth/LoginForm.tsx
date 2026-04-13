@@ -94,12 +94,15 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
-      ...(captchaEnabled && captchaToken ? { captchaToken } : {}),
+      options:
+        captchaEnabled && captchaToken
+          ? { captchaToken }
+          : undefined,
     })
 
     setSubmitting(false)
     setCaptchaToken(null)
-    setCaptchaResetKey(prev => prev + 1)
+    setCaptchaResetKey((prev) => prev + 1)
 
     if (error) {
       setErroreSrv('Email o password non corretti.')
