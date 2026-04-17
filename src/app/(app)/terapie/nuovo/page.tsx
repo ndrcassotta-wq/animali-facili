@@ -159,7 +159,21 @@ export default async function NuovaTerapiaGenericaPage() {
     const animaleId = String(formData.get('animale_id') ?? '').trim()
     const nomeFarmaco = String(formData.get('nome_farmaco') ?? '').trim()
     const dose = String(formData.get('dose') ?? '').trim()
-    const frequenza = String(formData.get('frequenza') ?? '').trim()
+    const frequenzaRaw = String(formData.get('frequenza') ?? '').trim()
+
+const frequenzeValide: FrequenzaTerapia[] = [
+  'una_volta_giorno',
+  'due_volte_giorno',
+  'tre_volte_giorno',
+  'al_bisogno',
+  'personalizzata',
+]
+
+if (!frequenzeValide.includes(frequenzaRaw as FrequenzaTerapia)) {
+  throw new Error('Frequenza non valida.')
+}
+
+const frequenza = frequenzaRaw as FrequenzaTerapia
     const frequenzaCustomRaw = String(
       formData.get('frequenza_custom') ?? ''
     ).trim()
