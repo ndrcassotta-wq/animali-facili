@@ -1,12 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  useEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
@@ -34,6 +29,7 @@ type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
 type TipoImpegno = NonNullable<ImpegnoInsert['tipo']>
 type FrequenzaImpegno = NonNullable<ImpegnoInsert['frequenza']>
 type Step = 'tipo' | 'animale-data' | 'dettagli'
+type CreatedSource = 'owner' | 'family'
 
 const STEPS: Step[] = ['tipo', 'animale-data', 'dettagli']
 
@@ -337,14 +333,52 @@ export default function NuovoImpegnoPage() {
 
     try {
       const supabase = createClient()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
 
-      const { data: animaleData } = await supabase
+      if (userError || !user) {
+        router.push('/login')
+        setIsSubmitting(false)
+        return
+      }
+
+      const { data: animaleData, error: animaleError } = await supabase
         .from('animali')
-        .select('nome')
+        .select('nome, user_id')
         .eq('id', animaleId)
         .single()
 
-      const animaleNome = animaleData?.nome ?? ''
+      if (animaleError || !animaleData) {
+        setErroreSrv('Animale non valido o non accessibile.')
+        setIsSubmitting(false)
+        return
+      }
+
+      let createdSource: CreatedSource
+
+      if (animaleData.user_id === user.id) {
+        createdSource = 'owner'
+      } else {
+        const { data: accessData, error: accessError } = await supabase
+          .from('animali_utenti')
+          .select('id')
+          .eq('animale_id', animaleId)
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .maybeSingle()
+
+        if (accessError || !accessData) {
+          setErroreSrv('Non sei autorizzato a creare impegni per questo animale.')
+          setIsSubmitting(false)
+          return
+        }
+
+        createdSource = 'family'
+      }
+
+      const animaleNome = animaleData.nome ?? ''
 
       const payload: ImpegnoInsert = {
         animale_id: animaleId,
@@ -356,6 +390,9 @@ export default function NuovoImpegnoPage() {
         notifiche_attive: modalitaNotifica !== 'nessuna',
         stato: 'programmato',
         note: note.trim() || null,
+        created_by_user_id: user.id,
+        created_by_partner_profile_id: null,
+        created_source: createdSource,
       }
 
       const { data: nuovoImpegno, error } = await supabase

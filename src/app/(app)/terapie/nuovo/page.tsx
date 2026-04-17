@@ -8,6 +8,15 @@ import { NuovaTerapiaWizard } from '@/components/terapie/NuovaTerapiaWizard'
 
 type Animale = Database['public']['Tables']['animali']['Row']
 type ImpegnoInsert = Database['public']['Tables']['impegni']['Insert']
+type TerapiaInsert = Database['public']['Tables']['terapie']['Insert']
+type FrequenzaTerapia = NonNullable<TerapiaInsert['frequenza']>
+type CreatedSource = 'owner' | 'family'
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>
+
+type AnimaleCardData = Pick<
+  Animale,
+  'id' | 'nome' | 'specie' | 'razza' | 'foto_url' | 'categoria'
+>
 
 function getAutoTerapiaMarker(terapiaId: string) {
   return `[AUTO_TERAPIA:${terapiaId}]`
@@ -38,6 +47,89 @@ function buildAutoImpegnoNote(
   return parts.join('\n')
 }
 
+async function getAccessibleAnimali(
+  supabase: ServerSupabase,
+  userId: string
+): Promise<AnimaleCardData[]> {
+  const { data: ownedRows, error: ownedError } = await supabase
+    .from('animali')
+    .select('id, nome, specie, razza, foto_url, categoria')
+    .eq('user_id', userId)
+    .order('nome', { ascending: true })
+
+  if (ownedError) {
+    throw new Error(ownedError.message)
+  }
+
+  const { data: sharedLinks, error: sharedLinksError } = await supabase
+    .from('animali_utenti')
+    .select('animale_id')
+    .eq('user_id', userId)
+    .eq('status', 'accepted')
+
+  if (sharedLinksError) {
+    throw new Error(sharedLinksError.message)
+  }
+
+  const owned = (ownedRows ?? []) as AnimaleCardData[]
+  const sharedAnimalIds = Array.from(
+    new Set((sharedLinks ?? []).map((row) => row.animale_id).filter(Boolean))
+  ).filter((id) => !owned.some((animale) => animale.id === id))
+
+  let sharedAnimali: AnimaleCardData[] = []
+
+  if (sharedAnimalIds.length > 0) {
+    const { data: sharedRows, error: sharedRowsError } = await supabase
+      .from('animali')
+      .select('id, nome, specie, razza, foto_url, categoria')
+      .in('id', sharedAnimalIds)
+
+    if (sharedRowsError) {
+      throw new Error(sharedRowsError.message)
+    }
+
+    sharedAnimali = (sharedRows ?? []) as AnimaleCardData[]
+  }
+
+  return [...owned, ...sharedAnimali].sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' })
+  )
+}
+
+async function resolveCreateOwnership(
+  supabase: ServerSupabase,
+  animaleId: string,
+  userId: string
+): Promise<CreatedSource> {
+  const { data: animaleRow, error: animaleError } = await supabase
+    .from('animali')
+    .select('id, user_id')
+    .eq('id', animaleId)
+    .single()
+
+  if (animaleError || !animaleRow) {
+    throw new Error('Animale non valido.')
+  }
+
+  if (animaleRow.user_id === userId) {
+    return 'owner'
+  }
+
+  const { data: accessRow, error: accessError } = await supabase
+    .from('animali_utenti')
+    .select('id')
+    .eq('animale_id', animaleId)
+    .eq('user_id', userId)
+    .eq('status', 'accepted')
+    .maybeSingle()
+
+  if (accessError || !accessRow) {
+    throw new Error('Non sei autorizzato a creare contenuti per questo animale.')
+  }
+
+  return 'family'
+}
+
 export default async function NuovaTerapiaGenericaPage() {
   const supabase = await createClient()
 
@@ -49,20 +141,7 @@ export default async function NuovaTerapiaGenericaPage() {
     redirect('/login')
   }
 
-  const { data: animaliRows, error: animaliError } = await supabase
-    .from('animali')
-    .select('id, nome, specie, razza, foto_url, categoria')
-    .eq('user_id', user.id)
-    .order('nome', { ascending: true })
-
-  if (animaliError) {
-    throw new Error(animaliError.message)
-  }
-
-  const animali = (animaliRows ?? []) as Pick<
-    Animale,
-    'id' | 'nome' | 'specie' | 'razza' | 'foto_url' | 'categoria'
-  >[]
+  const animali = await getAccessibleAnimali(supabase, user.id)
 
   async function creaTerapia(formData: FormData) {
     'use server'
@@ -96,18 +175,13 @@ export default async function NuovaTerapiaGenericaPage() {
       throw new Error('Compila tutti i campi obbligatori.')
     }
 
-    const { data: animaleCheck, error: animaleCheckError } = await supabase
-      .from('animali')
-      .select('id')
-      .eq('id', animaleId)
-      .eq('user_id', user.id)
-      .single()
+    const createdSource = await resolveCreateOwnership(
+      supabase,
+      animaleId,
+      user.id
+    )
 
-    if (animaleCheckError || !animaleCheck) {
-      throw new Error('Animale non valido.')
-    }
-
-    const payload = {
+    const payload: TerapiaInsert = {
       animale_id: animaleId,
       nome_farmaco: nomeFarmaco,
       dose,
@@ -119,11 +193,14 @@ export default async function NuovaTerapiaGenericaPage() {
       ora_somministrazione: oraSomministrazioneRaw || null,
       note: noteRaw || null,
       stato: 'attiva',
+      created_by_user_id: user.id,
+      created_by_partner_profile_id: null,
+      created_source: createdSource,
     }
 
     const { data: terapiaCreata, error: terapiaError } = await supabase
       .from('terapie')
-      .insert(payload as never)
+      .insert(payload)
       .select(
         'id, animale_id, nome_farmaco, dose, frequenza, data_inizio, data_fine, stato'
       )
@@ -159,6 +236,9 @@ export default async function NuovaTerapiaGenericaPage() {
           noteRaw,
           oraSomministrazioneRaw
         ),
+        created_by_user_id: user.id,
+        created_by_partner_profile_id: null,
+        created_source: createdSource,
       }
 
       const { data: impegnoCreato, error: impegnoError } = await supabase
@@ -168,7 +248,10 @@ export default async function NuovaTerapiaGenericaPage() {
         .single()
 
       if (impegnoError || !impegnoCreato) {
-        throw new Error(impegnoError?.message || 'Errore durante la creazione del promemoria terapia.')
+        throw new Error(
+          impegnoError?.message ||
+            'Errore durante la creazione del promemoria terapia.'
+        )
       }
 
       autoImpegnoId = impegnoCreato.id

@@ -280,6 +280,9 @@ export type Database = {
           note: string | null
           created_at: string
           updated_at: string
+          created_by_user_id: string | null
+          created_by_partner_profile_id: string | null
+          created_source: string | null
         }
         Insert: {
           id?: string
@@ -308,6 +311,9 @@ export type Database = {
           note?: string | null
           created_at?: string
           updated_at?: string
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Update: {
           id?: string
@@ -336,6 +342,9 @@ export type Database = {
           note?: string | null
           created_at?: string
           updated_at?: string
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Relationships: [
           {
@@ -365,6 +374,9 @@ export type Database = {
           note: string | null
           created_at: string
           updated_at: string
+          created_by_user_id: string | null
+          created_by_partner_profile_id: string | null
+          created_source: string | null
         }
         Insert: {
           id?: string
@@ -383,6 +395,9 @@ export type Database = {
           note?: string | null
           created_at?: string
           updated_at?: string
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Update: {
           id?: string
@@ -401,6 +416,9 @@ export type Database = {
           note?: string | null
           created_at?: string
           updated_at?: string
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Relationships: [
           {
@@ -483,6 +501,9 @@ export type Database = {
           created_at: string
           updated_at: string
           ora_somministrazione: string | null
+          created_by_user_id: string | null
+          created_by_partner_profile_id: string | null
+          created_source: string | null
         }
         Insert: {
           id?: string
@@ -503,6 +524,9 @@ export type Database = {
           created_at?: string
           updated_at?: string
           ora_somministrazione?: string | null
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Update: {
           id?: string
@@ -523,6 +547,9 @@ export type Database = {
           created_at?: string
           updated_at?: string
           ora_somministrazione?: string | null
+          created_by_user_id?: string | null
+          created_by_partner_profile_id?: string | null
+          created_source?: string | null
         }
         Relationships: [
           {

@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils'
 
 type FormValori = z.infer<typeof documentoSchema>
 type DocumentoInsert = Database['public']['Tables']['documenti']['Insert']
+type CreatedSource = 'owner' | 'family'
 
 type Step = 'file' | 'titolo' | 'data' | 'note' | 'carica'
 
@@ -577,11 +578,44 @@ export default function CaricaDocumentoPage() {
       const supabase = createClient()
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (userError || !user) {
         router.push('/login')
         return
+      }
+
+      const { data: animaleData, error: animaleError } = await supabase
+        .from('animali')
+        .select('id, user_id')
+        .eq('id', animaleId)
+        .single()
+
+      if (animaleError || !animaleData) {
+        throw new Error('Animale non valido o non accessibile.')
+      }
+
+      let createdSource: CreatedSource
+
+      if (animaleData.user_id === user.id) {
+        createdSource = 'owner'
+      } else {
+        const { data: accessData, error: accessError } = await supabase
+          .from('animali_utenti')
+          .select('id')
+          .eq('animale_id', animaleId)
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .maybeSingle()
+
+        if (accessError || !accessData) {
+          throw new Error(
+            'Non sei autorizzato a caricare documenti per questo animale.'
+          )
+        }
+
+        createdSource = 'family'
       }
 
       const nomeSanitizzato = file.name.replace(/[^a-z0-9.\-_]/gi, '_')
@@ -605,6 +639,9 @@ export default function CaricaDocumentoPage() {
         data_documento: data.data_documento || null,
         file_url: filePath,
         note: data.note || null,
+        created_by_user_id: user.id,
+        created_by_partner_profile_id: null,
+        created_source: createdSource,
       }
 
       const { error: dbError } = await supabase.from('documenti').insert(payload)
