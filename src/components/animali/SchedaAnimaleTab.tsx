@@ -188,24 +188,28 @@ function QuickCard({
     <button
       onClick={onClick}
       className={cn(
-        'group flex min-h-[132px] flex-col justify-between rounded-[28px] border p-4 text-left shadow-sm transition-all active:scale-[0.98]',
+        'group flex min-h-[140px] min-w-0 flex-col justify-between overflow-hidden rounded-[28px] border p-4 text-left shadow-sm transition-all active:scale-[0.98]',
         tone
       )}
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
         {icon}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-base font-extrabold">{title}</p>
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 flex-1 break-words text-[15px] font-extrabold leading-5">
+            {title}
+          </p>
           <ChevronRight
             size={18}
             strokeWidth={2.4}
-            className="opacity-60 transition-transform group-active:translate-x-0.5"
+            className="mt-0.5 shrink-0 opacity-60 transition-transform group-active:translate-x-0.5"
           />
         </div>
-        <p className="mt-1 text-xs leading-5 opacity-75">{subtitle}</p>
+        <p className="mt-1 break-words text-xs leading-5 opacity-75">
+          {subtitle}
+        </p>
       </div>
     </button>
   )
@@ -1387,12 +1391,12 @@ export function SchedaAnimaleTab({
   if (tabAttivo !== 'home') {
     return (
       <div
-        className="flex flex-col bg-[#F7F1EA]"
+        className="flex min-h-0 flex-col bg-[#F7F1EA]"
         style={{ minHeight: '100dvh' }}
       >
         {fotoPickerShared}
 
-        <header className="rounded-b-[30px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-4 pt-10">
+        <header className="shrink-0 rounded-b-[30px] bg-gradient-to-b from-[#FFF4E8] to-[#F7F1EA] px-5 pb-4 pt-10">
           <button
             onClick={() => cambiaTab('home')}
             className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#EEE4D9] bg-white shadow-sm active:opacity-70"
@@ -1442,10 +1446,10 @@ export function SchedaAnimaleTab({
                     {categoriaLabel}
                   </span>
                 </div>
-                <p className="truncate text-lg font-extrabold text-gray-900">
+                <p className="break-words text-lg font-extrabold leading-tight text-gray-900">
                   {animale.nome}
                 </p>
-                <p className="truncate text-sm text-gray-500">
+                <p className="break-words text-sm text-gray-500">
                   {animale.specie}
                   {animale.razza ? ` · ${animale.razza}` : ''}
                 </p>
@@ -1454,7 +1458,10 @@ export function SchedaAnimaleTab({
           </div>
         </header>
 
-        <div ref={contenutoInternoRef} className="flex-1 overflow-y-auto">
+        <div
+          ref={contenutoInternoRef}
+          className="min-h-0 flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+24px)]"
+        >
           {erroreFoto && (
             <div className="px-5 pt-4">
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
@@ -1496,8 +1503,8 @@ export function SchedaAnimaleTab({
 
   return (
     <div
-      className="flex flex-col overflow-hidden bg-[#F7F1EA]"
-      style={{ height: 'calc(100dvh - 80px)' }}
+      className="flex min-h-0 flex-col overflow-hidden bg-[#F7F1EA]"
+      style={{ minHeight: 'calc(100dvh - 80px)' }}
     >
       {fotoPickerShared}
 
@@ -1527,7 +1534,7 @@ export function SchedaAnimaleTab({
           <div className="flex flex-col items-center text-center">
             <div
               className={cn(
-                'mt-2 flex h-[200px] w-[200px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
+                'mt-2 flex h-[180px] w-[180px] items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]',
                 !avatarFoto &&
                   (coloreCategoria[animale.categoria] ?? 'bg-gray-100')
               )}
@@ -1539,23 +1546,23 @@ export function SchedaAnimaleTab({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span style={{ fontSize: '5.5rem', lineHeight: 1 }}>
+                <span style={{ fontSize: '5rem', lineHeight: 1 }}>
                   {avatarFallback}
                 </span>
               )}
             </div>
 
             <div className="mt-4 px-2">
-              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-gray-900">
+              <h1 className="break-words text-2xl font-extrabold leading-tight tracking-tight text-gray-900">
                 {animale.nome}
               </h1>
 
-              <p className="mt-1 text-sm font-semibold text-gray-600">
+              <p className="mt-1 break-words text-sm font-semibold leading-5 text-gray-600">
                 {sottotitoloHeader}
               </p>
 
               {animale.data_nascita && (
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs leading-5 text-gray-400">
                   🎂{' '}
                   {new Date(animale.data_nascita).toLocaleDateString('it-IT', {
                     day: 'numeric',
@@ -1569,99 +1576,108 @@ export function SchedaAnimaleTab({
         </div>
       </div>
 
-      <div className="flex-1 px-5 pb-6 pt-5">
+      <div
+        ref={contenutoInternoRef}
+        className="min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-5"
+      >
         {erroreFoto && (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm font-medium text-red-600">{erroreFoto}</p>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <QuickCard
-            title="Impegni"
-            subtitle={
-              impegniProssimi > 0
-                ? `${impegniProssimi} ${
-                    impegniProssimi === 1 ? 'programmato' : 'programmati'
-                  }`
-                : 'Nessuno in arrivo'
-            }
-            onClick={() => cambiaTab('impegni')}
-            tone="border-blue-100 bg-blue-50 text-blue-900"
-            icon={
-              <Calendar size={24} strokeWidth={2} className="text-blue-600" />
-            }
-          />
+        <div className="pb-2">
+          <div className="grid grid-cols-2 gap-4">
+            <QuickCard
+              title="Impegni"
+              subtitle={
+                impegniProssimi > 0
+                  ? `${impegniProssimi} ${
+                      impegniProssimi === 1 ? 'programmato' : 'programmati'
+                    }`
+                  : 'Nessuno in arrivo'
+              }
+              onClick={() => cambiaTab('impegni')}
+              tone="border-blue-100 bg-blue-50 text-blue-900"
+              icon={
+                <Calendar size={24} strokeWidth={2} className="text-blue-600" />
+              }
+            />
 
-          <QuickCard
-            title="Terapie"
-            subtitle={
-              terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'
-            }
-            onClick={() => cambiaTab('terapie')}
-            tone="border-teal-100 bg-teal-50 text-teal-900"
-            icon={
-              <Stethoscope
-                size={24}
-                strokeWidth={2}
-                className="text-teal-600"
-              />
-            }
-          />
+            <QuickCard
+              title="Terapie"
+              subtitle={
+                terapieAttive > 0 ? `${terapieAttive} attive` : 'Nessuna attiva'
+              }
+              onClick={() => cambiaTab('terapie')}
+              tone="border-teal-100 bg-teal-50 text-teal-900"
+              icon={
+                <Stethoscope
+                  size={24}
+                  strokeWidth={2}
+                  className="text-teal-600"
+                />
+              }
+            />
 
-          <QuickCard
-            title="Documenti"
-            subtitle={
-              documenti.length > 0
-                ? `${documenti.length} salvati`
-                : 'Nessun documento'
-            }
-            onClick={() => cambiaTab('documenti')}
-            tone="border-slate-200 bg-slate-100 text-slate-800"
-            icon={
-              <FolderOpen
-                size={24}
-                strokeWidth={2}
-                className="text-slate-600"
-              />
-            }
-          />
+            <QuickCard
+              title="Documenti"
+              subtitle={
+                documenti.length > 0
+                  ? `${documenti.length} salvati`
+                  : 'Nessun documento'
+              }
+              onClick={() => cambiaTab('documenti')}
+              tone="border-slate-200 bg-slate-100 text-slate-800"
+              icon={
+                <FolderOpen
+                  size={24}
+                  strokeWidth={2}
+                  className="text-slate-600"
+                />
+              }
+            />
 
-          <QuickCard
-            title="Profilo"
-            subtitle="Info e dettagli"
-            onClick={() => cambiaTab('profilo')}
-            tone="border-violet-100 bg-violet-50 text-violet-900"
-            icon={<User size={24} strokeWidth={2} className="text-violet-600" />}
-          />
+            <QuickCard
+              title="Profilo"
+              subtitle="Info e dettagli"
+              onClick={() => cambiaTab('profilo')}
+              tone="border-violet-100 bg-violet-50 text-violet-900"
+              icon={
+                <User size={24} strokeWidth={2} className="text-violet-600" />
+              }
+            />
 
-          <QuickCard
-            title="Diario"
-            subtitle={
-              vociDiario > 0
-                ? `${vociDiario} ${vociDiario === 1 ? 'voce salvata' : 'voci salvate'}`
-                : 'Note, foto e osservazioni'
-            }
-            onClick={() => cambiaTab('diario')}
-            tone="border-amber-100 bg-amber-50 text-amber-900"
-            icon={
-              <BookOpen size={24} strokeWidth={2} className="text-amber-600" />
-            }
-          />
+            <QuickCard
+              title="Diario"
+              subtitle={
+                vociDiario > 0
+                  ? `${vociDiario} ${
+                      vociDiario === 1 ? 'voce salvata' : 'voci salvate'
+                    }`
+                  : 'Note, foto e osservazioni'
+              }
+              onClick={() => cambiaTab('diario')}
+              tone="border-amber-100 bg-amber-50 text-amber-900"
+              icon={
+                <BookOpen size={24} strokeWidth={2} className="text-amber-600" />
+              }
+            />
 
-          <QuickCard
-            title="Storico"
-            subtitle={
-              eventiStorico > 0
-                ? `${eventiStorico} eventi registrati`
-                : 'Si popola con l’app'
-            }
-            onClick={() => cambiaTab('storico')}
-            tone="border-slate-200 bg-[#FCF8F3] text-slate-800"
-            icon={
-              <Calendar size={24} strokeWidth={2} className="text-slate-600" />
-            }
-          />
+            <QuickCard
+              title="Storico"
+              subtitle={
+                eventiStorico > 0
+                  ? `${eventiStorico} eventi registrati`
+                  : 'Si popola con l’app'
+              }
+              onClick={() => cambiaTab('storico')}
+              tone="border-slate-200 bg-[#FCF8F3] text-slate-800"
+              icon={
+                <Calendar size={24} strokeWidth={2} className="text-slate-600" />
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
