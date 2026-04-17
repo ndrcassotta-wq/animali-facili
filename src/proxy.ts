@@ -41,6 +41,8 @@ export async function proxy(request: NextRequest) {
     '/auth/callback',
     '/app',
     '/privacy',
+    '/privacy-policy',
+    '/delete-account',
     '/terms',
   ]
 

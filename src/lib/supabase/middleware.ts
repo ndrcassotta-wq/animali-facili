@@ -43,7 +43,10 @@ export async function middleware(request: NextRequest) {
 
   const PUBLIC_ROUTES = [
     '/app',
+    '/guida',
     '/privacy',
+    '/privacy-policy',
+    '/delete-account',
     '/terms',
     '/partner',
     '/partner/candidatura',

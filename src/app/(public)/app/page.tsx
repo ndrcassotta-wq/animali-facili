@@ -52,10 +52,16 @@ export default function AppInfoPage() {
           <h2 className="text-xl font-semibold">Informazioni utili</h2>
           <div className="mt-4 flex flex-col gap-3 text-sm">
             <Link
-              href="/privacy"
+              href="/privacy-policy"
               className="underline underline-offset-4 hover:text-foreground"
             >
               Privacy Policy
+            </Link>
+            <Link
+              href="/delete-account"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Eliminazione account
             </Link>
             <Link
               href="/terms"

@@ -8,6 +8,8 @@ import {
   Info,
   Mail,
   PencilLine,
+  Shield,
+  Trash2,
   UserRound,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -45,6 +47,31 @@ function RigaRiepilogo({
         {valore}
       </span>
     </div>
+  )
+}
+
+function LinkAccount({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 transition-all active:scale-[0.98]"
+    >
+      <div className="mt-0.5 text-amber-500">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-800">{title}</p>
+        <p className="mt-1 text-sm leading-5 text-gray-500">{description}</p>
+      </div>
+    </Link>
   )
 }
 
@@ -262,8 +289,26 @@ export function ProfiloContent({
               Account
             </h2>
             <p className="mt-1 text-sm leading-5 text-gray-400">
-              Da qui puoi uscire in sicurezza dal tuo account.
+              Da qui puoi gestire i link utili del tuo account, consultare la
+              privacy policy, avviare la richiesta di eliminazione account e
+              uscire in sicurezza.
             </p>
+          </div>
+
+          <div className="space-y-3">
+            <LinkAccount
+              href="/privacy-policy"
+              icon={<Shield size={18} strokeWidth={2.2} />}
+              title="Privacy Policy"
+              description="Consulta la privacy policy ufficiale di Animali Facili."
+            />
+
+            <LinkAccount
+              href="/delete-account"
+              icon={<Trash2 size={18} strokeWidth={2.2} />}
+              title="Eliminazione account"
+              description="Apri la pagina dedicata per richiedere la cancellazione del tuo account."
+            />
           </div>
 
           <LogoutButton />
