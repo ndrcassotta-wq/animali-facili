@@ -343,7 +343,6 @@ function TabDiario({
   )
   const [voceSelezionataId, setVoceSelezionataId] = useState<string | null>(null)
   const [voceInModificaId, setVoceInModificaId] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   const [data, setData] = useState(getDataOggi())
   const [titolo, setTitolo] = useState('')
@@ -360,10 +359,7 @@ function TabDiario({
   const isEditing = voceInModificaId !== null
   const voceSelezionata =
     voci.find((voce) => voce.id === voceSelezionataId) ?? null
-  const puoModificareVoceSelezionata =
-    !!currentUserId &&
-    !!voceSelezionata &&
-    voceSelezionata.created_by === currentUserId
+  const puoGestireVoceSelezionata = !!voceSelezionata
 
   useEffect(() => {
     const vociOrdinate = ordinaVociDiario(vociIniziali)
@@ -381,26 +377,6 @@ function TabDiario({
   useEffect(() => {
     resetAppScrollToTop()
   }, [modalita])
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function caricaUtenteCorrente() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!isMounted) return
-      setCurrentUserId(user?.id ?? null)
-    }
-
-    caricaUtenteCorrente()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   useEffect(() => {
     fotoDiarioDraftsRef.current = fotoDiarioDrafts
@@ -451,11 +427,6 @@ function TabDiario({
   }
 
   function apriModificaVoce(voce: DiarioVoce) {
-    if (!currentUserId || voce.created_by !== currentUserId) {
-      setErroreSrv('Puoi modificare solo le voci che hai creato tu.')
-      return
-    }
-
     resetFotoDiario()
     setVoceSelezionataId(voce.id)
     setVoceInModificaId(voce.id)
@@ -594,12 +565,6 @@ function TabDiario({
       const supabase = createClient()
 
       if (isEditing && voceInModificaId) {
-        if (!currentUserId) {
-          setErroreSrv('Sessione non valida. Ricarica la pagina e riprova.')
-          setIsSaving(false)
-          return
-        }
-
         const fotoUrls = await caricaFotoDiario(fotoDiarioDrafts, voceInModificaId)
 
         const payload: DiarioVoceUpdate = {
@@ -615,7 +580,6 @@ function TabDiario({
           .update(payload)
           .eq('id', voceInModificaId)
           .eq('animale_id', animaleId)
-          .eq('created_by', currentUserId)
           .select('*')
           .single()
 
@@ -694,11 +658,6 @@ function TabDiario({
   }
 
   async function eliminaVoce(voce: DiarioVoce) {
-    if (!currentUserId || voce.created_by !== currentUserId) {
-      setErroreSrv('Puoi eliminare solo le voci che hai creato tu.')
-      return
-    }
-
     const conferma = window.confirm(
       'Vuoi eliminare questa voce del diario? Questa azione non si può annullare.'
     )
@@ -716,7 +675,6 @@ function TabDiario({
         .delete()
         .eq('id', voce.id)
         .eq('animale_id', animaleId)
-        .eq('created_by', currentUserId)
 
       if (error) {
         setErroreSrv(`Errore durante l’eliminazione: ${error.message}`)
@@ -1048,12 +1006,12 @@ function TabDiario({
                   Modificata il {formatDataOraDiario(voceSelezionata.updated_at)}
                 </p>
               )}
-            {!puoModificareVoceSelezionata && (
-              <p>Questa voce è stata creata da un altro account collegato.</p>
+            {voceSelezionata.created_by !== null && (
+              <p>Se questa voce è stata creata da un altro account collegato, puoi comunque gestirla perché hai accesso a questo animale.</p>
             )}
           </div>
 
-          {puoModificareVoceSelezionata && (
+          {puoGestireVoceSelezionata && (
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 type="button"
