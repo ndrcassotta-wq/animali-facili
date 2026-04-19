@@ -49,7 +49,6 @@ export default async function ListaAnimaliPage() {
   const { data: animaliRaw } = await supabase
     .from('animali')
     .select('*')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   const lista = (animaliRaw ?? []) as Animale[]

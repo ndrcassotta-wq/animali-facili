@@ -13,14 +13,16 @@ export default async function ModificaAnimalePage({
   const { id } = await params
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) redirect('/login')
 
   const { data: rawAnimale } = await supabase
     .from('animali')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!rawAnimale) notFound()

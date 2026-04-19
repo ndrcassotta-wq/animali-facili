@@ -402,8 +402,7 @@ export default function ModificaAnimaleForm({ animale }: { animale: Animale }) {
       const { error } = await supabase
         .from('animali')
         .update(payload)
-        .eq('id', animale.id)
-        .eq('user_id', user.id)
+        .eq('id', animale.id)        
 
       if (error) {
         throw new Error(`Errore durante il salvataggio: ${error.message}`)
